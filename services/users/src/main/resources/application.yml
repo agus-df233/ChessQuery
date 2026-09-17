@@ -7,7 +7,7 @@ spring:
     password: ${DB_PASSWORD:chessquery}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: validate          # el esquema lo define Flyway; Hibernate solo verifica que coincida
     open-in-view: false
     properties:
       hibernate.default_schema: users
@@ -32,6 +32,9 @@ chessquery:
   auth:
     internal-token: ${INTERNAL_TOKEN:dev-internal-token}
     roles-claim: roles
+  external-ratings:
+    lichess-base-url: ${LICHESS_API_BASE:https://lichess.org}
+    chesscom-base-url: ${CHESSCOM_API_BASE:https://api.chess.com}
 
 server:
   port: ${PORT:8081}

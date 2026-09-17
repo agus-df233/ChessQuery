@@ -5,10 +5,12 @@ spring:
         jwt:
           issuer-uri: http://localhost/test-issuer
           audiences: test-audience
-  flyway:
-    schemas: users
-    default-schema: users
-    create-schemas: true
+  rabbitmq:
+    listener:
+      auto-startup: false   # sin broker en tests; los consumers se prueban llamando a apply()
 chessquery:
   auth:
     internal-token: test-token
+  external-ratings:
+    lichess-base-url: http://127.0.0.1:1
+    chesscom-base-url: http://127.0.0.1:1

@@ -22,13 +22,16 @@ CREATE TABLE processed_event (
 
 | Routing key | Productor | Consumidores | Payload | Estado |
 |---|---|---|---|---|
-| `player.provisioned` | users | notifications | `{ playerId, email }` | paso 1 |
-| `player.claimed` | users | tournament, notifications | `{ playerId, organizerId, email }` | paso 1 |
+| `player.provisioned` | users | notifications | `{ playerId, email, fullName }` — primer acceso de una cuenta nueva | ✅ |
+| `player.claimed` | users | tournament, notifications | `{ playerId, email, fullName, organizerId }` — un provisorio del roster reclamado por su dueño (mismo `playerId`, sin re-vinculación) | ✅ |
+| `player.provisional.created` | users | notifications | `{ playerId, organizerId, email }` | ✅ |
+| `player.updated` | users | — | `{ playerId, fields: [...] }` | ✅ |
 | `subscription.changed` | users | notifications | `{ organizationId, ownerId, oldPlan, newPlan, status, gateway, reason }` | paso 6 |
-| `rating.updated` | etl | users | `{ source, players: [...] }` | paso 5 |
-| `elo.updated` | game | users | `{ playerId, oldElo, newElo, delta, ratingType, gameId }` | paso 3 |
+| `rating.updated` | etl | users (`users.rating.queue`) | `{ source: AJEFECH\|LICHESS\|CHESSCOM, players: [ { firstName, lastName, federationId?, fideId?, rut?, birthDate?, clubName?, eloNational?, eloFideStandard? } \| { lichessUsername, eloLichess* } \| { chesscomUsername, eloChesscom* } ] }` | consumer ✅ / productor paso 5 |
+| `elo.updated` | game | users (`users.elo.queue`) | `{ playerId, oldElo, newElo, delta, ratingType, gameId }` — uno por jugador | consumer ✅ / productor paso 3 |
 | `game.finished` | game | notifications | `{ gameId, whitePlayerId, blackPlayerId, result, ... }` | paso 3 |
 | `tournament.round.generated` | tournament | game, notifications | `{ tournamentId, round, pairings: [...] }` | paso 2 |
-| `friend.requested` / `friend.accepted` | users | notifications | `{ fromPlayerId, toPlayerId }` | paso 1 |
+| `friend.request.created` | users | notifications | `{ requestId, fromPlayerId, fromName, toPlayerId }` | ✅ |
+| `friend.request.accepted` | users | notifications | `{ requestId, fromPlayerId, toPlayerId, acceptedName }` | ✅ |
 
 Los payloads exactos se completan al portar cada servicio, a partir de `docs/events.md` de la v2.

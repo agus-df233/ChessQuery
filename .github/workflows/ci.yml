@@ -20,9 +20,24 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      # Testcontainers (PostgresSchemaTest) usa el Docker del runner.
+      # Los tests de integración usan Testcontainers (PostgreSQL 16) con el Docker del runner.
       - name: Build & test (JaCoCo >= 90% por módulo)
         run: mvn -B -ntp verify
+
+  web:
+    name: Web (Vitest + axe + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Tests (incluye gates de accesibilidad axe-core y contraste AA)
+        run: npm run test -w web
+      - name: Typecheck + build de producción
+        run: npm run build -w web
 
   security-scan:
     name: Trivy filesystem scan (bloqueante HIGH/CRITICAL)

@@ -1,0 +1,22 @@
+{
+  "name": "chessquery-web",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Frontend de ChessQuery: una sola app React (jugador y organizador) + design system",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "test": "npm run test -w web"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@vitest/coverage-v8": "^4.1.6",
+    "axe-core": "^4.12.1",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.6",
+    "vitest-axe": "^0.1.0"
+  }
+}

@@ -1,0 +1,113 @@
+package cl.chessquery.users.player;
+
+import cl.chessquery.users.catalog.Club;
+import cl.chessquery.users.catalog.Country;
+import cl.chessquery.users.ranking.AgeCategory;
+import jakarta.validation.constraints.Size;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+
+/**
+ * Contratos REST del jugador. Tres proyecciones con propósito distinto:
+ * <ul>
+ *   <li>{@link Profile}: completa, con datos personales. Solo para el propio jugador y para
+ *       el organizador sobre sus provisorios.</li>
+ *   <li>{@link PublicProfile}: lo que cualquier otro jugador puede ver. Es una lista blanca:
+ *       nada de RUT, email, fecha de nacimiento ni género (hay menores en la plataforma y
+ *       los ids son correlativos).</li>
+ *   <li>{@link Summary}: mínimo para que otros servicios pinten nombres y ELO en listas.</li>
+ * </ul>
+ */
+public final class PlayerDtos {
+
+    private PlayerDtos() {}
+
+    public record Ratings(
+            Integer national, Integer fideStandard, Integer fideRapid, Integer fideBlitz, Integer platform,
+            Integer lichessBullet, Integer lichessBlitz, Integer lichessRapid, Integer lichessClassical,
+            Integer chesscomBullet, Integer chesscomBlitz, Integer chesscomRapid, Integer chesscomDaily) {
+
+        static Ratings of(Player p) {
+            return new Ratings(p.getEloNational(), p.getEloFideStandard(), p.getEloFideRapid(), p.getEloFideBlitz(),
+                    p.getEloPlatform(), p.getEloLichessBullet(), p.getEloLichessBlitz(), p.getEloLichessRapid(),
+                    p.getEloLichessClassical(), p.getEloChesscomBullet(), p.getEloChesscomBlitz(),
+                    p.getEloChesscomRapid(), p.getEloChesscomDaily());
+        }
+    }
+
+    public record Profile(
+            Long id, String firstName, String lastName, String displayName, String email, String rut,
+            LocalDate birthDate, String gender, String region, Country.Dto country, Club.Dto club,
+            String fideId, String federationId, String lichessUsername, String chesscomUsername,
+            Ratings ratings, String currentTitle, String ageCategory,
+            String enrichmentSource, Instant enrichedAt,
+            boolean provisional, Long createdByOrganizerId, boolean active, List<String> tags,
+            Instant createdAt, Instant updatedAt) {
+
+        public static Profile of(Player p, String title) {
+            return new Profile(p.getId(), p.getFirstName(), p.getLastName(), p.getDisplayName(), p.getEmail(),
+                    p.getRut(), p.getBirthDate(), p.getGender(), p.getRegion(),
+                    Country.Dto.of(p.getCountry()), Club.Dto.of(p.getClub()),
+                    p.getFideId(), p.getFederationId(), p.getLichessUsername(), p.getChesscomUsername(),
+                    Ratings.of(p), title, AgeCategory.fromBirthDate(p.getBirthDate()).name(),
+                    p.getEnrichmentSource(), p.getEnrichedAt(),
+                    p.isProvisional(), p.getCreatedByOrganizerId(), p.isActive(), p.tagList(),
+                    p.getCreatedAt(), p.getUpdatedAt());
+        }
+    }
+
+    public record PublicProfile(
+            Long id, String firstName, String lastName, String displayName, String currentTitle,
+            String region, Country.Dto country, Club.Dto club, String ageCategory,
+            String fideId, String federationId, String lichessUsername, String chesscomUsername,
+            Ratings ratings, Instant createdAt) {
+
+        public static PublicProfile of(Player p, String title) {
+            return new PublicProfile(p.getId(), p.getFirstName(), p.getLastName(), p.getDisplayName(), title,
+                    p.getRegion(), Country.Dto.of(p.getCountry()), Club.Dto.of(p.getClub()),
+                    AgeCategory.fromBirthDate(p.getBirthDate()).name(),
+                    p.getFideId(), p.getFederationId(), p.getLichessUsername(), p.getChesscomUsername(),
+                    Ratings.of(p), p.getCreatedAt());
+        }
+    }
+
+    public record Summary(Long id, String firstName, String lastName, String currentTitle, String clubName,
+                          Integer eloNational, Integer eloFideStandard, Integer eloPlatform,
+                          boolean provisional, Long createdByOrganizerId, boolean hasAccount) {
+
+        public static Summary of(Player p, String title) {
+            return new Summary(p.getId(), p.getFirstName(), p.getLastName(), title,
+                    p.getClub() != null ? p.getClub().getName() : null,
+                    p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform(),
+                    p.isProvisional(), p.getCreatedByOrganizerId(), p.hasAccount());
+        }
+    }
+
+    public record SearchResult(Long id, String firstName, String lastName, String currentTitle, String clubName,
+                               String countryIso, String fideId, Integer eloNational, Integer eloFideStandard,
+                               Integer eloPlatform) {
+
+        public static SearchResult of(Player p, String title) {
+            return new SearchResult(p.getId(), p.getFirstName(), p.getLastName(), title,
+                    p.getClub() != null ? p.getClub().getName() : null,
+                    p.getCountry() != null ? p.getCountry().getIsoCode() : null,
+                    p.getFideId(), p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform());
+        }
+    }
+
+    /** Edición del propio perfil. Campos null = no tocar; cadena vacía = borrar (donde aplica). */
+    public record UpdateProfileRequest(
+            @Size(min = 1, max = 100) String firstName,
+            @Size(min = 1, max = 100) String lastName,
+            @Size(max = 200) String displayName,
+            @Size(max = 12) String rut,
+            LocalDate birthDate,
+            @Size(max = 1) String gender,
+            Integer countryId,
+            Integer clubId,
+            @Size(max = 100) String region,
+            @Size(max = 100) String lichessUsername,
+            @Size(max = 100) String chesscomUsername) {}
+}

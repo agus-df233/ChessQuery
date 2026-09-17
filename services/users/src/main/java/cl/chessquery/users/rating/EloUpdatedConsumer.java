@@ -1,0 +1,56 @@
+package cl.chessquery.users.rating;
+
+import cl.chessquery.common.events.ChessEvent;
+import cl.chessquery.common.events.IdempotentConsumer;
+import cl.chessquery.users.events.Payloads;
+import cl.chessquery.users.events.UsersEvents;
+import cl.chessquery.users.player.PlayerRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * Consume {@code elo.updated} (lo emite game al cerrar una partida, uno por jugador):
+ * {@code { playerId, oldElo, newElo, delta, ratingType, gameId? }}. Actualiza el snapshot y
+ * el historial con fuente GAME. No republica nada (evita bucles).
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class EloUpdatedConsumer {
+
+    private final IdempotentConsumer idempotent;
+    private final PlayerRepository players;
+    private final RatingService ratings;
+
+    @RabbitListener(queues = UsersEvents.ELO_QUEUE)
+    public void onEloUpdated(ChessEvent event) {
+        if (!UsersEvents.ELO_UPDATED.equals(event.eventType())) return;
+        idempotent.handle(event, this::apply);
+    }
+
+    /** Visible para pruebas; la idempotencia la aplica el listener. */
+    public void apply(ChessEvent event) {
+        Map<String, Object> p = event.payload();
+        Long playerId = Payloads.lng(p, "playerId");
+        Integer newElo = Payloads.integer(p, "newElo");
+        String typeName = Payloads.str(p, "ratingType");
+        if (playerId == null || newElo == null || typeName == null) {
+            log.warn("elo.updated incompleto: {}", p);
+            return;
+        }
+        RatingType type;
+        try {
+            type = RatingType.valueOf(typeName);
+        } catch (IllegalArgumentException e) {
+            log.warn("elo.updated con ratingType desconocido: {}", typeName);
+            return;
+        }
+        players.findById(playerId).ifPresentOrElse(
+                player -> ratings.apply(player, type, newElo, event.timestamp(), "GAME"),
+                () -> log.warn("elo.updated para jugador inexistente {}", playerId));
+    }
+}

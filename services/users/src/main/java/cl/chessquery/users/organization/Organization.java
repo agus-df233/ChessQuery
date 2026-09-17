@@ -1,22 +1,34 @@
 package cl.chessquery.users.organization;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
-/** Tenant del organizador (ADR-0005 v2). Ser dueño de una organización = rol ORGANIZER. */
+/**
+ * Club del organizador como tenant. Ser dueño de una organización ES el rol ORGANIZER:
+ * la librería de auth lo resuelve consultando esta tabla. El plan lo cambia solo billing.
+ */
 @Entity
 @Table(name = "organization")
+@Getter @Setter
+@NoArgsConstructor
 public class Organization {
 
-    public enum Plan { FREE, PRO }
+    /** Límites por plan; tunables en código, el pago cambia el plan. */
+    public enum Plan {
+        FREE(50, 3), PRO(1000, 100);
+
+        public final int maxRosterPlayers;
+        public final int maxActiveTournaments;
+
+        Plan(int maxRosterPlayers, int maxActiveTournaments) {
+            this.maxRosterPlayers = maxRosterPlayers;
+            this.maxActiveTournaments = maxActiveTournaments;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,26 +37,42 @@ public class Organization {
     @Column(name = "owner_player_id", nullable = false, unique = true)
     private Long ownerPlayerId;
 
-    @Column(name = "name", nullable = false, length = 150)
+    @Column(nullable = false, length = 150)
     private String name;
 
+    @Column(length = 120)
+    private String city;
+
+    @Column(length = 500)
+    private String description;
+
+    @Column(name = "logo_url", length = 500)
+    private String logoUrl;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "plan", nullable = false, length = 20)
+    @Column(nullable = false, length = 20)
     private Plan plan = Plan.FREE;
 
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt = Instant.now();
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
-    protected Organization() {}
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     public Organization(Long ownerPlayerId, String name) {
         this.ownerPlayerId = ownerPlayerId;
         this.name = name;
     }
 
-    public Long getId() { return id; }
-    public Long getOwnerPlayerId() { return ownerPlayerId; }
-    public String getName() { return name; }
-    public Plan getPlan() { return plan; }
-    public Instant getCreatedAt() { return createdAt; }
+    @PrePersist
+    void onCreate() {
+        Instant now = Instant.now();
+        if (createdAt == null) createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }

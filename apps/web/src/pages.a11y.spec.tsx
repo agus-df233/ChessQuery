@@ -1,0 +1,124 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
+import * as axeMatchers from 'vitest-axe/matchers';
+import type { Me, Organization, Profile } from './api/types';
+
+expect.extend(axeMatchers);
+
+/**
+ * Gate de accesibilidad y de render de cada página con la API y la sesión simuladas.
+ * Si un cambio rompe el render o introduce una violación de axe, falla acá.
+ */
+const fx = vi.hoisted(() => {
+  const profile: Profile = {
+    id: 7, firstName: 'Ana', lastName: 'Soto', displayName: null, email: 'ana@x.cl', rut: '1-9', birthDate: null, gender: null,
+    region: 'RM', country: { id: 1, isoCode: 'CHL', name: 'Chile', fideFederation: 'CHI' }, club: null,
+    fideId: '123', federationId: null, lichessUsername: 'ana', chesscomUsername: null,
+    ratings: { national: 1500, fideStandard: null, fideRapid: null, fideBlitz: null, platform: 1420, lichessBullet: null,
+      lichessBlitz: 1600, lichessRapid: null, lichessClassical: null, chesscomBullet: null, chesscomBlitz: null, chesscomRapid: null, chesscomDaily: null },
+    currentTitle: null, ageCategory: 'ADULTO', enrichmentSource: null, enrichedAt: null,
+    provisional: false, createdByOrganizerId: null, active: true, tags: [], createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+  };
+  const me: Me = { profile, organizationId: 3, organizer: true, roles: [] };
+  const org: Organization = { id: 3, name: 'Club Torre', city: 'Santiago', description: null, logoUrl: null, plan: 'FREE', rosterCount: 1, maxRosterPlayers: 50, maxActiveTournaments: 3 };
+  const points = [{ recordedAt: '2026-01-01T00:00:00Z', rating: 1480, previous: null, delta: null, source: 'GAME' },
+                  { recordedAt: '2026-02-01T00:00:00Z', rating: 1500, previous: 1480, delta: 20, source: 'GAME' }];
+  return { profile, me, org, points };
+});
+const { profile, me, org, points } = fx;
+
+vi.mock('react-oidc-context', () => ({
+  useAuth: () => ({ isAuthenticated: true, isLoading: false, user: { access_token: 't' }, signinRedirect: vi.fn(), signoutRedirect: vi.fn() }),
+}));
+vi.mock('./api/users', () => ({
+  usersApi: {
+    me: vi.fn().mockResolvedValue(fx.me),
+    myRatingHistory: vi.fn().mockResolvedValue(fx.points),
+    ratingHistory: vi.fn().mockResolvedValue(fx.points),
+    publicProfile: vi.fn().mockResolvedValue({ ...fx.profile, email: undefined, rut: undefined }),
+    search: vi.fn().mockResolvedValue([{ id: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: 'FM', clubName: null, countryIso: 'CHL', fideId: null, eloNational: 1700, eloFideStandard: null, eloPlatform: null }]),
+    ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: null, region: 'RM', clubName: 'X', eloNational: 1700, eloFideStandard: null, ageCategory: 'SUB_14' }]),
+    countries: vi.fn().mockResolvedValue([]), clubs: vi.fn().mockResolvedValue([]),
+    updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(),
+  },
+  organizationsApi: {
+    mine: vi.fn().mockResolvedValue(fx.org),
+    roster: vi.fn().mockResolvedValue([{ ...fx.profile, id: 9, firstName: 'Pedro', lastName: 'Rojas', provisional: true, tags: ['sub12'] }]),
+    create: vi.fn(), update: vi.fn(), addToRoster: vi.fn(), updateTags: vi.fn(), deactivate: vi.fn(),
+  },
+  friendsApi: {
+    list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1700, eloPlatform: null, since: '2026-01-01T00:00:00Z' }]),
+    requests: vi.fn((d: string) => Promise.resolve(d === 'incoming'
+      ? [{ requestId: 1, playerId: 10, firstName: 'Eva', lastName: 'Mora', eloNational: null, direction: 'INCOMING', createdAt: '2026-01-01T00:00:00Z' }]
+      : [{ requestId: 2, playerId: 11, firstName: 'Ivo', lastName: 'Lara', eloNational: null, direction: 'OUTGOING', createdAt: '2026-01-01T00:00:00Z' }])),
+    status: vi.fn().mockResolvedValue({ status: 'NONE', requestId: null }),
+    request: vi.fn(), accept: vi.fn(), decline: vi.fn(), remove: vi.fn(),
+  },
+}));
+
+import { Landing } from './pages/Landing';
+import { Dashboard } from './pages/Dashboard';
+import { ProfileEdit } from './pages/ProfileEdit';
+import { PlayerDetail, PlayerSearch } from './pages/Players';
+import { Ranking } from './pages/Ranking';
+import { Friends } from './pages/Friends';
+import { Club } from './pages/Club';
+import { Layout } from './components/Layout';
+
+const renderPage = (ui: React.ReactElement, path = '/app') => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}><MemoryRouter initialEntries={[path]}>{ui}</MemoryRouter></QueryClientProvider>);
+};
+
+describe('páginas: render y accesibilidad', () => {
+  it('Landing redirige si hay sesión (no renderiza el hero)', async () => {
+    const { container } = renderPage(<Landing />, '/');
+    expect(container.querySelector('.cq-hero')).toBeNull();
+  });
+
+  it('Dashboard muestra ficha, ratings y gráfico', async () => {
+    const { container } = renderPage(<Layout><Dashboard /></Layout>);
+    await screen.findByText(/Hola, Ana/);
+    await screen.findByRole('img', { name: /de 1480 a 1500/ });
+    expect(screen.getByText('1600')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Perfil carga el formulario con los datos actuales', async () => {
+    const { container } = renderPage(<ProfileEdit />);
+    await waitFor(() => expect(screen.getByLabelText('Nombre')).toHaveValue('Ana'));
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Jugadores y ranking listan resultados', async () => {
+    const search = renderPage(<PlayerSearch />);
+    expect(await axe(search.container)).toHaveNoViolations();
+    search.unmount();
+    const ranking = renderPage(<Ranking />);
+    await ranking.findByText('Luis Paz');
+    expect(await axe(ranking.container)).toHaveNoViolations();
+    ranking.unmount();
+    const detail = renderPage(<PlayerDetail />, '/app/jugadores/7');
+    await detail.findByText('Agregar amigo');
+    expect(detail.queryByText('ana@x.cl')).toBeNull();
+    expect(await axe(detail.container)).toHaveNoViolations();
+  });
+
+  it('Amigos muestra lista y solicitudes', async () => {
+    const { container, findByText } = renderPage(<Friends />);
+    await findByText('Eva Mora');
+    await findByText('Ivo Lara');
+    await findByText(/Mis amigos \(1\)/);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Club muestra el panel del organizador con su roster', async () => {
+    const { container, findByText } = renderPage(<Club />, '/club');
+    await findByText('Pedro Rojas');
+    await findByText(/Plan FREE/);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

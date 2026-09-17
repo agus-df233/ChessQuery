@@ -12,10 +12,24 @@ WebSocket y despliegue cloud-native en AWS. Decisiones en `docs/adr/`.
 ```
 libs/common         contrato de errores REST, envelope de eventos ChessEvents, idempotencia, EventBroadcaster
 libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, X-Internal-Token
-services/users      jugadores, identidad interna, organizaciones (clubes), planes, billing, amigos, ratings
+services/users      jugadores, identidad interna, catálogo, ratings e historial, ranking, organización (club) y roster, amistades
 services/tournament (paso 2)   services/game (paso 3)   services/notifications (paso 4)
-etl/                (paso 5)   apps/web (paso 1)        infra/terraform (paralelo)
+etl/                (paso 5)   infra/terraform (paralelo)
+apps/web            una sola app React (jugador y organizador) con login OIDC
+packages/ui-lib     design system (dark, contraste AA validado en tests)
 ```
+
+## API del servicio users (prefijos que el ALB enruta a `users`)
+
+| Prefijo | Qué hay |
+|---|---|
+| `/api/users/**` | `GET /me`, `PUT /me/profile`, `GET /me/rating-history`, `POST /me/external-ratings/sync`, `GET /{id}/public-profile`, `GET /{id}/rating-history`, `GET /search?q=`, `GET /ranking?category=&region=` |
+| `/api/organizations/**` | `POST /` (crear mi club = ser organizador), `GET/PUT /me`, roster: `GET/POST /me/roster`, `PATCH /me/roster/{id}/tags`, `DELETE /me/roster/{id}` |
+| `/api/friends/**` | lista, solicitudes (`?direction=incoming|outgoing`), aceptar/rechazar, quitar, `GET /status/{otherId}` |
+| `/api/catalog/**` | países y clubes federativos |
+| `/internal/**` | solo servicio→servicio con `X-Internal-Token`: identidad por `sub`, provisión, resúmenes en lote, plan del organizador, `are-friends`, usernames para el ETL |
+
+Eventos publicados y consumidos: ver `docs/events.md`.
 
 ## Desarrollo local
 
@@ -27,12 +41,17 @@ export OIDC_ISSUER_URI=https://<tenant>.ciamlogin.com/<tenant-id>/v2.0
 export OIDC_AUDIENCE=<client-id-de-la-api>
 mvn -pl services/users spring-boot:run
 curl -H "Authorization: Bearer <token>" localhost:8081/api/users/me
+
+# Web (proxy de /api hacia el servicio local)
+cp apps/web/.env.example apps/web/.env   # completar authority, client id y scope de Entra
+npm install && npm run dev
 ```
 
 Tests y cobertura (JaCoCo ≥ 90% por módulo, gate de CI):
 
 ```bash
-mvn clean verify
+mvn clean verify          # Java: usar siempre `clean`, los recursos de test viejos quedan en target/
+npm run test -w web       # Vitest + axe-core + contraste AA
 ```
 
 `PostgresSchemaTest` aplica Flyway contra PostgreSQL 16 en Testcontainers y arranca JPA con
