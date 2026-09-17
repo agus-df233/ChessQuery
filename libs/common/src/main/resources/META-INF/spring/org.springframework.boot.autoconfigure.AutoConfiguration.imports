@@ -1,0 +1,2 @@
+cl.chessquery.common.api.ApiErrorAutoConfiguration
+cl.chessquery.common.events.ChessEventsAutoConfiguration

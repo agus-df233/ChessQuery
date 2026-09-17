@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: users
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chessquery}
+    username: ${DB_USER:chessquery}
+    password: ${DB_PASSWORD:chessquery}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.default_schema: users
+  flyway:
+    schemas: users
+    default-schema: users
+    create-schemas: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:chessquery}
+    password: ${RABBITMQ_PASSWORD:chessquery}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Entra External ID: https://<tenant>.ciamlogin.com/<tenant-id>/v2.0
+          issuer-uri: ${OIDC_ISSUER_URI}
+          audiences: ${OIDC_AUDIENCE}
+
+chessquery:
+  auth:
+    internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+    roles-claim: roles
+
+server:
+  port: ${PORT:8081}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

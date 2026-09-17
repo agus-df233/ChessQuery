@@ -1,0 +1,28 @@
+# build
+target/
+node_modules/
+dist/
+coverage/
+.venv/
+__pycache__/
+*.pyc
+
+# env & secrets
+**/.env
+**/.env.*
+!**/.env.example
+*.env.save
+*.env.bak
+*.pem
+
+# terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate*
+infra/terraform/*.tfvars
+!infra/terraform/*.tfvars.example
+
+# ide / os
+.idea/
+.vscode/
+*.iml
+.DS_Store

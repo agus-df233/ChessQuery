@@ -1,0 +1,14 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost/test-issuer
+          audiences: test-audience
+  flyway:
+    schemas: users
+    default-schema: users
+    create-schemas: true
+chessquery:
+  auth:
+    internal-token: test-token
