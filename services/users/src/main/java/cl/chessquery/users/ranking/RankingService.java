@@ -4,6 +4,7 @@ import cl.chessquery.common.api.ApiException;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerRepository;
 import cl.chessquery.users.player.PlayerTitleRepository;
+import cl.chessquery.users.privacy.PublicNames;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-/** Ranking nacional por ELO nacional, filtrable por categoría de edad y región. */
+/**
+ * Ranking nacional por ELO nacional, filtrable por categoría de edad y región. Es una vista para
+ * terceros: los menores aparecen con el apellido abreviado ({@link PublicNames}).
+ */
 @Service
 @RequiredArgsConstructor
 public class RankingService {
@@ -32,16 +36,16 @@ public class RankingService {
         AgeCategory cat = parseCategory(category);
         String reg = region == null || region.isBlank() ? null : region.trim();
         List<Player> rows = players.findRanking(reg,
-                cat == null ? null : cat.minBirthDate(),
-                cat == null ? null : cat.maxBirthDate(),
+                cat == null ? null : cat.minBirthYear(),
+                cat == null ? null : cat.maxBirthYear(),
                 PageRequest.of(0, Math.max(1, Math.min(limit, MAX_LIMIT))));
         Map<Long, String> titleById = titles.currentTitlesOf(rows.stream().map(Player::getId).toList());
         return IntStream.range(0, rows.size()).mapToObj(i -> {
             Player p = rows.get(i);
-            return new Entry(i + 1, p.getId(), p.getFirstName(), p.getLastName(), titleById.get(p.getId()),
+            return new Entry(i + 1, p.getId(), p.getFirstName(), PublicNames.lastName(p), titleById.get(p.getId()),
                     p.getRegion(), p.getClub() != null ? p.getClub().getName() : null,
                     p.getEloNational(), p.getEloFideStandard(),
-                    AgeCategory.fromBirthDate(p.getBirthDate()).name());
+                    AgeCategory.fromBirthYear(p.getBirthYear()).name());
         }).toList();
     }
 

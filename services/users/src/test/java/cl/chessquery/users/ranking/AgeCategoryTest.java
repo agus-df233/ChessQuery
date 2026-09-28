@@ -4,6 +4,7 @@ import cl.chessquery.users.events.Payloads;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Year;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,13 +13,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AgeCategoryTest {
 
     @Test
-    void categoriesFromBirthDate() {
+    void categoriesUseTheAgeReachedThisYear() {
+        int year = Year.now().getValue();
+        assertThat(AgeCategory.fromBirthYear(null)).isEqualTo(AgeCategory.ADULTO);
+        assertThat(AgeCategory.fromBirthYear(year - 8)).isEqualTo(AgeCategory.SUB_8);   // cumple 8 este año
+        assertThat(AgeCategory.fromBirthYear(year - 9)).isEqualTo(AgeCategory.SUB_10);
+        assertThat(AgeCategory.fromBirthYear(year - 70)).isEqualTo(AgeCategory.SENIOR);
+        assertThat(AgeCategory.fromBirthDate(LocalDate.of(year - 11, 12, 31))).isEqualTo(AgeCategory.SUB_12);
         assertThat(AgeCategory.fromBirthDate(null)).isEqualTo(AgeCategory.ADULTO);
-        assertThat(AgeCategory.fromBirthDate(LocalDate.now().minusYears(9))).isEqualTo(AgeCategory.SUB_10);
-        assertThat(AgeCategory.fromBirthDate(LocalDate.now().minusYears(70))).isEqualTo(AgeCategory.SENIOR);
-        assertThat(AgeCategory.SENIOR.minBirthDate()).isNull();
-        assertThat(AgeCategory.SUB_8.maxBirthDate()).isEqualTo(LocalDate.now());
-        assertThat(AgeCategory.SUB_8.minBirthDate()).isEqualTo(LocalDate.now().minusYears(8).plusDays(1));
+        assertThat(AgeCategory.SENIOR.minBirthYear()).isNull();
+        assertThat(AgeCategory.SUB_8.maxBirthYear()).isEqualTo(year);
+        assertThat(AgeCategory.SUB_8.minBirthYear()).isEqualTo(year - 8);
     }
 
     @Test

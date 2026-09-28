@@ -14,6 +14,8 @@ spring:
       sqs:
         enabled: false
 chessquery:
+  privacy:
+    pepper: test-pepper-0123456789
   auth:
     internal-token: test-token
   external-ratings:

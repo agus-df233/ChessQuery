@@ -131,6 +131,7 @@ module "users" {
   secrets = {
     DB_PASSWORD    = "${module.data.db_master_secret_arn}:password::"
     INTERNAL_TOKEN = module.data.internal_token_param_arn
+    PRIVACY_PEPPER = module.data.privacy_pepper_param_arn
   }
 }
 

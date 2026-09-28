@@ -30,7 +30,8 @@ class PlayerServiceTest {
     private final RatingService ratings = mock(RatingService.class);
     private final ExternalRatingsClient external = mock(ExternalRatingsClient.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PlayerService service = new PlayerService(players, titles, clubs, countries, ratings, external, events);
+    private final PlayerService service = new PlayerService(players, titles, clubs, countries, ratings, external, events,
+            new cl.chessquery.users.privacy.IdentifierHasher("test-pepper-0123456789"));
 
     private static Player player(long id) {
         Player p = Player.builder().firstName("Ana").lastName("Soto").build();
@@ -42,7 +43,8 @@ class PlayerServiceTest {
     void updateProfileRejectsTakenRutAndUnknownCatalogIds() {
         Player me = player(1);
         when(players.findById(1L)).thenReturn(Optional.of(me));
-        when(players.findByRut("1-9")).thenReturn(Optional.of(player(2)));
+        when(players.findByRutHash(new cl.chessquery.users.privacy.IdentifierHasher("test-pepper-0123456789").rut("1-9")))
+                .thenReturn(Optional.of(player(2)));
         assertThatThrownBy(() -> service.updateProfile(1L, req(r -> r.rut = "1-9")))
                 .isInstanceOf(ApiException.class).hasMessageContaining("RUT");
 
@@ -90,7 +92,7 @@ class PlayerServiceTest {
         assertThat(service.summaries(null)).isEmpty();
         assertThat(service.summaries(List.of())).isEmpty();
         assertThatThrownBy(() -> service.search(null, 5)).isInstanceOf(ApiException.class);
-        when(players.searchFuzzy("ana", 50)).thenReturn(List.of(player(1)));
+        when(players.searchFuzzy(eq("ana"), any(), eq(50))).thenReturn(List.of(player(1)));
         when(titles.currentTitlesOf(List.of(1L))).thenReturn(Map.of(1L, "FM"));
         assertThat(service.search("ana", 500).get(0).currentTitle()).isEqualTo("FM");
         assertThatThrownBy(() -> service.profileByEmail(" ")).hasMessageContaining("email");

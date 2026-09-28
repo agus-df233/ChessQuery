@@ -35,6 +35,10 @@ chessquery:
     queues:
       elo: ${USERS_ELO_QUEUE:users-elo}
       rating: ${USERS_RATING_QUEUE:users-rating}
+  privacy:
+    # Pepper del HMAC de RUT/FIDE/id federativo. En la nube viene de SSM y NUNCA se cambia sin
+    # recalcular rut_hash y data_suppression (quedarían huérfanos). El default solo sirve en local.
+    pepper: ${PRIVACY_PEPPER:dev-only-pepper-no-usar-en-cloud}
   auth:
     internal-token: ${INTERNAL_TOKEN:dev-internal-token}
     roles-claim: roles

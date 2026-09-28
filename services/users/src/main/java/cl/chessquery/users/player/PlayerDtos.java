@@ -2,6 +2,7 @@ package cl.chessquery.users.player;
 
 import cl.chessquery.users.catalog.Club;
 import cl.chessquery.users.catalog.Country;
+import cl.chessquery.users.privacy.PublicNames;
 import cl.chessquery.users.ranking.AgeCategory;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -17,7 +18,7 @@ import java.util.List;
  *       el organizador sobre sus provisorios.</li>
  *   <li>{@link PublicProfile}: lo que cualquier otro jugador puede ver. Es una lista blanca:
  *       nada de RUT, email, fecha de nacimiento ni género (hay menores en la plataforma y
- *       los ids son correlativos).</li>
+ *       los ids son correlativos); a los menores se les abrevia el apellido ({@link PublicNames}).</li>
  *   <li>{@link Summary}: mínimo para que otros servicios pinten nombres y ELO en listas.</li>
  * </ul>
  */
@@ -56,7 +57,7 @@ public final class PlayerDtos {
                     p.getRut(), p.getBirthDate(), p.getGender(), p.getRegion(),
                     Country.Dto.of(p.getCountry()), Club.Dto.of(p.getClub()),
                     p.getFideId(), p.getFederationId(), p.getLichessUsername(), p.getChesscomUsername(),
-                    Ratings.of(p), title, AgeCategory.fromBirthDate(p.getBirthDate()).name(),
+                    Ratings.of(p), title, AgeCategory.fromBirthYear(p.getBirthYear()).name(),
                     p.getEnrichmentSource(), p.getEnrichedAt(),
                     p.isProvisional(), p.getCreatedByOrganizerId(), p.isActive(), p.tagList(),
                     p.getCreatedAt(), p.getUpdatedAt());
@@ -70,9 +71,9 @@ public final class PlayerDtos {
             Ratings ratings, Instant createdAt) {
 
         public static PublicProfile of(Player p, String title) {
-            return new PublicProfile(p.getId(), p.getFirstName(), p.getLastName(), p.getDisplayName(), title,
-                    p.getRegion(), Country.Dto.of(p.getCountry()), Club.Dto.of(p.getClub()),
-                    AgeCategory.fromBirthDate(p.getBirthDate()).name(),
+            return new PublicProfile(p.getId(), p.getFirstName(), PublicNames.lastName(p), PublicNames.displayName(p),
+                    title, p.getRegion(), Country.Dto.of(p.getCountry()), Club.Dto.of(p.getClub()),
+                    AgeCategory.fromBirthYear(p.getBirthYear()).name(),
                     p.getFideId(), p.getFederationId(), p.getLichessUsername(), p.getChesscomUsername(),
                     Ratings.of(p), p.getCreatedAt());
         }
@@ -95,7 +96,7 @@ public final class PlayerDtos {
                                Integer eloPlatform) {
 
         public static SearchResult of(Player p, String title) {
-            return new SearchResult(p.getId(), p.getFirstName(), p.getLastName(), title,
+            return new SearchResult(p.getId(), p.getFirstName(), PublicNames.lastName(p), title,
                     p.getClub() != null ? p.getClub().getName() : null,
                     p.getCountry() != null ? p.getCountry().getIsoCode() : null,
                     p.getFideId(), p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform());

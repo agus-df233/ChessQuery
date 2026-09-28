@@ -37,8 +37,9 @@ CREATE TABLE processed_event (
 | `player.claimed` | users | tournament, notifications | `{ playerId, email, fullName, organizerId }` — un provisorio del roster reclamado por su dueño (mismo `playerId`, sin re-vinculación) | ✅ |
 | `player.provisional.created` | users | notifications | `{ playerId, organizerId, email }` | ✅ |
 | `player.updated` | users | — | `{ playerId, fields: [...] }` | ✅ |
+| `player.deleted` | users | tournament, game, notifications | `{ playerId }` — el titular ejerció supresión: la fila quedó anonimizada (el id se conserva por integridad); cada servicio borra o anonimiza lo suyo | ✅ productor |
 | `subscription.changed` | users | notifications | `{ organizationId, ownerId, oldPlan, newPlan, status, gateway, reason }` | paso 6 |
-| `rating.updated` | etl | users (`users-rating`) | `{ source: AJEFECH\|LICHESS\|CHESSCOM, players: [ { firstName, lastName, federationId?, fideId?, rut?, birthDate?, clubName?, eloNational?, eloFideStandard? } \| { lichessUsername, eloLichess* } \| { chesscomUsername, eloChesscom* } ] }` | consumer ✅ / productor paso 5 |
+| `rating.updated` | etl | users (`users-rating`) | `{ source: FIDE\|AJEFECH\|LICHESS\|CHESSCOM, period?, players: [ { firstName, lastName, federationId?, fideId?, rut?, birthYear?\|birthDate?, clubName?, sourceUrl?, eloNational?, eloFideStandard?, eloFideRapid?, eloFideBlitz? } \| { lichessUsername, eloLichess* } \| { chesscomUsername, eloChesscom* } ] }` | consumer ✅ / productor paso 5 |
 | `elo.updated` | game | users (`users-elo`) | `{ playerId, oldElo, newElo, delta, ratingType, gameId }` — uno por jugador | consumer ✅ / productor paso 3 |
 | `game.finished` | game | notifications | `{ gameId, whitePlayerId, blackPlayerId, result, ... }` | paso 3 |
 | `tournament.round.generated` | tournament | game, notifications | `{ tournamentId, round, pairings: [...] }` | paso 2 |

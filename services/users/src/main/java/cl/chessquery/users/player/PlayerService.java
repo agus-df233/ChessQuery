@@ -10,6 +10,7 @@ import cl.chessquery.users.player.PlayerDtos.PublicProfile;
 import cl.chessquery.users.player.PlayerDtos.SearchResult;
 import cl.chessquery.users.player.PlayerDtos.Summary;
 import cl.chessquery.users.player.PlayerDtos.UpdateProfileRequest;
+import cl.chessquery.users.privacy.IdentifierHasher;
 import cl.chessquery.users.rating.ExternalRatingsClient;
 import cl.chessquery.users.rating.RatingService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class PlayerService {
     private final RatingService ratings;
     private final ExternalRatingsClient external;
     private final EventPublisher events;
+    private final IdentifierHasher hasher;
 
     // ── Lecturas ─────────────────────────────────────────────────────────────
 
@@ -73,7 +75,7 @@ public class PlayerService {
     @Transactional(readOnly = true)
     public List<SearchResult> search(String q, int limit) {
         if (q == null || q.isBlank()) throw ApiException.badRequest("INVALID_QUERY", "El parámetro q no puede estar vacío");
-        List<Player> found = players.searchFuzzy(q.trim(), Math.max(1, Math.min(limit, MAX_SEARCH)));
+        List<Player> found = players.searchFuzzy(q.trim(), hasher.rut(q), Math.max(1, Math.min(limit, MAX_SEARCH)));
         Map<Long, String> title = titles.currentTitlesOf(found.stream().map(Player::getId).toList());
         return found.stream().map(p -> SearchResult.of(p, title.get(p.getId()))).toList();
     }
@@ -94,9 +96,10 @@ public class PlayerService {
         apply(changed, "gender", req.gender(), v -> p.setGender(blankToNull(v)));
         if (req.rut() != null) {
             String rut = blankToNull(req.rut());
-            if (rut != null) players.findByRut(rut).filter(o -> !o.getId().equals(id))
+            String rutHash = hasher.rut(rut);
+            if (rutHash != null) players.findByRutHash(rutHash).filter(o -> !o.getId().equals(id))
                     .ifPresent(o -> { throw ApiException.conflict("RUT_TAKEN", "Ese RUT ya pertenece a otro jugador"); });
-            apply(changed, "rut", req.rut(), v -> p.setRut(rut));
+            apply(changed, "rut", req.rut(), v -> { p.setRut(rut); p.setRutHash(rutHash); });
         }
         if (req.countryId() != null) {
             p.setCountry(countries.findById(req.countryId())

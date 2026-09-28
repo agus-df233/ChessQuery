@@ -9,6 +9,7 @@ import cl.chessquery.users.player.Emails;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerDtos.Profile;
 import cl.chessquery.users.player.PlayerRepository;
+import cl.chessquery.users.privacy.IdentifierHasher;
 import cl.chessquery.users.roster.RosterDtos.CreateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class RosterService {
     private final ClubRepository clubs;
     private final OrganizationService organizations;
     private final EventPublisher events;
+    private final IdentifierHasher hasher;
 
     @Transactional
     public Profile add(Long organizerId, CreateRequest req) {
@@ -46,12 +48,13 @@ public class RosterService {
             throw ApiException.conflict("EMAIL_TAKEN", "Ya existe un jugador con ese email");
         }
         String rut = req.rut() == null || req.rut().isBlank() ? null : req.rut().trim();
-        if (rut != null && players.findByRut(rut).isPresent()) {
+        String rutHash = hasher.rut(rut);
+        if (rutHash != null && players.findByRutHash(rutHash).isPresent()) {
             throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
         }
         Player p = Player.builder()
                 .firstName(req.firstName().trim()).lastName(req.lastName().trim())
-                .email(email).rut(rut)
+                .email(email).rut(rut).rutHash(rutHash)
                 .eloNational(positiveOrNull(req.eloNational()))
                 .eloFideStandard(positiveOrNull(req.eloFideStandard()))
                 .club(req.clubId() == null ? null : clubs.findById(req.clubId())

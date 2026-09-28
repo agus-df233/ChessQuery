@@ -6,6 +6,8 @@ import cl.chessquery.users.catalog.ClubRepository;
 import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerRepository;
+import cl.chessquery.users.privacy.DataSuppressionRepository;
+import cl.chessquery.users.privacy.IdentifierHasher;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
@@ -42,7 +44,8 @@ class ConsumersUnitTest {
 
     @Test
     void ratingConsumerHandlesMissingSourceUnknownUsernameAndCreateRace() {
-        RatingUpdatedConsumer c = new RatingUpdatedConsumer(idempotent, players, clubs, ratings);
+        RatingUpdatedConsumer c = new RatingUpdatedConsumer(idempotent, players, clubs, ratings,
+                new IdentifierHasher("test-pepper-0123456789"), mock(DataSuppressionRepository.class));
         c.onRatingUpdated(ChessEvent.of("x", Map.of()));
         c.onRatingUpdated(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of()));
         verify(idempotent, times(1)).handle(any(), any());
@@ -53,7 +56,6 @@ class ConsumersUnitTest {
         when(players.findByChesscomUsernameIgnoreCase("nadie")).thenReturn(Optional.empty());
 
         // AJEFECH: carrera al crear → se ignora sin romper el lote
-        when(players.findByFullNameIgnoreCase(any())).thenReturn(Optional.empty());
         when(players.saveAndFlush(any(Player.class))).thenThrow(new DataIntegrityViolationException("dup"));
         c.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "AJEFECH", "players", List.of(
                 Map.of("firstName", "A", "lastName", "B", "eloNational", 1200)))));

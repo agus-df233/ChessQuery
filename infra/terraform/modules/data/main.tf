@@ -76,6 +76,22 @@ resource "aws_ssm_parameter" "internal_token" {
   value = random_password.internal_token.result
 }
 
+# Pepper del HMAC de identificadores personales (RUT, FIDE id, id federativo). Nunca se rota sin
+# recalcular player.rut_hash y data_suppression: por eso ignore_changes sobre el valor.
+resource "random_password" "privacy_pepper" {
+  length  = 48
+  special = false
+}
+
+resource "aws_ssm_parameter" "privacy_pepper" {
+  name  = "/${var.name}/privacy-pepper"
+  type  = "SecureString"
+  value = random_password.privacy_pepper.result
+  lifecycle {
+    ignore_changes = [value]
+  }
+}
+
 output "db_endpoint" { value = aws_db_instance.this.address }
 output "db_name" { value = aws_db_instance.this.db_name }
 output "db_username" { value = aws_db_instance.this.username }
@@ -83,3 +99,4 @@ output "db_identifier" { value = aws_db_instance.this.identifier }
 output "db_master_secret_arn" { value = aws_db_instance.this.master_user_secret[0].secret_arn }
 output "files_bucket" { value = aws_s3_bucket.files.bucket }
 output "internal_token_param_arn" { value = aws_ssm_parameter.internal_token.arn }
+output "privacy_pepper_param_arn" { value = aws_ssm_parameter.privacy_pepper.arn }

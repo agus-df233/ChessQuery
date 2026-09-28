@@ -10,4 +10,7 @@ public interface RatingHistoryRepository extends JpaRepository<RatingHistory, Lo
     /** Serie ascendente desde una fecha (para graficar). */
     List<RatingHistory> findByPlayerIdAndRatingTypeAndRecordedAtGreaterThanEqualOrderByRecordedAtAsc(
             Long playerId, RatingType type, Instant since);
+
+    /** Historial completo, todas las modalidades (exportación de datos del titular). */
+    List<RatingHistory> findByPlayerIdOrderByRecordedAtAsc(Long playerId);
 }
