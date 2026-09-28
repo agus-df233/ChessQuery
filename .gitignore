@@ -6,6 +6,9 @@ coverage/
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
+.coverage
+.pytest_cache/
 
 # env & secrets
 **/.env

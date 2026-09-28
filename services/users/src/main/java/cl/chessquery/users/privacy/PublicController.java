@@ -27,10 +27,11 @@ public class PublicController {
     private final PlayerService players;
 
     @GetMapping("/ranking")
-    public ResponseEntity<List<RankingService.Entry>> ranking(@RequestParam(required = false) String category,
+    public ResponseEntity<List<RankingService.Entry>> ranking(@RequestParam(defaultValue = "NATIONAL") String type,
+                                                              @RequestParam(required = false) String category,
                                                               @RequestParam(required = false) String region,
                                                               @RequestParam(defaultValue = "50") int limit) {
-        return ResponseEntity.ok().cacheControl(CACHE).body(ranking.ranking(category, region, limit));
+        return ResponseEntity.ok().cacheControl(CACHE).body(ranking.ranking(type, category, region, limit));
     }
 
     @GetMapping("/players/{id}")

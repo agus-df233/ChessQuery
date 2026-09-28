@@ -332,6 +332,15 @@ class UsersIntegrationTest {
         assertThat(tercero.getBirthYear()).isEqualTo(1980);
         mvc.perform(as(get("/api/users/search").param("q", "22222222-2"), "sub-ana", "ana@x.cl"))
            .andExpect(jsonPath("$[0].id").value(tercero.getId()));
+
+        // Ranking por rating FIDE (lo único disponible sin convenio con la federación)
+        mvc.perform(get("/api/public/ranking").param("type", "FIDE_RAPID"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$[0].playerId").value(federada.getId()))
+           .andExpect(jsonPath("$[0].ratingType").value("FIDE_RAPID"))
+           .andExpect(jsonPath("$[0].rating").value(1800));
+        mvc.perform(get("/api/public/ranking").param("type", "LICHESS_BLITZ")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/public/ranking").param("type", "NOPE")).andExpect(status().isBadRequest());
     }
 
     @Test @Order(10)

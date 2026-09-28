@@ -65,16 +65,28 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
             """, nativeQuery = true)
     List<Player> searchFuzzy(@Param("q") String q, @Param("rutHash") String rutHash, @Param("limit") int limit);
 
-    /** Ranking por ELO nacional, filtrable por región y rango de año de nacimiento (categoría). */
+    /**
+     * Ranking por un tipo de rating (nacional o FIDE standard/rapid/blitz), filtrable por región
+     * y rango de año de nacimiento (categoría). El tipo llega ya validado por RankingService.
+     */
     @Query(value = """
             SELECT p.* FROM users.player p
-            WHERE  p.elo_national IS NOT NULL
+            WHERE  (CASE CAST(:type AS text)
+                        WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
+                        WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
+                        WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        ELSE p.elo_national END) IS NOT NULL
               AND (CAST(:region AS text) IS NULL OR lower(p.region) = lower(CAST(:region AS text)))
               AND (CAST(:minYear AS integer) IS NULL OR p.birth_year >= CAST(:minYear AS integer))
               AND (CAST(:maxYear AS integer) IS NULL OR p.birth_year <= CAST(:maxYear AS integer))
-            ORDER BY p.elo_national DESC, p.last_name ASC
+            ORDER BY (CASE CAST(:type AS text)
+                        WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
+                        WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
+                        WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        ELSE p.elo_national END) DESC, p.last_name ASC
             """, nativeQuery = true)
-    List<Player> findRanking(@Param("region") String region,
+    List<Player> findRanking(@Param("type") String type,
+                             @Param("region") String region,
                              @Param("minYear") Integer minYear,
                              @Param("maxYear") Integer maxYear,
                              Pageable pageable);

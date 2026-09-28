@@ -24,6 +24,19 @@ jobs:
       - name: Build & test (JaCoCo >= 90% por módulo)
         run: mvn -B -ntp verify
 
+  etl:
+    name: ETL (pytest, cobertura ≥ 90%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: etl/pyproject.toml
+      - run: pip install -e 'etl[dev]'
+      - run: pytest -q etl
+
   web:
     name: Web (Vitest + axe + build)
     runs-on: ubuntu-latest
