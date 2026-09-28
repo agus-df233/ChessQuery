@@ -14,7 +14,9 @@ libs/common         contrato de errores REST, envelope de eventos ChessEvents, i
 libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, X-Internal-Token
 services/users      jugadores, identidad interna, catálogo, ratings e historial, ranking, organización (club) y roster, amistades
 services/tournament (paso 2)   services/game (paso 3)   services/notifications (paso 4)
-etl/                (paso 5)   infra/terraform (paralelo)
+etl                 importador FIDE (Lambda-ready) → S3 + SNS rating.updated
+infra/terraform     IaC: envs/academy (LabRole + ALB) y módulos; envs/aws pendiente
+infra/localstack    topología local SNS/SQS/S3
 apps/web            una sola app React (jugador y organizador) con login OIDC
 packages/ui-lib     design system (dark, contraste AA validado en tests)
 ```
@@ -23,7 +25,8 @@ packages/ui-lib     design system (dark, contraste AA validado en tests)
 
 | Prefijo | Qué hay |
 |---|---|
-| `/api/users/**` | `GET /me`, `PUT /me/profile`, `GET /me/rating-history`, `POST /me/external-ratings/sync`, `GET /{id}/public-profile`, `GET /{id}/rating-history`, `GET /search?q=`, `GET /ranking?category=&region=` |
+| `/api/users/**` | `GET /me`, `PUT /me/profile`, `GET /me/rating-history`, `POST /me/external-ratings/sync`, `GET /me/export`, `DELETE /me`, `GET /me/claim-suggestions`, `GET /{id}/public-profile`, `GET /{id}/rating-history`, `GET /search?q=`, `GET /ranking?type=&category=&region=` |
+| `/api/public/**` | sin login, cache 5 min: `GET /ranking?type=NATIONAL\|FIDE_STANDARD\|FIDE_RAPID\|FIDE_BLITZ&category=&region=`, `GET /players/{id}` |
 | `/api/organizations/**` | `POST /` (crear mi club = ser organizador), `GET/PUT /me`, roster: `GET/POST /me/roster`, `PATCH /me/roster/{id}/tags`, `DELETE /me/roster/{id}` |
 | `/api/friends/**` | lista, solicitudes (`?direction=incoming|outgoing`), aceptar/rechazar, quitar, `GET /status/{otherId}` |
 | `/api/catalog/**` | países y clubes federativos |
@@ -32,6 +35,10 @@ packages/ui-lib     design system (dark, contraste AA validado en tests)
 Eventos publicados y consumidos: ver `docs/events.md`.
 
 ## Desarrollo local
+
+Atajos: `make local-up` · `make users` · `make web` · `make etl-fide-local` · `make test` ·
+`make image` · `make tf-check` (ver `Makefile`). Con `make etl-fide-local` la BD local queda con
+los ~4.200 jugadores chilenos con rating FIDE: el ranking público (`/ranking`) muestra datos reales.
 
 Requisitos: JDK 21, Maven 3.9, Docker, Node 20.
 
