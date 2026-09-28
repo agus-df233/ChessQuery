@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { Button } from '@chessquery/ui-lib';
 
@@ -17,6 +17,7 @@ export const Landing = () => {
           Entrar con mi cuenta
         </Button>
         <p className="cq-muted" style={{ marginTop: 12 }}>Puedes entrar con Google o con tu correo.</p>
+        <p style={{ marginTop: 20 }}><Link to="/ranking">Ver el ranking de Chile sin cuenta</Link></p>
       </div>
     </main>
   );

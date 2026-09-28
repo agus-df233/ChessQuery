@@ -6,13 +6,15 @@ import { Dashboard } from './pages/Dashboard';
 import { ProfileEdit } from './pages/ProfileEdit';
 import { PlayerDetail, PlayerSearch } from './pages/Players';
 import { Ranking } from './pages/Ranking';
+import { PublicRanking } from './pages/PublicRanking';
 import { Friends } from './pages/Friends';
 import { Club } from './pages/Club';
 
-/** Rutas: `/` pública; `/app/**` jugador; `/club` organizador (o su creación). */
+/** Rutas: `/` y `/ranking` públicas; `/app/**` jugador; `/club` organizador (o su creación). */
 export const App = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
+    <Route path="/ranking" element={<PublicRanking />} />
     <Route path="/app/*" element={<RequireAuth><Layout><Routes>
       <Route index element={<Dashboard />} />
       <Route path="perfil" element={<ProfileEdit />} />

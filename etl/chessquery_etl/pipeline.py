@@ -65,6 +65,7 @@ def to_event_player(p: FidePlayer, period: str) -> dict:
         "firstName": p.first_name,
         "lastName": p.last_name,
         "fideId": p.fide_id,
+        "title": p.title,
         "birthYear": p.birth_year,
         "eloFideStandard": p.standard,
         "eloFideRapid": p.rapid,

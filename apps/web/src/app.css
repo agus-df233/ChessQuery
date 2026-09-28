@@ -24,3 +24,13 @@
 .cq-hero h1 { font-size: 2.25rem; margin: 0 0 8px; }
 .cq-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .cq-csv-preview { max-height: 260px; overflow: auto; font-size: 0.85rem; }
+
+/* Páginas públicas (sin Layout de sesión): cabecera mínima y contenido con el mismo ancho. */
+.cq-public-main { display: flex; flex-direction: column; gap: 16px; padding: 0 16px 32px; max-width: 1112px; margin: 0 auto; }
+.cq-public-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cq-border);
+}

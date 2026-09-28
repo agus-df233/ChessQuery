@@ -1,7 +1,7 @@
 import { http } from './client';
 import type {
   Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
-  PublicProfile, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
+  PublicProfile, RankedType, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
 } from './types';
 
 /** Funciones de acceso a la API de users, una por endpoint. Sin lógica: solo tipos y rutas. */
@@ -15,11 +15,18 @@ export const usersApi = {
   ratingHistory: (id: number, type: RatingType = 'NATIONAL', months = 12) =>
     http.get<RatingPoint[]>(`/api/users/${id}/rating-history`, { params: { type, months } }).then((r) => r.data),
   search: (q: string, limit = 20) => http.get<SearchResult[]>('/api/users/search', { params: { q, limit } }).then((r) => r.data),
-  ranking: (category?: string, region?: string, limit = 50) =>
-    http.get<RankingEntry[]>('/api/users/ranking', { params: { category: category || undefined, region: region || undefined, limit } })
+  ranking: (category?: string, region?: string, limit = 50, type: RankedType = 'NATIONAL') =>
+    http.get<RankingEntry[]>('/api/users/ranking', { params: { type, category: category || undefined, region: region || undefined, limit } })
         .then((r) => r.data),
   countries: () => http.get<Country[]>('/api/catalog/countries').then((r) => r.data),
   clubs: () => http.get<Club[]>('/api/catalog/clubs').then((r) => r.data),
+};
+
+/** Vistas sin login (/api/public/**): ranking para compartir por QR. Sin PII, menores abreviados. */
+export const publicApi = {
+  ranking: (category?: string, region?: string, limit = 50, type: RankedType = 'NATIONAL') =>
+    http.get<RankingEntry[]>('/api/public/ranking', { params: { type, category: category || undefined, region: region || undefined, limit } })
+        .then((r) => r.data),
 };
 
 export const organizationsApi = {

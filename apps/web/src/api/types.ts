@@ -38,10 +38,13 @@ export interface SearchResult {
   eloPlatform: number | null;
 }
 
+/** Tipos por los que se puede rankear (nacional o FIDE). */
+export type RankedType = 'NATIONAL' | 'FIDE_STANDARD' | 'FIDE_RAPID' | 'FIDE_BLITZ';
+
 export interface RankingEntry {
   position: number; playerId: number; firstName: string; lastName: string; currentTitle: string | null;
-  region: string | null; clubName: string | null; eloNational: number | null; eloFideStandard: number | null;
-  ageCategory: string;
+  region: string | null; clubName: string | null; ratingType: RankedType; rating: number | null;
+  eloNational: number | null; eloFideStandard: number | null; ageCategory: string;
 }
 
 export interface RatingPoint { recordedAt: string; rating: number; previous: number | null; delta: number | null; source: string | null }

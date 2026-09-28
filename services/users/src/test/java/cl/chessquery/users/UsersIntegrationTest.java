@@ -310,7 +310,7 @@ class UsersIntegrationTest {
     @Test @Order(9)
     void federatedRowsNeverMergeByNameAndStoreOnlyMinimalData() throws Exception {
         ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FIDE", "players", List.of(
-                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "birthYear", 1990,
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "birthYear", 1990, "title", "WFM",
                         "eloFideStandard", 1850, "eloFideRapid", 1800, "period", "2026-10",
                         "sourceUrl", "https://ratings.fide.com/profile/3400001"),
                 Map.of("firstName", "Rut", "lastName", "Tercero", "federationId", "5555", "rut", "22.222.222-2",
@@ -338,7 +338,14 @@ class UsersIntegrationTest {
            .andExpect(status().isOk())
            .andExpect(jsonPath("$[0].playerId").value(federada.getId()))
            .andExpect(jsonPath("$[0].ratingType").value("FIDE_RAPID"))
-           .andExpect(jsonPath("$[0].rating").value(1800));
+           .andExpect(jsonPath("$[0].rating").value(1800))
+           .andExpect(jsonPath("$[0].currentTitle").value("WFM"));
+        // El mes siguiente sube a WIM: se cierra WFM y queda uno solo vigente
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FIDE", "players", List.of(
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "WIM", "period", "2026-11"),
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "WIM"),
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "XX")))));
+        mvc.perform(get("/api/public/players/" + federada.getId())).andExpect(jsonPath("$.currentTitle").value("WIM"));
         mvc.perform(get("/api/public/ranking").param("type", "LICHESS_BLITZ")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/public/ranking").param("type", "NOPE")).andExpect(status().isBadRequest());
     }

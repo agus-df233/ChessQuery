@@ -54,6 +54,7 @@ def test_import_lines_publishes_with_event_type_attribute():
     topic, body, attrs = sns.messages[0]
     assert topic == "arn:topic" and attrs["eventType"]["StringValue"] == "rating.updated"
     assert {p["fideId"] for p in body["payload"]["players"]} == {"9000001", "9000002", "9000003", "9000005"}
+    assert next(p for p in body["payload"]["players"] if p["fideId"] == "9000001")["title"] == "WFM"
     assert "staged/source=fide/period=2026-10/players.jsonl" in s3.objects
 
 

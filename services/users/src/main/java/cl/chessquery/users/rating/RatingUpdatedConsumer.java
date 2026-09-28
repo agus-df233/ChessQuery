@@ -8,6 +8,8 @@ import cl.chessquery.users.events.Payloads;
 import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerRepository;
+import cl.chessquery.users.player.PlayerTitle;
+import cl.chessquery.users.player.PlayerTitleRepository;
 import cl.chessquery.users.privacy.DataSuppressionRepository;
 import cl.chessquery.users.privacy.IdentifierHasher;
 import io.awspring.cloud.sqs.annotation.SqsListener;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +52,7 @@ public class RatingUpdatedConsumer {
     private final RatingService ratings;
     private final IdentifierHasher hasher;
     private final DataSuppressionRepository suppressions;
+    private final PlayerTitleRepository titles;
 
     /** Cola SQS dedicada, suscrita al tópico con filter policy por eventType (docs/events.md). */
     @SqsListener("${chessquery.events.queues.rating}")
@@ -133,12 +137,30 @@ public class RatingUpdatedConsumer {
         String clubName = Payloads.str(p, "clubName");
         if (clubName != null && player.getClub() == null) player.setClub(findOrCreateClub(clubName));
 
+        updateTitle(player, Payloads.str(p, "title"), period, source);
+
         ratings.apply(player, RatingType.NATIONAL, Payloads.integer(p, "eloNational"), at, source);
         ratings.apply(player, RatingType.FIDE_STANDARD, Payloads.integer(p, "eloFideStandard"), at, source);
         ratings.apply(player, RatingType.FIDE_RAPID, Payloads.integer(p, "eloFideRapid"), at, source);
         ratings.apply(player, RatingType.FIDE_BLITZ, Payloads.integer(p, "eloFideBlitz"), at, source);
         markEnriched(player, source);
         return true;
+    }
+
+    /** Título FIDE vigente (GM, IM, ...): cierra el anterior si cambió. Valores desconocidos se ignoran. */
+    private void updateTitle(Player player, String raw, String period, String source) {
+        if (raw == null || player.getId() == null) return;
+        PlayerTitle.Title title;
+        try {
+            title = PlayerTitle.Title.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        var current = titles.findFirstByPlayerIdAndCurrentTrue(player.getId());
+        if (current.map(t -> t.getTitle() == title).orElse(false)) return;
+        current.ifPresent(t -> { t.close(); titles.save(t); });
+        LocalDate since = period == null ? LocalDate.now() : LocalDate.parse(period + "-01");
+        titles.save(PlayerTitle.current(player.getId(), title, since, source));
     }
 
     /** {@code birthYear} explícito (FIDE solo publica el año) o el año de {@code birthDate}. */

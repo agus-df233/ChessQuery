@@ -1,4 +1,4 @@
-import type { Ratings, RatingType } from '../api/types';
+import type { RankedType, Ratings, RatingType } from '../api/types';
 
 /** Modalidades agrupadas por fuente para pintar la grilla de ratings y el selector del gráfico. */
 export const RATING_GROUPS: { source: string; items: { key: keyof Ratings; type: RatingType; label: string }[] }[] = [
@@ -30,3 +30,11 @@ export const displayName = (p: { firstName: string; lastName: string; currentTit
 export const AGE_CATEGORIES = ['SUB_8', 'SUB_10', 'SUB_12', 'SUB_14', 'SUB_16', 'SUB_18', 'SUB_20', 'ADULTO', 'SENIOR'] as const;
 
 export const categoryLabel = (c: string) => c.replace('SUB_', 'Sub ').replace('ADULTO', 'Adulto').replace('SENIOR', 'Senior');
+
+/** Opciones del selector de ranking: nacional (federación) y las tres modalidades FIDE. */
+export const RANKED_TYPES: { type: RankedType; label: string; short: string }[] = [
+  { type: 'NATIONAL', label: 'Nacional', short: 'ELO Nac.' },
+  { type: 'FIDE_STANDARD', label: 'FIDE clásico', short: 'FIDE' },
+  { type: 'FIDE_RAPID', label: 'FIDE rápido', short: 'FIDE rápido' },
+  { type: 'FIDE_BLITZ', label: 'FIDE blitz', short: 'FIDE blitz' },
+];
