@@ -22,8 +22,13 @@
     <java.version>21</java.version>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jacoco.version>0.8.12</jacoco.version>
+    <jacoco.version>0.8.13</jacoco.version>
     <jacoco.minimum>0.90</jacoco.minimum>
+    <jib.version>3.4.5</jib.version>
+    <!-- Solo los servicios generan imagen; las libs (y el pom raíz) la saltan. -->
+    <jib.skip>true</jib.skip>
+    <!-- Imagen: se sobreescribe en CD con -Dimage=<ecr>/chessquery/<servicio>:<tag> -->
+    <image>chessquery/${project.artifactId}:${project.version}</image>
   </properties>
 
   <modules>
@@ -50,6 +55,46 @@
   <build>
     <pluginManagement>
       <plugins>
+        <!-- Desde JDK 23 javac no ejecuta procesadores del classpath si no se declaran: Lombok
+             va explícito para compilar igual en JDK 21 (CI) y en JDKs más nuevos (local). -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+              </path>
+            </annotationProcessorPaths>
+          </configuration>
+        </plugin>
+        <!-- Imágenes OCI sin Dockerfile, multi-arch (Fargate ARM64 en la nube, amd64 en CI).
+             Local: mvn -pl services/<svc> -am -DskipTests package jib:dockerBuild -->
+        <plugin>
+          <groupId>com.google.cloud.tools</groupId>
+          <artifactId>jib-maven-plugin</artifactId>
+          <version>${jib.version}</version>
+          <configuration>
+            <from>
+              <image>eclipse-temurin:21-jre</image>
+              <platforms>
+                <platform><architecture>arm64</architecture><os>linux</os></platform>
+                <platform><architecture>amd64</architecture><os>linux</os></platform>
+              </platforms>
+            </from>
+            <to>
+              <image>${image}</image>
+            </to>
+            <container>
+              <user>1000:1000</user>
+              <jvmFlags>
+                <jvmFlag>-XX:MaxRAMPercentage=75</jvmFlag>
+              </jvmFlags>
+            </container>
+          </configuration>
+        </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>

@@ -7,9 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Map;
@@ -37,7 +39,7 @@ public class ExternalRatingsClient {
 
     /** Lichess: {@code GET /api/user/{username}} → {@code perfs.<modo>.rating}. */
     public Optional<Map<RatingType, Integer>> lichess(String username) {
-        return fetch(lichessBase + "/api/user/" + username.trim()).map(body -> {
+        return fetch(lichessBase + "/api/user/" + segment(username.trim())).map(body -> {
             JsonNode perfs = body.path("perfs");
             Map<RatingType, Integer> out = new EnumMap<>(RatingType.class);
             put(out, RatingType.LICHESS_BULLET, perfs.path("bullet").path("rating"));
@@ -50,7 +52,7 @@ public class ExternalRatingsClient {
 
     /** Chess.com: {@code GET /pub/player/{username}/stats} → {@code chess_<modo>.last.rating}. */
     public Optional<Map<RatingType, Integer>> chesscom(String username) {
-        return fetch(chesscomBase + "/pub/player/" + username.trim().toLowerCase() + "/stats").map(body -> {
+        return fetch(chesscomBase + "/pub/player/" + segment(username.trim().toLowerCase()) + "/stats").map(body -> {
             Map<RatingType, Integer> out = new EnumMap<>(RatingType.class);
             put(out, RatingType.CHESSCOM_BULLET, body.path("chess_bullet").path("last").path("rating"));
             put(out, RatingType.CHESSCOM_BLITZ, body.path("chess_blitz").path("last").path("rating"));
@@ -58,6 +60,11 @@ public class ExternalRatingsClient {
             put(out, RatingType.CHESSCOM_DAILY, body.path("chess_daily").path("last").path("rating"));
             return out;
         });
+    }
+
+    /** Codifica un segmento de path: un username nunca puede cambiar la ruta ni agregar query. */
+    private static String segment(String raw) {
+        return URLEncoder.encode(raw, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private Optional<JsonNode> fetch(String url) {

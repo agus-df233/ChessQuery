@@ -3,6 +3,7 @@ package cl.chessquery.users.player;
 import cl.chessquery.users.catalog.Club;
 import cl.chessquery.users.catalog.Country;
 import cl.chessquery.users.ranking.AgeCategory;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
@@ -23,6 +24,10 @@ import java.util.List;
 public final class PlayerDtos {
 
     private PlayerDtos() {}
+
+    /** Usernames de Lichess/Chess.com: van al path de una URL externa, así que solo caracteres seguros. Vacío = desvincular. */
+    static final String USERNAME = "^$|^[A-Za-z0-9_-]{2,30}$";
+    static final String USERNAME_MSG = "Username inválido: 2 a 30 letras, números, '_' o '-'";
 
     public record Ratings(
             Integer national, Integer fideStandard, Integer fideRapid, Integer fideBlitz, Integer platform,
@@ -108,6 +113,6 @@ public final class PlayerDtos {
             Integer countryId,
             Integer clubId,
             @Size(max = 100) String region,
-            @Size(max = 100) String lichessUsername,
-            @Size(max = 100) String chesscomUsername) {}
+            @Pattern(regexp = USERNAME, message = USERNAME_MSG) String lichessUsername,
+            @Pattern(regexp = USERNAME, message = USERNAME_MSG) String chesscomUsername) {}
 }

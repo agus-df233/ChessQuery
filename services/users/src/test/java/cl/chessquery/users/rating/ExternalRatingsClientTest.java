@@ -56,6 +56,19 @@ class ExternalRatingsClientTest {
     }
 
     @Test
+    void usernameCannotEscapeItsPathSegment() {
+        // Sin codificar, "x/../y" o "y?z" apuntarían a otra ruta o agregarían query en el host externo.
+        java.util.List<String> rawPaths = new java.util.concurrent.CopyOnWriteArrayList<>();
+        server.createContext("/api/user/x", ex -> { rawPaths.add(ex.getRequestURI().getRawPath()); respond(ex, 404, "{}"); });
+        server.createContext("/pub/player/y", ex -> { rawPaths.add(ex.getRequestURI().getRawPath()); respond(ex, 404, "{}"); });
+
+        client.lichess("x/../evil");
+        client.chesscom("y?z=1");
+
+        assertThat(rawPaths).containsExactly("/api/user/x%2F..%2Fevil", "/pub/player/y%3Fz%3D1/stats");
+    }
+
+    @Test
     void nonOkAndNetworkErrorsAreEmpty() {
         assertThat(client.lichess("missing")).isEmpty();
         ExternalRatingsClient dead = new ExternalRatingsClient("http://127.0.0.1:1", "http://127.0.0.1:1");
