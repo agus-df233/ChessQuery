@@ -25,8 +25,8 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-amqp</artifactId>
+      <groupId>io.awspring.cloud</groupId>
+      <artifactId>spring-cloud-aws-starter-sns</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -47,6 +47,21 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.awspring.cloud</groupId>
+      <artifactId>spring-cloud-aws-starter-sqs</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>localstack</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

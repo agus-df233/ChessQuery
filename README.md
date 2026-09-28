@@ -36,7 +36,8 @@ Eventos publicados y consumidos: ver `docs/events.md`.
 Requisitos: JDK 21, Maven 3.9, Docker, Node 20.
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d     # postgres, rabbitmq (+stomp), minio, mailpit
+docker compose -f infra/docker-compose.yml up -d     # postgres, localstack (SNS/SQS/S3), mailpit
+set -a; source infra/.env.example; set +a            # endpoint y credenciales dummy de LocalStack
 export OIDC_ISSUER_URI=https://<tenant>.ciamlogin.com/<tenant-id>/v2.0
 export OIDC_AUDIENCE=<client-id-de-la-api>
 mvn -pl services/users spring-boot:run
@@ -61,6 +62,6 @@ npm run test -w web       # Vitest + axe-core + contraste AA
 
 - Identidad: siempre desde `@CurrentUser UserPrincipal`, nunca del body. `ORGANIZER` = dueño de una organización.
 - Errores REST: `{ status, error, message, timestamp }`. JSON en camelCase, columnas en snake_case.
-- Eventos: envelope `{ eventId, eventType, timestamp, payload }` en el exchange `ChessEvents`; catálogo en `docs/events.md`; una cola dedicada por servicio consumidor.
+- Eventos: envelope `{ eventId, eventType, timestamp, payload }` en el tópico SNS `chess-events`; una cola SQS dedicada por consumidor (filter policy por `eventType`, DLQ); catálogo en `docs/events.md`.
 - Cada servicio es dueño de su schema PostgreSQL (`users`, `tournament`, `game`, `notifications`, `etl`); sin FKs entre schemas.
 - `main` protegida; todo por PR con CI verde.

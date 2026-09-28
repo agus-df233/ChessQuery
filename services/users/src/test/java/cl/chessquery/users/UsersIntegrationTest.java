@@ -13,7 +13,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,7 +58,6 @@ class UsersIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @MockitoBean JwtDecoder jwtDecoder;
-    @MockitoBean ConnectionFactory rabbitConnectionFactory;
     @MockitoBean EventPublisher events;
 
     @Autowired MockMvc mvc;

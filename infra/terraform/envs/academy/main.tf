@@ -122,15 +122,26 @@ module "users" {
     JAVA_TOOL_OPTIONS = "-XX:MaxRAMPercentage=75"
     # Health checks del ALB contra /actuator/health/liveness.
     MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED = "true"
-    # Hasta migrar a SNS/SQS (ADR-0002, fase 1) no hay broker en la nube: los listeners AMQP no
-    # arrancan, el indicador de salud de RabbitMQ se apaga y EventPublisher (best-effort) solo loguea.
-    MANAGEMENT_HEALTH_RABBIT_ENABLED             = "false"
-    SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP = "false"
+    # Bus SNS/SQS: credenciales por el rol de la task (LabRole), sin contraseñas.
+    CHESS_EVENTS_TOPIC_ARN = module.messaging.topic_arn
+    USERS_ELO_QUEUE        = module.messaging.queue_names["users-elo"]
+    USERS_RATING_QUEUE     = module.messaging.queue_names["users-rating"]
   }
 
   secrets = {
     DB_PASSWORD    = "${module.data.db_master_secret_arn}:password::"
     INTERNAL_TOKEN = module.data.internal_token_param_arn
+  }
+}
+
+# ── Bus de eventos (ADR-0002) ─────────────────────────────────────────────────
+module "messaging" {
+  source          = "../../modules/messaging"
+  name            = local.name
+  alarm_topic_arn = module.observability.alerts_topic_arn
+  consumers = {
+    "users-elo"    = ["elo.updated"]
+    "users-rating" = ["rating.updated"]
   }
 }
 

@@ -1,7 +1,11 @@
 package cl.chessquery.common.events;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.SnsException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Map;
@@ -10,21 +14,27 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class EventsTest {
 
     @Test
-    void publisherSendsEnvelopeToExchangeAndSwallowsBrokerErrors() {
-        RabbitTemplate template = mock(RabbitTemplate.class);
-        EventPublisher publisher = new EventPublisher(template);
+    void publisherSendsEnvelopeWithEventTypeAttributeAndSwallowsBusErrors() throws Exception {
+        SnsClient sns = mock(SnsClient.class);
+        ObjectMapper json = new ObjectMapper().findAndRegisterModules();
+        EventPublisher publisher = new EventPublisher(sns, json, "arn:aws:sns:us-east-1:000000000000:chess-events");
 
         publisher.publish("player.claimed", Map.of("playerId", 1));
-        verify(template).convertAndSend(eq(ChessEvents.EXCHANGE), eq("player.claimed"), any(ChessEvent.class));
+        ArgumentCaptor<PublishRequest> req = ArgumentCaptor.forClass(PublishRequest.class);
+        verify(sns).publish(req.capture());
+        assertThat(req.getValue().topicArn()).endsWith(":chess-events");
+        assertThat(req.getValue().messageAttributes().get(ChessEvents.EVENT_TYPE_ATTRIBUTE).stringValue())
+                .isEqualTo("player.claimed");
+        ChessEvent sent = json.readValue(req.getValue().message(), ChessEvent.class);
+        assertThat(sent.eventType()).isEqualTo("player.claimed");
+        assertThat(sent.payload()).containsEntry("playerId", 1);
 
-        doThrow(new RuntimeException("broker caído")).when(template)
-                .convertAndSend(eq(ChessEvents.EXCHANGE), eq("x"), any(ChessEvent.class));
+        when(sns.publish(any(PublishRequest.class))).thenThrow(SnsException.builder().message("caído").build());
         publisher.publish("x", Map.of()); // no lanza
     }
 

@@ -1,5 +1,5 @@
 # Infra local de ChessQuery v3. No incluye los servicios Java: se corren desde Maven
-# (mvn -pl services/users spring-boot:run) para iterar rápido.
+# (mvn -pl services/users spring-boot:run) para iterar rápido. Ver `make local-up`.
 name: chessquery
 
 services:
@@ -17,33 +17,21 @@ services:
       timeout: 3s
       retries: 10
 
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+  # SNS + SQS + S3 locales (ADR-0002). Fijado en 4.14.0: desde las versiones 2026.x la imagen
+  # exige LOCALSTACK_AUTH_TOKEN. La topología la crea infra/localstack/init/ready.d.
+  localstack:
+    image: localstack/localstack:4.14.0
     environment:
-      RABBITMQ_DEFAULT_USER: chessquery
-      RABBITMQ_DEFAULT_PASS: chessquery
-    ports:
-      - "127.0.0.1:5672:5672"     # AMQP
-      - "127.0.0.1:61613:61613"   # STOMP (relay del WebSocket de game)
-      - "127.0.0.1:15672:15672"   # management UI
+      SERVICES: sns,sqs,s3
+      AWS_DEFAULT_REGION: us-east-1
+    ports: ["127.0.0.1:4566:4566"]
     volumes:
-      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+      - ./localstack/init/ready.d:/etc/localstack/init/ready.d:ro
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
+      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name users-rating >/dev/null 2>&1"]
+      interval: 5s
       timeout: 5s
-      retries: 10
-
-  minio:
-    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: chessquery
-      MINIO_ROOT_PASSWORD: chessquery
-    ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
-    volumes: [miniodata:/data]
+      retries: 30
 
   mailpit:
     image: axllent/mailpit:v1.24
@@ -53,4 +41,3 @@ services:
 
 volumes:
   pgdata:
-  miniodata:

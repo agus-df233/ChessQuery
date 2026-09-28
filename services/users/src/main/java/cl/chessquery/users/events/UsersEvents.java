@@ -15,8 +15,5 @@ public final class UsersEvents {
     public static final String ELO_UPDATED = "elo.updated";
     public static final String RATING_UPDATED = "rating.updated";
 
-    public static final String ELO_QUEUE = "users.elo.queue";
-    public static final String RATING_QUEUE = "users.rating.queue";
-
     private UsersEvents() {}
 }

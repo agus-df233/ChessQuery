@@ -24,6 +24,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jacoco.version>0.8.13</jacoco.version>
     <jacoco.minimum>0.90</jacoco.minimum>
+    <spring-cloud-aws.version>3.4.2</spring-cloud-aws.version>
     <jib.version>3.4.5</jib.version>
     <!-- Solo los servicios generan imagen; las libs (y el pom raíz) la saltan. -->
     <jib.skip>true</jib.skip>
@@ -39,6 +40,14 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- SNS/SQS/S3 (ADR-0002). La línea 3.4.x es la compatible con Spring Boot 3.5. -->
+      <dependency>
+        <groupId>io.awspring.cloud</groupId>
+        <artifactId>spring-cloud-aws-dependencies</artifactId>
+        <version>${spring-cloud-aws.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>cl.chessquery</groupId>
         <artifactId>chessquery-common</artifactId>

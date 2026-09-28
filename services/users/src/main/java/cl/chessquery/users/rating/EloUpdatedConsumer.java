@@ -5,9 +5,9 @@ import cl.chessquery.common.events.IdempotentConsumer;
 import cl.chessquery.users.events.Payloads;
 import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.PlayerRepository;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -26,7 +26,8 @@ public class EloUpdatedConsumer {
     private final PlayerRepository players;
     private final RatingService ratings;
 
-    @RabbitListener(queues = UsersEvents.ELO_QUEUE)
+    /** Cola SQS dedicada, suscrita al tópico con filter policy por eventType (docs/events.md). */
+    @SqsListener("${chessquery.events.queues.elo}")
     public void onEloUpdated(ChessEvent event) {
         if (!UsersEvents.ELO_UPDATED.equals(event.eventType())) return;
         idempotent.handle(event, this::apply);

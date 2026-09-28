@@ -1,61 +1,35 @@
 package cl.chessquery.common.events;
 
-import org.springframework.amqp.core.ExchangeBuilder;
-import org.springframework.amqp.core.TopicExchange;
-import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.awspring.cloud.autoconfigure.sns.SnsAutoConfiguration;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import software.amazon.awssdk.services.sns.SnsClient;
 
 /**
- * Declara el exchange {@code ChessEvents} (topic, durable), la serialización JSON
- * y el {@link EventPublisher}. Las colas y bindings son responsabilidad de cada
- * servicio consumidor (una cola dedicada por servicio; nunca compartida).
+ * Registra el {@link EventPublisher} sobre el {@link SnsClient} de Spring Cloud AWS cuando el
+ * servicio declara {@code chessquery.events.topic-arn}. Las colas SQS, sus suscripciones
+ * (filter policy por {@code eventType}) y las DLQ son infraestructura: viven en Terraform
+ * (nube) y en {@code infra/localstack} (local), no en el código.
  */
-@AutoConfiguration(after = RabbitAutoConfiguration.class)
-@ConditionalOnClass(RabbitTemplate.class)
-@ConditionalOnBean(ConnectionFactory.class)
+@AutoConfiguration(after = {SnsAutoConfiguration.class, JacksonAutoConfiguration.class})
+@ConditionalOnClass(SnsClient.class)
+@ConditionalOnBean(SnsClient.class)
+@ConditionalOnProperty("chessquery.events.topic-arn")
 public class ChessEventsAutoConfiguration {
 
     @Bean
-    public TopicExchange chessEventsExchange() {
-        return ExchangeBuilder.topicExchange(ChessEvents.EXCHANGE).durable(true).build();
-    }
-
-    @Bean
     @ConditionalOnMissingBean
-    public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory cf, MessageConverter converter) {
-        RabbitTemplate template = new RabbitTemplate(cf);
-        template.setMessageConverter(converter);
-        return template;
-    }
-
-    @Bean
-    @ConditionalOnMissingBean(name = "rabbitListenerContainerFactory")
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory cf,
-                                                                              MessageConverter converter) {
-        SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
-        factory.setConnectionFactory(cf);
-        factory.setMessageConverter(converter);
-        return factory;
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public EventPublisher eventPublisher(RabbitTemplate rabbitTemplate) {
-        return new EventPublisher(rabbitTemplate);
+    public EventPublisher eventPublisher(SnsClient sns, ObjectProvider<ObjectMapper> mapper,
+                                         @Value("${chessquery.events.topic-arn}") String topicArn) {
+        return new EventPublisher(sns, mapper.getIfAvailable(() -> new ObjectMapper().findAndRegisterModules()),
+                topicArn);
     }
 }

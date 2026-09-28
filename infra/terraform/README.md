@@ -13,6 +13,7 @@ modules/network         VPC 2 AZ, subnets públicas sin NAT, SGs (ALB solo desde
 modules/data            RDS Postgres 16 (password gestionada por RDS), bucket de archivos, SSM
 modules/ecs-service     microservicio Fargate ARM64 genérico (Spot/on-demand, logs 14 días)
 modules/edge            CloudFront + S3 (SPA, OAC) + ALB con enrutamiento por path
+modules/messaging       SNS chess-events → SQS por consumidor (filter policy, raw, DLQ + alarma)
 modules/observability   alarmas 5xx / targets no sanos / espacio RDS → SNS email
 ```
 

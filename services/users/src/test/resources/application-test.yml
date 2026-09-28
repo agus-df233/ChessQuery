@@ -5,9 +5,14 @@ spring:
         jwt:
           issuer-uri: http://localhost/test-issuer
           audiences: test-audience
-  rabbitmq:
-    listener:
-      auto-startup: false   # sin broker en tests; los consumers se prueban llamando a apply()
+  cloud:
+    aws:
+      # Sin bus en estos tests: los consumers se prueban llamando a apply() y el EventPublisher se
+      # mockea. UsersEventsIntegrationTest reactiva SNS/SQS contra LocalStack.
+      sns:
+        enabled: false
+      sqs:
+        enabled: false
 chessquery:
   auth:
     internal-token: test-token

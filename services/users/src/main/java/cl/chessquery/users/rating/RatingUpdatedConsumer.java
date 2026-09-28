@@ -8,9 +8,9 @@ import cl.chessquery.users.events.Payloads;
 import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerRepository;
+import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +42,8 @@ public class RatingUpdatedConsumer {
     private final ClubRepository clubs;
     private final RatingService ratings;
 
-    @RabbitListener(queues = UsersEvents.RATING_QUEUE)
+    /** Cola SQS dedicada, suscrita al tópico con filter policy por eventType (docs/events.md). */
+    @SqsListener("${chessquery.events.queues.rating}")
     public void onRatingUpdated(ChessEvent event) {
         if (!UsersEvents.RATING_UPDATED.equals(event.eventType())) return;
         idempotent.handle(event, this::apply);

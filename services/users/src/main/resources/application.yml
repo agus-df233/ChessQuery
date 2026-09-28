@@ -15,11 +15,12 @@ spring:
     schemas: users
     default-schema: users
     create-schemas: true
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:chessquery}
-    password: ${RABBITMQ_PASSWORD:chessquery}
+  cloud:
+    aws:
+      # Credenciales y endpoint: cadena por defecto del SDK. En la nube, el rol IAM de la task;
+      # en local, AWS_ENDPOINT_URL=http://localhost:4566 + credenciales dummy (infra/.env.example).
+      region:
+        static: ${AWS_REGION:us-east-1}
   security:
     oauth2:
       resourceserver:
@@ -29,6 +30,11 @@ spring:
           audiences: ${OIDC_AUDIENCE}
 
 chessquery:
+  events:
+    topic-arn: ${CHESS_EVENTS_TOPIC_ARN:arn:aws:sns:us-east-1:000000000000:chess-events}
+    queues:
+      elo: ${USERS_ELO_QUEUE:users-elo}
+      rating: ${USERS_RATING_QUEUE:users-rating}
   auth:
     internal-token: ${INTERNAL_TOKEN:dev-internal-token}
     roles-claim: roles

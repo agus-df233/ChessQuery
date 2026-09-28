@@ -9,7 +9,8 @@ import java.util.function.Consumer;
 
 /**
  * Envuelve el manejo de un {@link ChessEvent} garantizando que se procese una sola vez.
- * Uso en un @RabbitListener: {@code idempotent.handle(event, this::apply)}.
+ * Uso en un @SqsListener: {@code idempotent.handle(event, this::apply)}. SQS entrega al menos una
+ * vez, así que los duplicados son esperables y se descartan aquí.
  */
 public class IdempotentConsumer {
 
