@@ -35,6 +35,10 @@ make tf-check          # terraform fmt + validate de todos los entornos
   Hibernate solo valida.
 - **Errores REST:** `{ status, error, message, timestamp }`; JSON camelCase, columnas snake_case.
 - **Calidad:** cobertura ≥ 90 % por módulo (gate de CI); accesibilidad AA con axe en la web.
+- **CI** (`.github/workflows/ci.yml`, en push a `main`/`develop` y PRs): Java, ETL, web, Terraform, complejidad y
+  Trivy. Acciones de terceros **fijadas a un commit exacto**, no a una etiqueta. Dependabot: 1 PR semanal agrupado
+  contra `develop`, sin versiones mayores (ADR-0002, enmienda 2026-09-29). Herramientas nuevas en el CI se declaran
+  primero en un ADR.
 - **Git:** `main` protegida; se trabaja en `develop` y ramas de feature, todo por PR con CI verde. Commits en español, cortos y
   con foco funcional, sin trailers de co-autoría.
 - **Idioma:** comentarios, docstrings y documentación en español latino.

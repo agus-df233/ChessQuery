@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
 
+# Mínimo privilegio: el CI solo lee el código (no publica reportes ni escribe en el repo).
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   java:
@@ -61,12 +61,15 @@ jobs:
       - name: Typecheck + build de producción
         run: npm run build -w web
 
+  # Trivy (ADR-0002, enmienda 2026-09-29): dependencias con vulnerabilidades conocidas y configuración de Terraform.
+  # La acción se fija a un commit exacto, no a una etiqueta: las etiquetas se pueden reescribir (así pasó con esta
+  # acción en marzo de 2026). Para actualizar: ver el commit de la nueva versión y reemplazar el SHA en ambos pasos.
   security-scan:
     name: Trivy filesystem scan (bloqueante HIGH/CRITICAL)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -92,9 +95,9 @@ jobs:
             terraform -chdir="$dir" validate
             echo "::endgroup::"
           done
-      # Informativo por ahora: el entorno Academy usa HTTP CloudFront→ALB y subnets públicas sin NAT
+      # Informativo por ahora: el entorno Academy usa HTTP entre API Gateway y el ALB y subnets públicas sin NAT
       # a propósito (costo; ver ADR-0002). Pasa a bloqueante con un .trivyignore justificado.
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: infra/terraform

@@ -89,3 +89,18 @@ Límite conocido: el aviso de cambios vive en memoria de cada instancia. Con var
 por otra réplica se entera al vencer su espera (≤ 25 s) o en su siguiente consulta; la API REST sigue siendo la
 fuente de verdad. Con 1 réplica (Academy y MVP) el aviso es inmediato. Si se escala, el reemplazo es AppSync Events
 en la cuenta propia (ya decidido arriba) publicando desde el mismo punto (`GameNotifier`), sin tocar pantallas.
+
+## Enmienda — 29-09-2026: CI, Trivy y Dependabot
+
+Venían en el esqueleto del proyecto sin una decisión escrita; se revisan y quedan declarados:
+
+1. **El CI corre en cada push a `main` y a `develop` y en cada PR**: Java (tests + cobertura ≥ 90 %), ETL, web
+   (Vitest + axe + build), Terraform (fmt + validate), complejidad (informativo) y Trivy.
+2. **Trivy** (gratis, de Aqua Security): escanea las dependencias (bloquea con vulnerabilidades HIGH/CRITICAL que
+   ya tengan corrección) y la configuración de Terraform (informativo, por las concesiones de costo de Academy).
+   La acción se fija a un **commit exacto** y no a una etiqueta: en marzo de 2026 las etiquetas de
+   `aquasecurity/trivy-action` se reescribieron y la versión que usábamos (`0.28.0`) desapareció, lo que rompió el CI.
+3. **Dependabot**: un PR semanal agrupado por ecosistema (Maven y GitHub Actions) contra `develop`, sin saltos de
+   versión mayor (se evalúan a mano, p. ej. Spring Boot 4). Se quitó el escaneo de Docker: `/infra` no tiene
+   Dockerfile (las imágenes locales se fijan en `docker-compose.yml` y las de los servicios las arma Jib).
+4. El CI tiene solo permiso de lectura sobre el repositorio.
