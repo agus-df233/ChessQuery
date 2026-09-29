@@ -57,7 +57,7 @@ vi.mock('./api/users', () => ({
 
 import { tournamentsApi } from './api/tournaments';
 import { PublicTournamentDetail, PublicTournaments } from './pages/PublicTournaments';
-import { Tournaments } from './pages/Tournaments';
+import { Tournaments, myPairing } from './pages/Tournaments';
 import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTournaments';
 
 const renderAt = (path: string, pattern: string, ui: React.ReactElement) => render(
@@ -106,5 +106,12 @@ describe('torneos: vistas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Crear torneo' }));
     await vi.waitFor(() => expect(tournamentsApi.create).toHaveBeenCalled());
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('jugador: ve su mesa de la ronda en curso', () => {
+    expect(myPairing(fx.round, 12)).toBe('Ronda 1 · mesa 1: juegas con negras contra Ana Soto.');
+    expect(myPairing(fx.round, 11)).toBe('Ronda 1 · mesa 1: juegas con blancas contra Luis Paz.');
+    expect(myPairing(fx.round, 17)).toBe('Ronda 1: descansas (bye, suma 1 punto).');
+    expect(myPairing(fx.round, 99)).toBe('Ronda 1: no tienes mesa en esta ronda.');
   });
 });

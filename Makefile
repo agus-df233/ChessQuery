@@ -9,6 +9,7 @@
 #   make federation-worker   atiende los pedidos de ficha de los jugadores (cola etl-federation-lookup)
 #   make etl-docs         regenera el PDF de la guía del ETL desde docs/etl/*.md
 #   make test             Java + ETL + web
+#   make e2e              recorridos del jugador y del organizador en Chromium contra el stack local completo
 #   make image            imagen OCI de users en el Docker local (Jib, arm64)
 #   make tf-check         terraform fmt + validate de todos los entornos
 #   make complexity       complejidad ciclomática ≤ 10 por función (lizard, Java + Python + TypeScript)
@@ -20,7 +21,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
+.PHONY: local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web e2e image tf-check complexity
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -77,6 +78,10 @@ test-etl: etl/.venv
 
 test-web:
 	npm run test -w web
+
+# Levanta todo lo necesario (infra, servicios, worker del ETL, Federación falsa, web), corre Playwright y apaga.
+e2e:
+	bash scripts/e2e.sh
 
 image:
 	mvn -B -ntp -q -pl services/users -am -DskipTests package jib:dockerBuild -Djib.from.platforms=linux/arm64

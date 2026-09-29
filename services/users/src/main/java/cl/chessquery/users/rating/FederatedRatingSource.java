@@ -20,6 +20,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Fuentes federadas (FIDE y la Federación nacional). Reglas, en orden:
@@ -94,16 +96,34 @@ public class FederatedRatingSource implements RatingSource {
         return found;
     }
 
-    /** Solo rellena lo que está vacío: lo que el titular o un organizador cargó a mano manda. */
+    /**
+     * Solo rellena lo que está vacío: lo que el titular o un organizador cargó a mano manda. Un identificador que
+     * ya pertenece a otro jugador no se copia (índice único): se registra el conflicto para revisión y el resto de
+     * la fila se aplica. Así una ficha inconsistente no hace fallar el lote completo.
+     */
     private void completeMissingData(Player player, Ids ids, Map<String, Object> p) {
-        if (player.getFederationId() == null) player.setFederationId(ids.federationId());
-        if (player.getFideId() == null) player.setFideId(ids.fideId());
-        if (player.getRutHash() == null) player.setRutHash(ids.rutHash());
+        fillIdentifier(player, "federationId", player.getFederationId(), ids.federationId(),
+                players::findByFederationId, player::setFederationId);
+        fillIdentifier(player, "fideId", player.getFideId(), ids.fideId(), players::findByFideId, player::setFideId);
+        fillIdentifier(player, "rutHash", player.getRutHash(), ids.rutHash(), players::findByRutHash, player::setRutHash);
         if (player.getBirthYear() == null) player.setBirthYear(birthYear(p));
         if (player.getSourceUrl() == null) player.setSourceUrl(Payloads.str(p, "sourceUrl"));
         Optional.ofNullable(Payloads.str(p, "period")).ifPresent(player::setSourcePeriod);
         String clubName = Payloads.str(p, "clubName");
         if (clubName != null && player.getClub() == null) player.setClub(findOrCreateClub(clubName));
+    }
+
+    /** Asigna el identificador si el jugador no lo tiene y ningún otro jugador lo tiene (si no, registra el conflicto). */
+    private void fillIdentifier(Player player, String field, String current, String value,
+                                Function<String, Optional<Player>> holderOf, Consumer<String> setter) {
+        if (current != null || value == null) return;
+        Optional<Player> holder = holderOf.apply(value);
+        if (holder.isEmpty() || holder.get().getId().equals(player.getId())) {
+            setter.accept(value);
+            return;
+        }
+        log.warn("rating.updated: conflicto de identidad, {} ya pertenece al jugador {}; no se asigna al {}",
+                field, holder.get().getId(), player.getId());
     }
 
     /** Título vigente (GM, IM, ...): cierra el anterior si cambió. Valores desconocidos se ignoran. */

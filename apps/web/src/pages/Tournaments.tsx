@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card } from '@chessquery/ui-lib';
 import { useMe } from '../api/hooks';
 import { publicTournamentsApi, tournamentsApi } from '../api/tournaments';
-import type { TournamentDetail, TournamentView } from '../api/tournamentTypes';
+import type { RoundView, TournamentDetail, TournamentView } from '../api/tournamentTypes';
 import { StatusMessage } from '../components/StatusMessage';
-import { TournamentDetailView, tournamentKeys } from '../components/tournament/TournamentDetailView';
+import { TournamentDetailView, tournamentKeys, useTournament } from '../components/tournament/TournamentDetailView';
 import { FederationCalendar, TournamentList } from './PublicTournaments';
 
 const useRefreshTournaments = (id?: number) => {
@@ -53,14 +53,27 @@ export const Tournaments = () => {
 
 /** Mi mesa en la ronda en curso, destacada arriba del detalle. */
 const MyBoard = ({ d, playerId }: { d: TournamentDetail; playerId: number }) => {
+  const { rounds } = useTournament(d.tournament.id);
   const registered = d.players.some((p) => p.player.playerId === playerId);
   if (!registered) return <JoinButton t={d.tournament} registered={false} />;
+  const current = d.tournament.status === 'IN_PROGRESS' ? rounds.data?.[rounds.data.length - 1] : undefined;
   return (
     <>
-      <p className="cq-ok" role="status">Estás inscrito en este torneo.</p>
+      <p className="cq-ok" role="status">{current ? myPairing(current, playerId) : 'Estás inscrito en este torneo.'}</p>
       <JoinButton t={d.tournament} registered />
     </>
   );
+};
+
+/** "Ronda 2 · mesa 3: juegas con blancas contra Luis Paz" (o "descansas", si te tocó bye). */
+export const myPairing = (round: RoundView, playerId: number) => {
+  const board = round.boards.find((b) => b.white.playerId === playerId || b.black?.playerId === playerId);
+  const prefix = `Ronda ${round.number}`;
+  if (!board) return `${prefix}: no tienes mesa en esta ronda.`;
+  if (!board.black) return `${prefix}: descansas (bye, suma 1 punto).`;
+  const white = board.white.playerId === playerId;
+  const rival = white ? board.black : board.white;
+  return `${prefix} · mesa ${board.board}: juegas con ${white ? 'blancas' : 'negras'} contra ${rival.name}.`;
 };
 
 /** /app/torneos/:id: detalle con inscripción. */

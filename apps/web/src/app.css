@@ -1,5 +1,10 @@
 /* Estilos propios de la app (el design system vive en @chessquery/ui-lib). */
 .cq-page { display: flex; flex-direction: column; gap: 16px; max-width: 1080px; }
+/* En el celular el contenido no toca los bordes (una sola vez: ni en páginas anidadas ni en las públicas) */
+@media (max-width: 760px) {
+  .cq-page { padding-inline: 12px; }
+  .cq-page .cq-page, .cq-public .cq-page { padding-inline: 0; }
+}
 .cq-page h1 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1.5rem; margin: 0; }
 .cq-page h2 { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 1.05rem; margin: 0; }
 .cq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
@@ -42,6 +47,8 @@
 .cq-tournament-item { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
 .cq-public { max-width: 1100px; margin: 0 auto; padding: 16px; }
 .cq-check { display: flex; align-items: center; gap: 8px; }
+/* El resultado de una mesa no debe empujar fuera de la tabla la columna de negras en el celular */
+.cq-result-select { width: auto; max-width: 7.5rem; }
 
 /* Partidas */
 .cq-game { display: grid; grid-template-columns: minmax(0, auto) minmax(220px, 1fr); gap: 16px; align-items: start; }
@@ -59,7 +66,8 @@
 .cq-piece-white { color: #fff; text-shadow: 0 0 2px #000, 0 0 1px #000; }
 .cq-piece-black { color: #111; }
 .cq-player-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; width: min(480px, calc(100vw - 32px)); }
-.cq-clock { font: 700 20px/1 'Space Grotesk', system-ui, sans-serif; padding: 6px 10px; border-radius: 6px; background: var(--surface-2, #eee); color: var(--text, #111); font-variant-numeric: tabular-nums; }
-.cq-clock-running { background: var(--accent, #3d8a4a); color: #fff; }
-.cq-clock-low.cq-clock-running { background: #b42318; }
+.cq-clock { font: 700 20px/1 'Space Grotesk', system-ui, sans-serif; padding: 6px 10px; border-radius: 6px; background: var(--surface); color: var(--text); border: 2px solid var(--border); font-variant-numeric: tabular-nums; }
+/* El reloj que corre se marca con borde de acento: el texto conserva el contraste del tema (claro u oscuro) */
+.cq-clock-running { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.cq-clock-low.cq-clock-running { background: #b42318; border-color: #b42318; color: #fff; }
 .cq-moves { columns: 2; margin: 0; padding-left: 24px; font-variant-numeric: tabular-nums; }

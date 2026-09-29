@@ -39,6 +39,8 @@ export interface PlayBoardProps {
   myColor: 'WHITE' | 'BLACK' | null;
   /** Solo se puede mover cuando es mi turno y la partida está en juego. */
   canMove: boolean;
+  /** Mostrar la elección de pieza al coronar (solo mientras la partida está en juego). */
+  showPromotion?: boolean;
   lastMove?: string;
   onMove: (uci: string) => void;
 }
@@ -47,7 +49,7 @@ export interface PlayBoardProps {
  * Tablero jugable: clic (o Enter) en una pieza propia y luego en la casilla destino. Cada casilla es un botón con
  * nombre accesible ("e4, peón blanco"). Las reglas las valida el servidor: una jugada ilegal vuelve como error.
  */
-export const PlayBoard = ({ fen, myColor, canMove, lastMove, onMove }: PlayBoardProps) => {
+export const PlayBoard = ({ fen, myColor, canMove, showPromotion = false, lastMove, onMove }: PlayBoardProps) => {
   const pieces = useMemo(() => piecesFromFen(fen), [fen]);
   const [from, setFrom] = useState<string | null>(null);
   const [promotion, setPromotion] = useState('q');
@@ -87,7 +89,7 @@ export const PlayBoard = ({ fen, myColor, canMove, lastMove, onMove }: PlayBoard
           </div>
         ))}
       </div>
-      {myColor && (
+      {myColor && showPromotion && (
         <label className="cq-muted">Coronar a{' '}
           <select value={promotion} onChange={(e) => setPromotion(e.target.value)}>
             <option value="q">dama</option><option value="r">torre</option><option value="b">alfil</option><option value="n">caballo</option>

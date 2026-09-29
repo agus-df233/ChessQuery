@@ -343,6 +343,20 @@ class UsersIntegrationTest {
         assertThat(tercero.getRutHash()).hasSize(64);
         assertThat(tercero.getBirthDate()).isNull();
         assertThat(tercero.getBirthYear()).isEqualTo(1980);
+
+        // La ficha 6666 ya existe (se encuentra por su id federativo) y ahora llega con un RUT que es de otro jugador
+        // (5555): no tumba el lote; se aplica sin ese RUT y el resto del lote entra
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Rut", "lastName", "Duplicado", "federationId", "6666", "eloNational", 1450)))));
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Rut", "lastName", "Duplicado", "federationId", "6666", "rut", "22.222.222-2",
+                        "eloNational", 1500),
+                Map.of("firstName", "Sana", "lastName", "Ficha", "federationId", "6667", "eloNational", 1550)))));
+        Player conflicto = players.findByFederationId("6666").orElseThrow();
+        assertThat(conflicto.getRutHash()).isNull();
+        assertThat(conflicto.getEloNational()).isEqualTo(1500);
+        assertThat(players.findByFederationId("6667").orElseThrow().getEloNational()).isEqualTo(1550);
+        assertThat(players.findByFederationId("5555").orElseThrow().getRutHash()).isEqualTo(tercero.getRutHash());
         mvc.perform(as(get("/api/users/search").param("q", "22222222-2"), "sub-ana", "ana@x.cl"))
            .andExpect(jsonPath("$[0].id").value(tercero.getId()));
 

@@ -154,7 +154,7 @@ const OrganizerActions = ({ d }: { d: TournamentDetail }) => {
 const ResultSelect = ({ id, round, board }: { id: number; round: number; board: RoundView['boards'][number] }) => {
   const save = useTournamentMutation(id, (result: GameResult) => tournamentsApi.setResult(id, round, board.board, result));
   return (
-    <select aria-label={`Resultado mesa ${board.board}`} value={board.result ?? ''} disabled={save.isPending}
+    <select className="cq-result-select" aria-label={`Resultado mesa ${board.board}`} value={board.result ?? ''} disabled={save.isPending}
             onChange={(e) => save.mutate(e.target.value as GameResult)}>
       <option value="" disabled>pendiente</option>
       {RESULT_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}

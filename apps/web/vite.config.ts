@@ -37,6 +37,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
+    // Vitest solo corre las pruebas de src/; las de e2e/ son de Playwright (make e2e)
+    include: ['src/**/*.spec.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

@@ -107,7 +107,7 @@ const BoardArea = ({ g, myColor }: { g: GameView; myColor: 'WHITE' | 'BLACK' | n
   return (
     <div>
       <PlayerBar side={top} running={running(top)} active={active} />
-      <PlayBoard fen={g.fen} myColor={myColor} canMove={myTurn} lastMove={g.moves[g.moves.length - 1]}
+      <PlayBoard fen={g.fen} myColor={myColor} canMove={myTurn} showPromotion={active} lastMove={g.moves[g.moves.length - 1]}
                  onMove={(uci) => move.mutate((gid) => gamesApi.move(gid, uci))} />
       <PlayerBar side={bottom} running={running(bottom)} active={active} />
       <StatusMessage error={move.error} />

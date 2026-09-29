@@ -67,7 +67,8 @@ describe('partidas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'e4, vacía' }));
     await vi.waitFor(() => expect(gamesApi.move).toHaveBeenCalledWith(9, 'e2e4'));
     expect(gamesApi.waitChange).toHaveBeenCalledWith(9, 3, expect.anything());
-    expect(screen.getByRole('timer', { name: 'Reloj de Ana Soto' })).toHaveTextContent('2:55');
+    // Es el reloj que corre: según la carga de la máquina puede haber avanzado un par de segundos
+    expect(screen.getByRole('timer', { name: 'Reloj de Ana Soto' }).textContent).toMatch(/^2:5[3-5]$/);
     expect(screen.getByText('Tu rival ofrece tablas.')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
