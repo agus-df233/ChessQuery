@@ -1,6 +1,8 @@
 # Copiar a academy.tfvars (ignorado por git) y completar.
 image_tags = {
-  users = "sha-xxxxxxx"
+  users      = "sha-xxxxxxx"
+  tournament = "sha-xxxxxxx"
+  game       = "sha-xxxxxxx"
 }
 use_spot        = true
 oidc_issuer_uri = "https://<tenant>.ciamlogin.com/<tenant-id>/v2.0"

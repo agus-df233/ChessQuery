@@ -30,7 +30,7 @@ resource "aws_lb" "this" {
   load_balancer_type = "application"
   security_groups    = [var.alb_sg_id]
   subnets            = var.subnet_ids
-  idle_timeout       = 120 # tolera el WebSocket del fallback STOMP de game
+  idle_timeout       = 120 # sobre el long polling de game (25 s) con holgura
 }
 
 resource "aws_lb_target_group" "svc" {
@@ -66,14 +66,29 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# Un ALB acepta hasta 5 valores de condición por regla y la cabecera de origen ocupa uno: los paths de cada
+# servicio se reparten en reglas de a 4 (prioridad = listener_pri * 10 + n° de bloque). Un número de prioridad
+# menor se evalúa antes: los servicios con rutas más específicas (p. ej. /api/public/tournaments/*) deben tener
+# listener_pri menor que el que tiene el comodín (/api/public/* de users).
+locals {
+  # Solo se compara con null (un booleano, no revela el secreto): por eso puede ser no sensible.
+  paths_per_rule = nonsensitive(var.origin_secret == null) ? 5 : 4
+  rules = merge([
+    for svc, r in var.routes : {
+      for i, chunk in chunklist(r.paths, local.paths_per_rule) :
+      "${svc}-${i}" => { service = svc, paths = chunk, priority = r.listener_pri * 10 + i }
+    }
+  ]...)
+}
+
 resource "aws_lb_listener_rule" "svc" {
-  for_each     = var.routes
+  for_each     = local.rules
   listener_arn = aws_lb_listener.http.arn
-  priority     = each.value.listener_pri
+  priority     = each.value.priority
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.svc[each.key].arn
+    target_group_arn = aws_lb_target_group.svc[each.value.service].arn
   }
 
   condition {

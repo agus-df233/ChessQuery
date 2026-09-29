@@ -100,3 +100,4 @@ output "db_master_secret_arn" { value = aws_db_instance.this.master_user_secret[
 output "files_bucket" { value = aws_s3_bucket.files.bucket }
 output "internal_token_param_arn" { value = aws_ssm_parameter.internal_token.arn }
 output "privacy_pepper_param_arn" { value = aws_ssm_parameter.privacy_pepper.arn }
+output "privacy_pepper_param_name" { value = aws_ssm_parameter.privacy_pepper.name }

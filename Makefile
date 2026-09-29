@@ -2,6 +2,7 @@
 #   make local-up         infra local (Postgres, LocalStack SNS/SQS/S3, Mailpit)
 #   make users            servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
 #   make tournament       servicio tournament (8082); necesita users corriendo
+#   make game             servicio game (8083): partidas en línea; necesita users corriendo
 #   make web              web en http://localhost:5173 (proxy /api → users)
 #   make etl-fide-local   importa la lista FIDE real (CHI) y la publica en LocalStack
 #   make federation-contract / federation-tournaments-local   Federación: esquema y torneos en vivo
@@ -19,7 +20,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: local-up local-down users tournament web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
+.PHONY: local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -35,6 +36,10 @@ users:
 tournament:
 	mvn -B -ntp -q -DskipTests install
 	cd services/tournament && $(LOCAL_AWS) mvn -B -ntp spring-boot:run
+
+game:
+	mvn -B -ntp -q -DskipTests install
+	cd services/game && $(LOCAL_AWS) mvn -B -ntp spring-boot:run
 
 web:
 	npm run dev -w web
@@ -95,6 +100,9 @@ ACADEMY_PROFILE ?= default
 ACADEMY_DIR := infra/terraform/envs/academy
 ACADEMY_TF := AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=$(ACADEMY_DIR)
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
+SERVICES := users tournament game
+# Mismo tag para los tres servicios (se construyen juntos desde el mismo commit).
+TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",game="$(IMAGE_TAG)"}'
 
 .PHONY: academy-bootstrap academy-init academy-plan academy-apply academy-image academy-web academy-down academy-destroy
 
@@ -107,16 +115,21 @@ academy-init:
 	  -backend-config="bucket=chessquery-tfstate-$$(AWS_PROFILE=$(ACADEMY_PROFILE) aws sts get-caller-identity --query Account --output text)"
 
 academy-plan: academy-init
-	$(ACADEMY_TF) plan -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'
+	$(ACADEMY_TF) plan -var-file=academy.tfvars $(TAGS_VAR)
 
 academy-apply: academy-init
-	$(ACADEMY_TF) apply -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'
+	$(ACADEMY_TF) apply -var-file=academy.tfvars $(TAGS_VAR)
 
 academy-image:
-	AWS_PROFILE=$(ACADEMY_PROFILE) aws ecr get-login-password | docker login --username AWS --password-stdin \
-	  "$$($(ACADEMY_TF) output -json ecr_repositories | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"].split("/")[0])')"
-	mvn -B -ntp -q -pl services/users -am -DskipTests package jib:build -Djib.from.platforms=linux/amd64 \
-	  -Dimage="$$($(ACADEMY_TF) output -json ecr_repositories | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"])'):$(IMAGE_TAG)"
+	repos=$$($(ACADEMY_TF) output -json ecr_repositories); \
+	registry=$$(echo "$$repos" | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"].split("/")[0])'); \
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws ecr get-login-password | docker login --username AWS --password-stdin "$$registry"; \
+	mvn -B -ntp -q -DskipTests install || exit 1; \
+	for svc in $(SERVICES); do \
+	  repo=$$(echo "$$repos" | python3 -c "import sys,json; print(json.load(sys.stdin)['$$svc'])"); \
+	  echo "== $$svc -> $$repo:$(IMAGE_TAG)"; \
+	  mvn -B -ntp -q -pl services/$$svc jib:build -Djib.from.platforms=linux/amd64 -Dimage="$$repo:$(IMAGE_TAG)" || exit 1; \
+	done
 
 academy-web:
 	npm run build -w web
@@ -124,9 +137,11 @@ academy-web:
 	@echo "Web publicada en $$($(ACADEMY_TF) output -raw app_url)"
 
 academy-down:
-	AWS_PROFILE=$(ACADEMY_PROFILE) aws ecs update-service --cluster chessquery-academy --service users --desired-count 0 >/dev/null
+	for svc in $(SERVICES); do \
+	  AWS_PROFILE=$(ACADEMY_PROFILE) aws ecs update-service --cluster chessquery-academy --service $$svc --desired-count 0 >/dev/null; \
+	done
 	AWS_PROFILE=$(ACADEMY_PROFILE) aws rds stop-db-instance --db-instance-identifier chessquery-academy >/dev/null
-	@echo "Servicio en 0 y RDS detenida (sin borrar nada)."
+	@echo "Servicios en 0 y RDS detenida (sin borrar nada)."
 
 academy-destroy:
-	$(ACADEMY_TF) destroy -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'
+	$(ACADEMY_TF) destroy -var-file=academy.tfvars $(TAGS_VAR)

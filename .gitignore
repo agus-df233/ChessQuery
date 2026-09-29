@@ -29,3 +29,4 @@ infra/terraform/**/*.tfvars
 .vscode/
 *.iml
 .DS_Store
+infra/terraform/**/.build/
