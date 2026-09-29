@@ -2,6 +2,8 @@ package cl.chessquery.common.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -53,6 +55,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ErrorResponse.of(403, "FORBIDDEN", "No tienes permiso para esta operación"));
+    }
+
+    /**
+     * Dos cambios simultáneos sobre lo mismo (p. ej. una jugada justo cuando el barrido cierra por tiempo, o dos
+     * inscripciones iguales): el segundo pierde y el cliente vuelve a leer el estado. No es un error del servidor.
+     */
+    @ExceptionHandler({OptimisticLockingFailureException.class, DataIntegrityViolationException.class})
+    public ResponseEntity<ErrorResponse> handleConcurrentChange(Exception ex) {
+        log.debug("Cambio concurrente rechazado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, "CONCURRENT_UPDATE", "Otro cambio llegó primero. Actualiza e intenta de nuevo"));
     }
 
     @ExceptionHandler(Exception.class)

@@ -11,6 +11,8 @@ import { Friends } from './pages/Friends';
 import { Club } from './pages/Club';
 import { PublicTournamentDetail, PublicTournaments } from './pages/PublicTournaments';
 import { TournamentPage, Tournaments } from './pages/Tournaments';
+import { Games } from './pages/Games';
+import { GamePage } from './pages/GamePage';
 import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTournaments';
 
 /** Rutas: `/`, `/ranking` y `/torneos` públicas; `/app/**` jugador; `/club/**` organizador (o su creación). */
@@ -27,6 +29,8 @@ export const App = () => (
       <Route path="jugadores/:id" element={<PlayerDetail />} />
       <Route path="ranking" element={<Ranking />} />
       <Route path="amigos" element={<Friends />} />
+      <Route path="partidas" element={<Games />} />
+      <Route path="partidas/:id" element={<GamePage />} />
       <Route path="torneos" element={<Tournaments />} />
       <Route path="torneos/:id" element={<TournamentPage />} />
       <Route path="*" element={<Navigate to="/app" replace />} />

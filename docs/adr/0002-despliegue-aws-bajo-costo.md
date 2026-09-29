@@ -71,3 +71,21 @@ Decisiones para `envs/academy` (la cuenta propia no cambia):
 5. El bucket de la web en Academy es público de solo lectura: contiene únicamente el build de la SPA.
 
 Validado con `terraform plan` contra el lab (57 recursos, sin errores de permisos) antes de cualquier `apply`.
+
+## Enmienda — 29-09-2026: tiempo real de las partidas por long polling
+
+El MVP de partidas (`services/game`) usa **long polling sobre la misma API REST** en vez de STOMP o AppSync:
+`GET /api/games/{id}?afterVersion=n` queda en espera (hasta 25 s) y responde apenas la partida cambia (jugada,
+tablas, abandono, tiempo). Cada cambio sube `version`; el cliente vuelve a preguntar con la versión nueva.
+
+Por qué:
+1. **API Gateway HTTP API no transporta WebSocket** (sería otra API de tipo WebSocket, con otro modelo de
+   integración): el long polling pasa por la entrada de Academy sin cambios y detrás del ALB en ambas cuentas.
+2. El **reloj es del servidor**: un barrido cada segundo cierra por tiempo aunque nadie esté conectado, así que la
+   conexión en vivo solo sirve para enterarse antes, no para arbitrar.
+3. La espera usa hilos asíncronos del servlet (`DeferredResult`), no bloquea el pool de peticiones.
+
+Límite conocido: el aviso de cambios vive en memoria de cada instancia. Con varias réplicas, un cliente atendido
+por otra réplica se entera al vencer su espera (≤ 25 s) o en su siguiente consulta; la API REST sigue siendo la
+fuente de verdad. Con 1 réplica (Academy y MVP) el aviso es inmediato. Si se escala, el reemplazo es AppSync Events
+en la cuenta propia (ya decidido arriba) publicando desde el mismo punto (`GameNotifier`), sin tocar pantallas.

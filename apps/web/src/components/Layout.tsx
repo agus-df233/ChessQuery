@@ -9,6 +9,7 @@ const MENU: [id: string, label: string, href: string, icon: string][] = [
   ['inicio', 'Inicio', '/app', '♔'],
   ['jugadores', 'Jugadores', '/app/jugadores', '🔍'],
   ['ranking', 'Ranking', '/app/ranking', '🏆'],
+  ['partidas', 'Partidas', '/app/partidas', '♞'],
   ['amigos', 'Amigos', '/app/amigos', '👥'],
   ['torneos', 'Torneos', '/app/torneos', '🏁'],
   ['perfil', 'Mi perfil', '/app/perfil', '👤'],

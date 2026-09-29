@@ -1,7 +1,7 @@
 package cl.chessquery.tournament.users;
 
 import cl.chessquery.auth.AuthProperties;
-import cl.chessquery.auth.InternalTokenFilter;
+import cl.chessquery.auth.InternalHttp;
 import cl.chessquery.common.api.ApiException;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -18,8 +18,7 @@ public class UsersClient {
     private final RestClient http;
 
     public UsersClient(AuthProperties props) {
-        this.http = RestClient.builder().baseUrl(props.usersUrl())
-                .defaultHeader(InternalTokenFilter.HEADER, props.internalToken()).build();
+        this.http = InternalHttp.usersClient(props);
     }
 
     /** Resumen de users ({@code PlayerDtos.Summary}); {@code publicLastName} ya abrevia a los menores. */

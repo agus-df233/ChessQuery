@@ -84,6 +84,13 @@ const RegisterFromRoster = ({ d }: { d: TournamentDetail }) => {
   const inTournament = new Set(d.players.map((p) => p.player.playerId));
   const available = (roster.data ?? []).filter((p) => p.active && !inTournament.has(p.id));
   const [picked, setPicked] = useState('');
+  const [bulk, setBulk] = useState<string | null>(null);
+  /** Uno por uno (el servidor valida cada inscripción); informa cuántas fallaron en vez de cortar en la primera. */
+  const registerAll = async () => {
+    const results = await Promise.allSettled(available.map((p) => register.mutateAsync(p.id)));
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setBulk(`Inscritos ${results.length - failed}` + (failed ? `, fallaron ${failed}` : ''));
+  };
   return (
     <div className="cq-actions">
       <label>Inscribir del roster
@@ -95,8 +102,8 @@ const RegisterFromRoster = ({ d }: { d: TournamentDetail }) => {
       <Button size="sm" disabled={!picked} loading={register.isPending}
               onClick={() => register.mutate(Number(picked), { onSuccess: () => setPicked('') })}>Inscribir</Button>
       <Button size="sm" variant="secondary" disabled={available.length === 0} loading={register.isPending}
-              onClick={() => void Promise.all(available.map((p) => register.mutateAsync(p.id)))}>Inscribir a todo el roster</Button>
-      <StatusMessage error={register.error} />
+              onClick={() => void registerAll()}>Inscribir a todo el roster</Button>
+      <StatusMessage error={register.error} success={bulk} />
     </div>
   );
 };
