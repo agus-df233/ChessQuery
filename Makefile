@@ -57,3 +57,46 @@ tf-check:
 	@for d in infra/terraform/bootstrap infra/terraform/envs/*/; do \
 	  echo "== $$d"; $(TF) -chdir=$$d init -backend=false -input=false >/dev/null && $(TF) -chdir=$$d validate || exit 1; \
 	done
+
+# ── Despliegue al Learner Lab (lo ejecuta una persona; el agente solo prepara y hace plan) ──────────────
+# Credenciales del lab en AWS_PROFILE (por defecto `default`). Orden: academy-bootstrap (una vez) →
+# academy-apply con IMAGE_TAG → academy-image → academy-web. Ver infra/terraform/README.md.
+ACADEMY_PROFILE ?= default
+ACADEMY_DIR := infra/terraform/envs/academy
+ACADEMY_TF := AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=$(ACADEMY_DIR)
+IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
+
+.PHONY: academy-bootstrap academy-init academy-plan academy-apply academy-image academy-web academy-down academy-destroy
+
+academy-bootstrap:
+	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap init -input=false
+	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap apply
+
+academy-init:
+	$(ACADEMY_TF) init -input=false -reconfigure \
+	  -backend-config="bucket=chessquery-tfstate-$$(AWS_PROFILE=$(ACADEMY_PROFILE) aws sts get-caller-identity --query Account --output text)"
+
+academy-plan: academy-init
+	$(ACADEMY_TF) plan -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'
+
+academy-apply: academy-init
+	$(ACADEMY_TF) apply -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'
+
+academy-image:
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws ecr get-login-password | docker login --username AWS --password-stdin \
+	  "$$($(ACADEMY_TF) output -json ecr_repositories | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"].split("/")[0])')"
+	mvn -B -ntp -q -pl services/users -am -DskipTests package jib:build -Djib.from.platforms=linux/amd64 \
+	  -Dimage="$$($(ACADEMY_TF) output -json ecr_repositories | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"])'):$(IMAGE_TAG)"
+
+academy-web:
+	npm run build -w web
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws s3 sync apps/web/dist "s3://$$($(ACADEMY_TF) output -raw web_bucket)" --delete
+	@echo "Web publicada en $$($(ACADEMY_TF) output -raw app_url)"
+
+academy-down:
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws ecs update-service --cluster chessquery-academy --service users --desired-count 0 >/dev/null
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws rds stop-db-instance --db-instance-identifier chessquery-academy >/dev/null
+	@echo "Servicio en 0 y RDS detenida (sin borrar nada)."
+
+academy-destroy:
+	$(ACADEMY_TF) destroy -var-file=academy.tfvars -var 'image_tags={users="$(IMAGE_TAG)"}'

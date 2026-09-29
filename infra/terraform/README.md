@@ -1,56 +1,59 @@
 # Infraestructura como código (Terraform)
 
-Decisiones en `docs/adr/0002-despliegue-aws-bajo-costo.md`. Un solo código con dos entornos:
+Decisiones en `docs/adr/0002-despliegue-aws-bajo-costo.md` (incluida la enmienda del 28-09-2026). Un solo
+código con dos entornos:
 
-| Entorno | Cuenta | Entrada | IAM | Estado |
+| Entorno | Cuenta | Entrada (HTTPS) | IAM | Estado |
 |---|---|---|---|---|
-| `envs/academy` | AWS Academy Learner Lab (demos temporales) | CloudFront → ALB | `LabRole` existente | ✅ users + web |
-| `envs/aws` | Cuenta propia | CloudFront → API Gateway HTTP API (JWT Entra) → Cloud Map | Roles propios + GitHub OIDC | fase 1 |
+| `envs/academy` | AWS Academy Learner Lab | API Gateway HTTP API → ALB (`/api`) y S3 (web) | `LabRole` existente | `plan` OK (57 recursos), falta `apply` |
+| `envs/aws` | Cuenta propia | CloudFront → ALB y S3 privado | Roles propios + GitHub OIDC | pendiente |
 
 ```
 bootstrap/              bucket S3 del estado (una vez por cuenta, estado local)
-modules/network         VPC 2 AZ, subnets públicas sin NAT, SGs (ALB solo desde CloudFront)
-modules/data            RDS Postgres 16 (password gestionada por RDS), bucket de archivos, SSM
-modules/ecs-service     microservicio Fargate ARM64 genérico (Spot/on-demand, logs 14 días)
-modules/edge            CloudFront + S3 (SPA, OAC) + ALB con enrutamiento por path
+modules/network         VPC 2 AZ, subnets públicas sin NAT, SGs (ingreso al ALB: cloudfront | public)
+modules/data            RDS Postgres 16 (password gestionada por RDS), bucket de archivos, SSM (token, pepper)
+modules/ecs-service     microservicio Fargate genérico (ARM64 | X86_64, Spot/on-demand, logs 14 días)
+modules/alb             ALB por path; exige la cabecera X-Origin-Verify que agrega el borde
+modules/edge            borde cuenta propia: CloudFront + S3 privado (OAC)
+modules/edge-apigw      borde Academy: HTTP API + S3 sitio estático (el lab bloquea CloudFront)
 modules/messaging       SNS chess-events → SQS por consumidor (filter policy, raw, DLQ + alarma)
 modules/observability   alarmas 5xx / targets no sanos / espacio RDS → SNS email
 ```
 
-## Levantar Academy (sesión del Learner Lab)
+## Qué bloquea el Learner Lab (verificado el 28-09-2026)
 
-Requisitos: Terraform ≥ 1.10, AWS CLI v2 y Docker (para la imagen). Copiar las credenciales
-de "AWS Details" en el perfil `chessquery-academy` y exportar `AWS_PROFILE=chessquery-academy`.
+CloudFront, AppSync y Cloud Map: `AccessDenied`. Permitidos: API Gateway v2, S3 (sin bloqueo público de
+cuenta), SNS/SQS, Lambda, Scheduler, RDS (db.t4g.micro, PG 16), ECS/ECR, `LabRole`. La cuenta del lab es
+compartida con otro proyecto (`duocconecta`): todos los recursos de acá llevan el prefijo `chessquery-academy`.
+
+## Levantar Academy (lo ejecuta una persona)
+
+Requisitos: Terraform ≥ 1.10, AWS CLI v2, Docker, Node 20. Credenciales del lab en el perfil `default`
+(o `ACADEMY_PROFILE=<perfil>`). Copiar `envs/academy/academy.tfvars.example` a `academy.tfvars` y completar.
 
 ```bash
-# 1. Estado remoto (solo la primera vez en la cuenta)
-terraform -chdir=infra/terraform/bootstrap init
-terraform -chdir=infra/terraform/bootstrap apply
-
-# 2. Infra (completar academy.tfvars a partir del .example)
-cd infra/terraform/envs/academy
-terraform init -backend-config="bucket=chessquery-tfstate-$(aws sts get-caller-identity --query Account --output text)"
-terraform apply -target=aws_ecr_repository.svc -var-file=academy.tfvars   # repos antes que la imagen
-# → build y push de la imagen ARM64 de users con el tag de image_tags (Jib, ver pom)
-terraform apply -var-file=academy.tfvars
-
-# 3. Web
-npm run build -w web
-aws s3 sync apps/web/dist "s3://$(terraform output -raw web_bucket)" --delete
-aws cloudfront create-invalidation --distribution-id "$(terraform output -raw cloudfront_distribution_id)" --paths '/*'
+make academy-bootstrap           # 1 vez por cuenta: bucket del estado
+make academy-plan                # revisar: ~57 recursos a crear, nada a destruir
+make academy-apply               # crea red, RDS, ECR, ECS, ALB, API Gateway, SNS/SQS, alarmas (~15 min por RDS)
+make academy-image               # build x86 con Jib y push a ECR con el tag del commit
+make academy-web                 # build de la web y publicación en S3; imprime la URL HTTPS
 ```
 
-Luego agregar `$(terraform output -raw app_url)/app` como redirect URI de la SPA en Entra
-(en `envs/aws` lo hará el provider `azuread`).
+Luego, en Entra External ID, agregar `<app_url>/app` como redirect URI de la SPA. Sin Entra, la web pública
+(`/ranking`) y la API pública funcionan igual; el login no.
 
 ## Apagar para ahorrar saldo
 
 ```bash
-aws ecs update-service --cluster chessquery-academy --service users --desired-count 0
-aws rds stop-db-instance --db-instance-identifier chessquery-academy
-# o todo:
-terraform destroy -var-file=academy.tfvars
+make academy-down                # ECS en 0 y RDS detenida (no borra nada)
+make academy-destroy             # borra todo lo de este entorno
 ```
 
-El día de una demo usar `use_spot = false` (Fargate on-demand, sin interrupciones) y
-encender RDS con al menos 15 minutos de anticipación.
+El día de una demo usar `use_spot = false` en `academy.tfvars` (Fargate on-demand) y encender RDS con al
+menos 15 minutos de anticipación.
+
+## Verificar sin aplicar (lo que hizo el agente)
+
+`terraform plan` contra el lab con backend local (copia en un directorio temporal con `backend "local" {}`
+como override) para detectar permisos y errores antes del `apply`. Encontró y se corrigió un `for_each`
+que dependía de un valor conocido recién al aplicar (alarmas de DLQ).

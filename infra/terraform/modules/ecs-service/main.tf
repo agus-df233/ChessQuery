@@ -26,6 +26,12 @@ variable "desired_count" {
   default = 1
 }
 
+variable "cpu_architecture" {
+  description = "ARM64 (Graviton, ~20 % más barato) en la cuenta propia; X86_64 en Academy (ARM64 no verificado en el lab)"
+  type        = string
+  default     = "ARM64"
+}
+
 variable "use_spot" {
   description = "FARGATE_SPOT fuera de los días de demo; false = on-demand (sin riesgo de interrupción)"
   type        = bool
@@ -71,7 +77,7 @@ resource "aws_ecs_task_definition" "this" {
 
   runtime_platform {
     operating_system_family = "LINUX"
-    cpu_architecture        = "ARM64"
+    cpu_architecture        = var.cpu_architecture
   }
 
   container_definitions = jsonencode([{

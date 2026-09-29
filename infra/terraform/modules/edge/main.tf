@@ -1,77 +1,13 @@
-# Entrada pública: CloudFront delante de (a) el bucket S3 de la SPA y (b) la API en /api/*.
-# Este módulo implementa el modo "alb" (Academy: Cloud Map bloqueado). El modo "apigw"
-# (HTTP API + VPC Link + Cloud Map, cuenta propia) se agrega en envs/aws; ver ADR-0002.
+# Borde de la cuenta propia: CloudFront delante de (a) el bucket S3 privado de la SPA (OAC) y (b) la API en
+# /api/* servida por el ALB del módulo `alb`. En Academy CloudFront está bloqueado: ahí se usa `edge-apigw`.
 
 variable "name" { type = string }
-variable "vpc_id" { type = string }
-variable "subnet_ids" { type = list(string) }
-variable "alb_sg_id" { type = string }
+variable "alb_dns_name" { type = string }
 
-variable "routes" {
-  description = "Servicio → puerto, prefijos de path que enruta el ALB y path del health check"
-  type = map(object({
-    port         = number
-    paths        = list(string)
-    health_path  = optional(string, "/actuator/health/liveness")
-    listener_pri = number
-  }))
-}
-
-# ── ALB ───────────────────────────────────────────────────────────────────────
-resource "aws_lb" "this" {
-  name               = var.name
-  load_balancer_type = "application"
-  security_groups    = [var.alb_sg_id]
-  subnets            = var.subnet_ids
-  idle_timeout       = 120 # tolera el WebSocket del fallback STOMP de game
-}
-
-resource "aws_lb_target_group" "svc" {
-  for_each             = var.routes
-  name                 = "${var.name}-${each.key}"
-  port                 = each.value.port
-  protocol             = "HTTP"
-  target_type          = "ip"
-  vpc_id               = var.vpc_id
-  deregistration_delay = 15
-
-  health_check {
-    path                = each.value.health_path
-    matcher             = "200"
-    interval            = 15
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-  }
-}
-
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type = "fixed-response"
-    fixed_response {
-      content_type = "application/json"
-      message_body = "{\"status\":404,\"error\":\"Not Found\",\"message\":\"Ruta no enrutada\"}"
-      status_code  = "404"
-    }
-  }
-}
-
-resource "aws_lb_listener_rule" "svc" {
-  for_each     = var.routes
-  listener_arn = aws_lb_listener.http.arn
-  priority     = each.value.listener_pri
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.svc[each.key].arn
-  }
-
-  condition {
-    path_pattern { values = each.value.paths }
-  }
+variable "origin_secret" {
+  description = "Cabecera X-Origin-Verify que CloudFront agrega hacia el ALB (la exige el módulo alb)"
+  type        = string
+  sensitive   = true
 }
 
 # ── SPA en S3 (privado, solo CloudFront vía OAC) ─────────────────────────────
@@ -137,11 +73,15 @@ resource "aws_cloudfront_distribution" "this" {
 
   origin {
     origin_id   = "api"
-    domain_name = aws_lb.this.dns_name
+    domain_name = var.alb_dns_name
+    custom_header {
+      name  = "X-Origin-Verify"
+      value = var.origin_secret
+    }
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "http-only" # tramo CloudFront→ALB; el SG del ALB solo admite CloudFront
+      origin_protocol_policy = "http-only" # tramo CloudFront→ALB: SG solo desde CloudFront + cabecera secreta
       origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
@@ -201,9 +141,6 @@ resource "aws_s3_bucket_policy" "web" {
   policy = data.aws_iam_policy_document.web.json
 }
 
-output "target_group_arns" { value = { for k, tg in aws_lb_target_group.svc : k => tg.arn } }
-output "target_group_arn_suffixes" { value = { for k, tg in aws_lb_target_group.svc : k => tg.arn_suffix } }
-output "alb_arn_suffix" { value = aws_lb.this.arn_suffix }
 output "web_bucket" { value = aws_s3_bucket.web.bucket }
-output "cloudfront_domain" { value = aws_cloudfront_distribution.this.domain_name }
+output "app_url" { value = "https://${aws_cloudfront_distribution.this.domain_name}" }
 output "cloudfront_distribution_id" { value = aws_cloudfront_distribution.this.id }

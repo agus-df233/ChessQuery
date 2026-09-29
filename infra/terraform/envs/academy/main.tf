@@ -1,7 +1,9 @@
 # Entorno AWS Academy (Learner Lab): cómputo temporal para demos.
-# Restricciones del Lab que definen este entorno (ver ADR-0002):
+# Restricciones del Lab que definen este entorno (ver ADR-0002, enmienda 2026-09-28):
 #   - No se pueden crear roles IAM → las tasks usan el `LabRole` existente.
-#   - Cloud Map bloqueado → entrada por ALB (no API Gateway + VPC Link).
+#   - CloudFront, AppSync y Cloud Map bloqueados → HTTPS con API Gateway (HTTP API) delante del ALB y
+#     de la SPA en S3; tiempo real con el fallback STOMP.
+#   - Fargate en x86 (ARM64 no verificado en el lab).
 #   - Credenciales que rotan cada ~4 h → todo se recrea con `terraform apply`.
 #
 # Uso:
@@ -47,8 +49,9 @@ data "aws_iam_role" "lab" {
 
 # ── Red, datos, registro de imágenes y cluster ────────────────────────────────
 module "network" {
-  source = "../../modules/network"
-  name   = local.name
+  source      = "../../modules/network"
+  name        = local.name
+  alb_ingress = "public" # lo protege la cabecera secreta que agrega API Gateway
 }
 
 module "data" {
@@ -88,16 +91,29 @@ resource "aws_ecs_cluster_capacity_providers" "this" {
   capacity_providers = ["FARGATE", "FARGATE_SPOT"]
 }
 
-# ── Entrada: CloudFront + S3 (SPA) + ALB (/api/*) ─────────────────────────────
-module "edge" {
-  source     = "../../modules/edge"
-  name       = local.name
-  vpc_id     = module.network.vpc_id
-  subnet_ids = module.network.public_subnet_ids
-  alb_sg_id  = module.network.alb_sg_id
+# ── Entrada: API Gateway (HTTPS) → ALB (/api/*) y S3 (SPA) ────────────────────
+resource "random_password" "origin_secret" {
+  length  = 40
+  special = false
+}
+
+module "alb" {
+  source        = "../../modules/alb"
+  name          = local.name
+  vpc_id        = module.network.vpc_id
+  subnet_ids    = module.network.public_subnet_ids
+  alb_sg_id     = module.network.alb_sg_id
+  origin_secret = random_password.origin_secret.result
   routes = {
     for k, s in local.services : k => { port = s.port, paths = s.paths, listener_pri = s.pri }
   }
+}
+
+module "edge" {
+  source        = "../../modules/edge-apigw"
+  name          = local.name
+  alb_dns_name  = module.alb.dns_name
+  origin_secret = random_password.origin_secret.result
 }
 
 # ── Servicios ─────────────────────────────────────────────────────────────────
@@ -111,8 +127,9 @@ module "users" {
   task_role_arn      = data.aws_iam_role.lab.arn
   subnet_ids         = module.network.public_subnet_ids
   security_group_ids = [module.network.services_sg_id]
-  target_group_arn   = module.edge.target_group_arns["users"]
+  target_group_arn   = module.alb.target_group_arns["users"]
   use_spot           = var.use_spot
+  cpu_architecture   = "X86_64"
 
   environment = {
     DB_URL            = "jdbc:postgresql://${module.data.db_endpoint}:5432/${module.data.db_name}"
@@ -150,7 +167,7 @@ module "observability" {
   source                    = "../../modules/observability"
   name                      = local.name
   alert_email               = var.alert_email
-  alb_arn_suffix            = module.edge.alb_arn_suffix
+  alb_arn_suffix            = module.alb.arn_suffix
   db_identifier             = module.data.db_identifier
-  target_group_arn_suffixes = module.edge.target_group_arn_suffixes
+  target_group_arn_suffixes = module.alb.target_group_arn_suffixes
 }

@@ -13,8 +13,14 @@ variable "max_receive_count" {
   default = 5
 }
 
+variable "dlq_alarms" {
+  description = "Crear una alarma por DLQ (valor fijo: el ARN del tópico de alertas recién se conoce al aplicar)"
+  type        = bool
+  default     = true
+}
+
 variable "alarm_topic_arn" {
-  description = "Tópico SNS de alertas: se avisa cuando una DLQ recibe mensajes (null = sin alarma)"
+  description = "Tópico SNS de alertas al que avisan las alarmas de DLQ"
   type        = string
   default     = null
 }
@@ -75,7 +81,7 @@ resource "aws_sns_topic_subscription" "queue" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "dlq" {
-  for_each            = var.alarm_topic_arn == null ? {} : var.consumers
+  for_each            = var.dlq_alarms ? var.consumers : {}
   alarm_name          = "${var.name}-${each.key}-dlq"
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateNumberOfMessagesVisible"
@@ -86,7 +92,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq" {
   threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
-  alarm_actions       = [var.alarm_topic_arn]
+  alarm_actions       = compact([var.alarm_topic_arn])
 }
 
 output "topic_arn" { value = aws_sns_topic.events.arn }

@@ -4,6 +4,16 @@
 
 variable "name" { type = string }
 
+variable "alb_ingress" {
+  description = "cloudfront = solo desde CloudFront (cuenta propia); public = desde internet, protegido por la cabecera secreta del módulo alb (Academy, detrás de API Gateway)"
+  type        = string
+  default     = "cloudfront"
+  validation {
+    condition     = contains(["cloudfront", "public"], var.alb_ingress)
+    error_message = "alb_ingress debe ser cloudfront o public."
+  }
+}
+
 variable "cidr" {
   type    = string
   default = "10.40.0.0/16"
@@ -54,21 +64,25 @@ resource "aws_route_table_association" "public" {
 }
 
 # ── Security groups ─────────────────────────────────────────────────────────
-# El ALB solo acepta tráfico desde CloudFront (prefix list gestionada por AWS).
+# Cuenta propia: el ALB solo acepta tráfico desde CloudFront (prefix list gestionada por AWS).
+# Academy: API Gateway no tiene rangos fijos, así que el puerto 80 queda abierto y la protección es la
+# cabecera X-Origin-Verify que exige el listener (módulo alb).
 data "aws_ec2_managed_prefix_list" "cloudfront" {
-  name = "com.amazonaws.global.cloudfront.origin-facing"
+  count = var.alb_ingress == "cloudfront" ? 1 : 0
+  name  = "com.amazonaws.global.cloudfront.origin-facing"
 }
 
 resource "aws_security_group" "alb" {
   name        = "${var.name}-alb"
-  description = "ALB: HTTP solo desde CloudFront"
+  description = "ALB: HTTP desde el borde (${var.alb_ingress})"
   vpc_id      = aws_vpc.this.id
 
   ingress {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
-    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
+    prefix_list_ids = var.alb_ingress == "cloudfront" ? [data.aws_ec2_managed_prefix_list.cloudfront[0].id] : null
+    cidr_blocks     = var.alb_ingress == "public" ? ["0.0.0.0/0"] : null
   }
 
   egress {
