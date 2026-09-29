@@ -12,7 +12,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -52,11 +51,7 @@ public class ResourceServerAutoConfiguration {
     @ConditionalOnMissingBean(PlayerIdentityResolver.class)
     @ConditionalOnProperty(prefix = "chessquery.auth", name = "users-url")
     public PlayerIdentityResolver httpPlayerIdentityResolver(AuthProperties props) {
-        RestClient client = RestClient.builder()
-                .baseUrl(props.usersUrl())
-                .defaultHeader(InternalTokenFilter.HEADER, props.internalToken())
-                .build();
-        return new HttpPlayerIdentityResolver(client);
+        return new HttpPlayerIdentityResolver(InternalHttp.usersClient(props));
     }
 
     @Bean

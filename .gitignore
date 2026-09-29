@@ -1,11 +1,15 @@
 # build
 target/
+.logs/
 node_modules/
 dist/
 coverage/
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
+.coverage
+.pytest_cache/
 
 # env & secrets
 **/.env
@@ -16,13 +20,14 @@ __pycache__/
 *.pem
 
 # terraform
-infra/terraform/.terraform/
-infra/terraform/*.tfstate*
-infra/terraform/*.tfvars
-!infra/terraform/*.tfvars.example
+infra/terraform/**/.terraform/
+infra/terraform/**/*.tfstate*
+infra/terraform/**/*.tfvars
+!infra/terraform/**/*.tfvars.example
 
 # ide / os
 .idea/
 .vscode/
 *.iml
 .DS_Store
+infra/terraform/**/.build/

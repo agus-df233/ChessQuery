@@ -77,9 +77,10 @@ public class UserController {
     }
 
     @GetMapping("/ranking")
-    public List<RankingService.Entry> ranking(@RequestParam(required = false) String category,
+    public List<RankingService.Entry> ranking(@RequestParam(defaultValue = "NATIONAL") String type,
+                                              @RequestParam(required = false) String category,
                                               @RequestParam(required = false) String region,
                                               @RequestParam(defaultValue = "50") int limit) {
-        return rankingService.ranking(category, region, limit);
+        return rankingService.ranking(type, category, region, limit);
     }
 }

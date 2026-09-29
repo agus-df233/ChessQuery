@@ -1,7 +1,7 @@
 import { http } from './client';
 import type {
-  Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
-  PublicProfile, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
+  ClaimRequest, Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
+  PublicProfile, RankedType, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
 } from './types';
 
 /** Funciones de acceso a la API de users, una por endpoint. Sin lógica: solo tipos y rutas. */
@@ -11,15 +11,26 @@ export const usersApi = {
   myRatingHistory: (type: RatingType = 'NATIONAL', months = 12) =>
     http.get<RatingPoint[]>('/api/users/me/rating-history', { params: { type, months } }).then((r) => r.data),
   syncExternalRatings: () => http.post<Profile>('/api/users/me/external-ratings/sync').then((r) => r.data),
+  linkFederation: (federationId: string) =>
+    http.post<Profile>('/api/users/me/federation-link', { federationId }).then((r) => r.data),
+  claim: (body: ClaimRequest) => http.post<Profile>('/api/users/me/claim', body).then((r) => r.data),
+  claimSuggestions: () => http.get<PublicProfile[]>('/api/users/me/claim-suggestions').then((r) => r.data),
   publicProfile: (id: number) => http.get<PublicProfile>(`/api/users/${id}/public-profile`).then((r) => r.data),
   ratingHistory: (id: number, type: RatingType = 'NATIONAL', months = 12) =>
     http.get<RatingPoint[]>(`/api/users/${id}/rating-history`, { params: { type, months } }).then((r) => r.data),
   search: (q: string, limit = 20) => http.get<SearchResult[]>('/api/users/search', { params: { q, limit } }).then((r) => r.data),
-  ranking: (category?: string, region?: string, limit = 50) =>
-    http.get<RankingEntry[]>('/api/users/ranking', { params: { category: category || undefined, region: region || undefined, limit } })
+  ranking: (category?: string, region?: string, limit = 50, type: RankedType = 'NATIONAL') =>
+    http.get<RankingEntry[]>('/api/users/ranking', { params: { type, category: category || undefined, region: region || undefined, limit } })
         .then((r) => r.data),
   countries: () => http.get<Country[]>('/api/catalog/countries').then((r) => r.data),
   clubs: () => http.get<Club[]>('/api/catalog/clubs').then((r) => r.data),
+};
+
+/** Vistas sin login (/api/public/**): ranking para compartir por QR. Sin PII, menores abreviados. */
+export const publicApi = {
+  ranking: (category?: string, region?: string, limit = 50, type: RankedType = 'NATIONAL') =>
+    http.get<RankingEntry[]>('/api/public/ranking', { params: { type, category: category || undefined, region: region || undefined, limit } })
+        .then((r) => r.data),
 };
 
 export const organizationsApi = {

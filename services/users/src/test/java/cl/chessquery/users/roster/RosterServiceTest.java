@@ -22,7 +22,8 @@ class RosterServiceTest {
     private final PlayerRepository players = mock(PlayerRepository.class);
     private final ClubRepository clubs = mock(ClubRepository.class);
     private final OrganizationService organizations = mock(OrganizationService.class);
-    private final RosterService service = new RosterService(players, clubs, organizations, mock(EventPublisher.class));
+    private final RosterService service = new RosterService(players, clubs, organizations, mock(EventPublisher.class),
+            new cl.chessquery.users.privacy.IdentifierHasher("test-pepper-0123456789"));
 
     private static RosterDtos.CreateRequest req(String email, Integer clubId) {
         return new RosterDtos.CreateRequest("Ana", "Soto", null, email, 0, null, clubId, List.of());

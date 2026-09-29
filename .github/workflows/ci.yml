@@ -2,12 +2,12 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
 
+# Mínimo privilegio: el CI solo lee el código (no publica reportes ni escribe en el repo).
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   java:
@@ -24,6 +24,28 @@ jobs:
       - name: Build & test (JaCoCo >= 90% por módulo)
         run: mvn -B -ntp verify
 
+  etl:
+    name: ETL (pytest, cobertura ≥ 90%)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: etl/pyproject.toml
+      - run: pip install -e 'etl[dev]'
+      - run: pytest -q etl
+
+  complexity:
+    name: Complejidad ciclomática (informativo)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # informativo al principio; pasa a bloqueante cuando el equipo lo acuerde
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: make complexity
+
   web:
     name: Web (Vitest + axe + build)
     runs-on: ubuntu-latest
@@ -39,15 +61,45 @@ jobs:
       - name: Typecheck + build de producción
         run: npm run build -w web
 
+  # Trivy (ADR-0002, enmienda 2026-09-29): dependencias con vulnerabilidades conocidas y configuración de Terraform.
+  # La acción se fija a un commit exacto, no a una etiqueta: las etiquetas se pueden reescribir (así pasó con esta
+  # acción en marzo de 2026). Para actualizar: ver el commit de la nueva versión y reemplazar el SHA en ambos pasos.
   security-scan:
     name: Trivy filesystem scan (bloqueante HIGH/CRITICAL)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.28.0
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+
+  terraform:
+    name: Terraform (fmt + validate + trivy config)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.x"
+      - name: fmt
+        run: terraform fmt -check -recursive infra/terraform
+      - name: validate (sin backend)
+        run: |
+          for dir in infra/terraform/bootstrap infra/terraform/envs/*/; do
+            echo "::group::$dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+      # Informativo por ahora: el entorno Academy usa HTTP entre API Gateway y el ALB y subnets públicas sin NAT
+      # a propósito (costo; ver ADR-0002). Pasa a bloqueante con un .trivyignore justificado.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra/terraform
+          severity: HIGH,CRITICAL
+          exit-code: "0"

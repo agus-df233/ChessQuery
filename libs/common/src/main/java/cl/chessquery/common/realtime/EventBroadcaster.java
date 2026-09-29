@@ -4,7 +4,7 @@ import java.util.Map;
 
 /**
  * Puerto para empujar eventos a clientes conectados (tablero en vivo, torneo en vivo).
- * La implementación vive en el servicio game (WebSocket/STOMP con relay a RabbitMQ);
+ * La implementación vive en el servicio game (AppSync Events; fallback STOMP simple broker, ADR-0002);
  * otros servicios publican a través del bus y game reenvía. Es una optimización:
  * la fuente de verdad siempre es la API REST y el cliente re-consulta si pierde eventos.
  */

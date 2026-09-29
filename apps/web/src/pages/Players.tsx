@@ -8,6 +8,7 @@ import { displayName } from '../lib/ratings';
 import { RatingsGrid } from '../components/RatingsGrid';
 import { RatingChart } from '../components/RatingChart';
 import { FriendButton } from '../components/FriendButton';
+import { ChallengeButton } from '../components/game/ChallengeButton';
 
 /** Búsqueda de jugadores por nombre (tolerante a errores de tipeo), RUT o FIDE id. */
 export const PlayerSearch = () => {
@@ -54,7 +55,10 @@ export const PlayerDetail = () => {
         {p.country && <Badge>{p.country.name}</Badge>}
         {p.fideId && <Badge variant="gold">FIDE {p.fideId}</Badge>}
       </div>
-      <FriendButton otherId={id} />
+      <div className="cq-actions">
+        <FriendButton otherId={id} />
+        <ChallengeButton opponentId={id} opponentName={`${p.firstName} ${p.lastName}`} />
+      </div>
       <Card header="Ratings"><RatingsGrid ratings={p.ratings} /></Card>
       <Card header="ELO nacional, últimos 12 meses">
         {history.isLoading ? <Skeleton height={160} /> : <RatingChart points={history.data ?? []} label="ELO Nacional" />}

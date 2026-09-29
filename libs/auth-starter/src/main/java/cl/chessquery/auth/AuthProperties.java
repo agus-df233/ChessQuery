@@ -14,11 +14,14 @@ public record AuthProperties(
         /** Secreto compartido para rutas /internal/** entre servicios (Secrets Manager en cloud). */
         String internalToken,
         /** Claim de Entra con app roles (p. ej. ADMIN). */
-        String rolesClaim
+        String rolesClaim,
+        /** Cabecera X-Origin-Verify para llamar a users a través del ALB (vacío en local). */
+        String originSecret
 ) {
     public AuthProperties {
         if (usersUrl == null) usersUrl = "";
         if (internalToken == null) internalToken = "";
         if (rolesClaim == null || rolesClaim.isBlank()) rolesClaim = "roles";
+        if (originSecret == null) originSecret = "";
     }
 }

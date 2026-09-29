@@ -9,6 +9,7 @@ import cl.chessquery.users.player.Emails;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerDtos.Profile;
 import cl.chessquery.users.player.PlayerRepository;
+import cl.chessquery.users.privacy.IdentifierHasher;
 import cl.chessquery.users.roster.RosterDtos.CreateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,25 +34,18 @@ public class RosterService {
     private final ClubRepository clubs;
     private final OrganizationService organizations;
     private final EventPublisher events;
+    private final IdentifierHasher hasher;
 
     @Transactional
     public Profile add(Long organizerId, CreateRequest req) {
-        int max = organizations.planOf(organizerId).maxRosterPlayers();
-        if (organizations.rosterCount(organizerId) >= max) {
-            throw ApiException.conflict("PLAN_LIMIT_REACHED",
-                    "Alcanzaste el límite de tu plan (" + max + " jugadores en el roster)");
-        }
+        ensureWithinPlan(organizerId);
         String email = Emails.normalize(req.email());
-        if (email != null && players.findByEmail(email).isPresent()) {
-            throw ApiException.conflict("EMAIL_TAKEN", "Ya existe un jugador con ese email");
-        }
         String rut = req.rut() == null || req.rut().isBlank() ? null : req.rut().trim();
-        if (rut != null && players.findByRut(rut).isPresent()) {
-            throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
-        }
+        String rutHash = hasher.rut(rut);
+        ensureUniqueIdentity(email, rutHash);
         Player p = Player.builder()
                 .firstName(req.firstName().trim()).lastName(req.lastName().trim())
-                .email(email).rut(rut)
+                .email(email).rut(rut).rutHash(rutHash)
                 .eloNational(positiveOrNull(req.eloNational()))
                 .eloFideStandard(positiveOrNull(req.eloFideStandard()))
                 .club(req.clubId() == null ? null : clubs.findById(req.clubId())
@@ -68,6 +62,25 @@ public class RosterService {
         events.publish(UsersEvents.PROVISIONAL_CREATED, payload);
         log.info("Provisorio {} creado por organizador {}", p.getId(), organizerId);
         return Profile.of(p, null);
+    }
+
+    /** El plan (FREE/PRO) limita cuántos jugadores activos puede tener el roster. */
+    private void ensureWithinPlan(Long organizerId) {
+        int max = organizations.planOf(organizerId).maxRosterPlayers();
+        if (organizations.rosterCount(organizerId) >= max) {
+            throw ApiException.conflict("PLAN_LIMIT_REACHED",
+                    "Alcanzaste el límite de tu plan (" + max + " jugadores en el roster)");
+        }
+    }
+
+    /** Email y RUT identifican a una persona: no se puede cargar a alguien que ya existe en la plataforma. */
+    private void ensureUniqueIdentity(String email, String rutHash) {
+        if (email != null && players.findByEmail(email).isPresent()) {
+            throw ApiException.conflict("EMAIL_TAKEN", "Ya existe un jugador con ese email");
+        }
+        if (rutHash != null && players.findByRutHash(rutHash).isPresent()) {
+            throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
+        }
     }
 
     @Transactional(readOnly = true)

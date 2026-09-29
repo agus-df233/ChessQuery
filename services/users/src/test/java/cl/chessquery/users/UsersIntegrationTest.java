@@ -13,7 +13,6 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,7 +59,6 @@ class UsersIntegrationTest {
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
 
     @MockitoBean JwtDecoder jwtDecoder;
-    @MockitoBean ConnectionFactory rabbitConnectionFactory;
     @MockitoBean EventPublisher events;
 
     @Autowired MockMvc mvc;
@@ -70,9 +69,11 @@ class UsersIntegrationTest {
 
     /** Request autenticado como el sujeto dado (el JWT se simula; la identidad se resuelve en BD). */
     private static MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder b, String subject, String email) {
-        return b.with(jwt().jwt(j -> j.subject(subject).claim("email", email)
+        return b.with(jwt().jwt(j -> j.subject(subject).claim("email", email).claim("iss", TRUSTED_ISSUER)
                 .claim("given_name", "Ana").claim("family_name", "Soto").claim("name", "Ana Soto")));
     }
+
+    private static final String TRUSTED_ISSUER = "http://localhost/test-issuer";
 
     private static MockHttpServletRequestBuilder internal(MockHttpServletRequestBuilder b) {
         return b.header("X-Internal-Token", "test-token");
@@ -160,8 +161,9 @@ class UsersIntegrationTest {
            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("LICHESS_USERNAME_TAKEN"));
 
         // Búsqueda difusa (pg_trgm) tolera un error de tipeo
+        // Pedro tiene 11 años y no hay consentimiento parental: para terceros, apellido abreviado
         mvc.perform(as(get("/api/users/search").param("q", "pedro rojas"), "sub-ana", "ana@x.cl"))
-           .andExpect(status().isOk()).andExpect(jsonPath("$[0].lastName").value("Rojas"));
+           .andExpect(status().isOk()).andExpect(jsonPath("$[0].lastName").value("R."));
         mvc.perform(as(get("/api/users/search").param("q", "11111111-1"), "sub-ana", "ana@x.cl"))
            .andExpect(jsonPath("$[0].fideId").isEmpty());
         mvc.perform(as(get("/api/users/search").param("q", " "), "sub-ana", "ana@x.cl"))
@@ -234,8 +236,10 @@ class UsersIntegrationTest {
         eloConsumer.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of(
                 "playerId", pedroId, "oldElo", 1500, "newElo", 1516, "ratingType", "NATIONAL", "gameId", 9)));
         ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "AJEFECH", "players", List.of(
+                // Match determinista por RUT (hasheado); nunca por nombre
                 Map.of("firstName", "Pedro", "lastName", "Rojas", "federationId", "738", "fideId", "3404803",
-                        "eloNational", 1530, "eloFideStandard", 1600, "clubName", "Club Viña", "birthDate", "2014-05-01"),
+                        "rut", "11.111.111-1", "eloNational", 1530, "eloFideStandard", 1600, "clubName", "Club Viña",
+                        "birthDate", "2014-05-01"),
                 Map.of("firstName", "Nueva", "lastName", "Federada", "federationId", "999", "eloNational", 1800),
                 Map.of("lastName", "sin nombre")))));
         ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "LICHESS", "players", List.of(
@@ -257,6 +261,12 @@ class UsersIntegrationTest {
            .andExpect(jsonPath("$[1].delta").value(14));
         mvc.perform(as(get("/api/users/" + pedroId + "/rating-history").param("type", "LICHESS_BLITZ"), "sub-ana", "ana@x.cl"))
            .andExpect(jsonPath("$[0].source").value("LICHESS"));
+        // Cierre de un torneo del club: el historial de plataforma queda con fuente TOURNAMENT
+        eloConsumer.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", pedroId, "oldElo", 1500,
+                "newElo", 1520, "delta", 20, "ratingType", "PLATFORM", "source", "TOURNAMENT", "tournamentId", 5)));
+        assertThat(players.findById(pedroId).orElseThrow().getEloPlatform()).isEqualTo(1520);
+        mvc.perform(as(get("/api/users/me/rating-history").param("type", "PLATFORM"), "sub-pedro", "pedro@x.cl"))
+           .andExpect(jsonPath("$[0].source").value("TOURNAMENT"));
         // Sync externo con APIs inalcanzables: no rompe, devuelve el perfil
         mvc.perform(as(post("/api/users/me/external-ratings/sync"), "sub-pedro", "pedro@x.cl"))
            .andExpect(status().isOk()).andExpect(jsonPath("$.lichessUsername").value("pedrito"));
@@ -276,7 +286,12 @@ class UsersIntegrationTest {
            .andExpect(status().isBadRequest());
         mvc.perform(internal(get("/internal/players").param("ids", pedroId + ",999999")))
            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-           .andExpect(jsonPath("$[0].hasAccount").value(true));
+           .andExpect(jsonPath("$[0].hasAccount").value(true))
+           // Pedro es menor y no hay consentimiento parental: a terceros se le abrevia el apellido
+           .andExpect(jsonPath("$[0].lastName").value("Rojas"))
+           .andExpect(jsonPath("$[0].publicLastName").value("R."))
+           .andExpect(jsonPath("$[0].fideId").value("3404803"))
+           .andExpect(jsonPath("$[0].birthYear").isNumber());
         mvc.perform(internal(get("/internal/players/" + pedroId))).andExpect(jsonPath("$.rut").value("11111111-1"));
         mvc.perform(internal(get("/internal/players/by-email").param("email", "PEDRO@x.cl")))
            .andExpect(jsonPath("$.id").value(pedroId));
@@ -287,5 +302,191 @@ class UsersIntegrationTest {
         assertThat(identity.find("sub-pedro").playerId()).isEqualTo(pedroId);
         assertThat(LocalDate.now()).isAfter(LocalDate.of(2020, 1, 1));
         assertThat(Instant.now()).isNotNull();
+    }
+
+    @Test @Order(8)
+    void publicViewsNeedNoLoginAndHideMinorsAndPii() throws Exception {
+        long pedroId = players.findByRut("11111111-1").orElseThrow().getId();
+        mvc.perform(get("/api/public/ranking").param("category", "SUB_12"))
+           .andExpect(status().isOk())
+           .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("max-age=300")))
+           .andExpect(jsonPath("$[0].firstName").value("Pedro"))
+           .andExpect(jsonPath("$[0].lastName").value("R."));
+        mvc.perform(get("/api/public/players/" + pedroId))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.lastName").value("R."))
+           .andExpect(jsonPath("$.rut").doesNotExist())
+           .andExpect(jsonPath("$.email").doesNotExist());
+        mvc.perform(get("/api/users/ranking")).andExpect(status().isUnauthorized());
+    }
+
+    @Test @Order(9)
+    void federatedRowsNeverMergeByNameAndStoreOnlyMinimalData() throws Exception {
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FIDE", "players", List.of(
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "birthYear", 1990, "title", "WFM",
+                        "eloFideStandard", 1850, "eloFideRapid", 1800, "period", "2026-10",
+                        "sourceUrl", "https://ratings.fide.com/profile/3400001"),
+                Map.of("firstName", "Rut", "lastName", "Tercero", "federationId", "5555", "rut", "22.222.222-2",
+                        "birthDate", "1980-03-04", "eloNational", 1400)))));
+
+        // "Ana Soto" federada NO se fusiona con la cuenta de Ana: queda como sugerencia
+        Player federada = players.findByFideId("3400001").orElseThrow();
+        assertThat(federada.hasAccount()).isFalse();
+        assertThat(federada.getSourcePeriod()).isEqualTo("2026-10");
+        assertThat(federada.getEloFideRapid()).isEqualTo(1800);
+        mvc.perform(as(get("/api/users/me/claim-suggestions"), "sub-ana", "ana@x.cl"))
+           .andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(federada.getId()));
+
+        // De terceros: año de nacimiento y hash del RUT, nunca la fecha ni el RUT en claro
+        Player tercero = players.findByFederationId("5555").orElseThrow();
+        assertThat(tercero.getRut()).isNull();
+        assertThat(tercero.getRutHash()).hasSize(64);
+        assertThat(tercero.getBirthDate()).isNull();
+        assertThat(tercero.getBirthYear()).isEqualTo(1980);
+
+        // La ficha 6666 ya existe (se encuentra por su id federativo) y ahora llega con un RUT que es de otro jugador
+        // (5555): no tumba el lote; se aplica sin ese RUT y el resto del lote entra
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Rut", "lastName", "Duplicado", "federationId", "6666", "eloNational", 1450)))));
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Rut", "lastName", "Duplicado", "federationId", "6666", "rut", "22.222.222-2",
+                        "eloNational", 1500),
+                Map.of("firstName", "Sana", "lastName", "Ficha", "federationId", "6667", "eloNational", 1550)))));
+        Player conflicto = players.findByFederationId("6666").orElseThrow();
+        assertThat(conflicto.getRutHash()).isNull();
+        assertThat(conflicto.getEloNational()).isEqualTo(1500);
+        assertThat(players.findByFederationId("6667").orElseThrow().getEloNational()).isEqualTo(1550);
+        assertThat(players.findByFederationId("5555").orElseThrow().getRutHash()).isEqualTo(tercero.getRutHash());
+        mvc.perform(as(get("/api/users/search").param("q", "22222222-2"), "sub-ana", "ana@x.cl"))
+           .andExpect(jsonPath("$[0].id").value(tercero.getId()));
+
+        // Ranking por rating FIDE (lo único disponible sin convenio con la federación)
+        mvc.perform(get("/api/public/ranking").param("type", "FIDE_RAPID"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$[0].playerId").value(federada.getId()))
+           .andExpect(jsonPath("$[0].ratingType").value("FIDE_RAPID"))
+           .andExpect(jsonPath("$[0].rating").value(1800))
+           .andExpect(jsonPath("$[0].currentTitle").value("WFM"));
+        // El mes siguiente sube a WIM: se cierra WFM y queda uno solo vigente
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FIDE", "players", List.of(
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "WIM", "period", "2026-11"),
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "WIM"),
+                Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "XX")))));
+        mvc.perform(get("/api/public/players/" + federada.getId())).andExpect(jsonPath("$.currentTitle").value("WIM"));
+        // La Federación envía solo el hash del RUT (calculado en el ETL): igual encuentra a Pedro, sin RUT en tránsito
+        long pedroId = players.findByRut("11111111-1").orElseThrow().getId();
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Pedro", "lastName", "Rojas", "federationId", "738",
+                        "rutHash", "7d7edbece292f36b2b80583906aca532834c790b51922835aec58cca59ad4e96",
+                        "eloNational", 1611)))));
+        assertThat(players.findById(pedroId).orElseThrow().getEloNational()).isEqualTo(1611);
+        mvc.perform(get("/api/public/ranking").param("type", "LICHESS_BLITZ")).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/public/ranking").param("type", "NOPE")).andExpect(status().isBadRequest());
+    }
+
+    @Test @Order(10)
+    void exportAndErasureWithSuppression() throws Exception {
+        mvc.perform(as(get("/api/users/me/export"), "sub-pedro", "pedro@x.cl"))
+           .andExpect(status().isOk())
+           .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+           .andExpect(jsonPath("$.profile.rut").value("11111111-1"))
+           .andExpect(jsonPath("$.ratingHistory.length()").isNumber())
+           .andExpect(jsonPath("$.organization").doesNotExist());
+        mvc.perform(as(delete("/api/users/me"), "sub-ana", "ana@x.cl"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("ORGANIZATION_OWNER"));
+
+        // Luis entra, vincula su FIDE id por el ETL y luego pide supresión
+        mvc.perform(as(get("/api/users/me"), "sub-luis", "luis@x.cl")).andExpect(status().isOk());
+        Player luis = players.findByExternalSubject("sub-luis").orElseThrow();
+        luis.setFideId("3499999");
+        players.save(luis);
+        mvc.perform(as(delete("/api/users/me"), "sub-luis", "luis@x.cl")).andExpect(status().isNoContent());
+        verify(events).publish(eq(UsersEvents.PLAYER_DELETED), any());
+
+        Player borrado = players.findById(luis.getId()).orElseThrow();
+        assertThat(borrado.getEmail()).isNull();
+        assertThat(borrado.getExternalSubject()).isNull();
+        assertThat(borrado.isActive()).isFalse();
+        // El próximo mes el ETL vuelve a traer ese FIDE id: no se reimporta
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FIDE", "players", List.of(
+                Map.of("firstName", "Luis", "lastName", "Mena", "fideId", "3499999", "eloFideStandard", 1700)))));
+        assertThat(players.findByFideId("3499999")).isEmpty();
+    }
+
+    @Test @Order(11)
+    void emailFromUntrustedIssuerNeverAdoptsSomeoneElsesProfile() throws Exception {
+        mvc.perform(as(post("/api/organizations/me/roster"), "sub-ana", "ana@x.cl").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"firstName\":\"Victor\",\"lastName\":\"Ima\",\"email\":\"victor@x.cl\"}"))
+           .andExpect(status().isCreated());
+        long rosterRow = players.findByEmail("victor@x.cl").orElseThrow().getId();
+
+        // Un IdP no confiable con el mismo email: cuenta nueva, sin email y sin tocar la fila del roster
+        mvc.perform(get("/api/users/me").with(jwt().jwt(j -> j.subject("sub-intruso").claim("iss", "https://otro-idp.example")
+                .claim("email", "victor@x.cl").claim("name", "Intruso De Prueba"))))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.profile.email").doesNotExist())
+           .andExpect(jsonPath("$.profile.firstName").value("Intruso"))
+           .andExpect(jsonPath("$.profile.lastName").value("De Prueba"));
+        assertThat(players.findById(rosterRow).orElseThrow().isProvisional()).isTrue();
+
+        // El mismo email desde el tenant confiable sí reclama el provisorio
+        mvc.perform(as(get("/api/users/me"), "sub-victor", "victor@x.cl"))
+           .andExpect(jsonPath("$.profile.id").value(rosterRow));
+    }
+
+    @Test @Order(12)
+    void linkFederationIdAndClaimProfileWithIdentityCheck() throws Exception {
+        mvc.perform(as(get("/api/users/me"), "sub-rodrigo", "rodrigo@x.cl")).andExpect(status().isOk());
+        // 5555 es la ficha federada "Rut Tercero" (RUT 22.222.222-2) cargada en la prueba 9
+        mvc.perform(as(post("/api/users/me/federation-link"), "sub-rodrigo", "rodrigo@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"5555\"}"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("CLAIM_REQUIRED"));
+        mvc.perform(as(post("/api/users/me/claim"), "sub-rodrigo", "rodrigo@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"5555\",\"rut\":\"11.111.111-1\"}"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("IDENTITY_NOT_VERIFIED"));
+        long fichaId = players.findByFederationId("5555").orElseThrow().getId();
+        mvc.perform(as(post("/api/users/me/claim"), "sub-rodrigo", "rodrigo@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"5555\",\"rut\":\"22.222.222-2\"}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.federationId").value("5555"))
+           .andExpect(jsonPath("$.rut").value("22.222.222-2"))
+           .andExpect(jsonPath("$.ratings.national").value(1400));
+        assertThat(players.findById(fichaId).orElseThrow().isActive()).isFalse();
+        verify(events).publish(eq(UsersEvents.PLAYER_MERGED), any());
+
+        // Vincular un id nuevo pide la consulta puntual al ETL
+        mvc.perform(as(get("/api/users/me"), "sub-sofia", "sofia@x.cl")).andExpect(status().isOk());
+        mvc.perform(as(post("/api/users/me/federation-link"), "sub-sofia", "sofia@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"4242\"}"))
+           .andExpect(status().isOk()).andExpect(jsonPath("$.federationId").value("4242"));
+        verify(events).publish(eq(UsersEvents.FEDERATION_LOOKUP_REQUESTED), eq(Map.of(
+                "playerId", players.findByExternalSubject("sub-sofia").orElseThrow().getId(), "federationId", "4242")));
+        mvc.perform(as(post("/api/users/me/federation-link"), "sub-rodrigo", "rodrigo@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"4242\"}"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("FEDERATION_ID_TAKEN"));
+        mvc.perform(as(post("/api/users/me/federation-link"), "sub-sofia", "sofia@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"federationId\":\"abc\"}"))
+           .andExpect(status().isBadRequest());
+    }
+
+    @Test @Order(13)
+    void claimFideProfileByBirthYearAndName() throws Exception {
+        // "Ana Soto" FIDE 3400001 (año 1990, sin RUT) de la prueba 9; Ana declara su fecha y reclama
+        long fichaId = players.findByFideId("3400001").orElseThrow().getId();
+        mvc.perform(as(post("/api/users/me/claim"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"playerId\":" + fichaId + "}"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("IDENTITY_NOT_VERIFIED"));
+        mvc.perform(as(put("/api/users/me/profile"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"birthDate\":\"1990-05-05\"}"))
+           .andExpect(status().isOk());
+        mvc.perform(as(post("/api/users/me/claim"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"playerId\":" + fichaId + "}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.fideId").value("3400001"))
+           .andExpect(jsonPath("$.ratings.fideRapid").value(1800))
+           .andExpect(jsonPath("$.currentTitle").value("WIM"));
+        mvc.perform(as(post("/api/users/me/claim"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"playerId\":" + fichaId + "}"))
+           .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("NOT_CLAIMABLE"));
     }
 }

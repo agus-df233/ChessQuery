@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: game
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chessquery}
+    username: ${DB_USER:chessquery}
+    password: ${DB_PASSWORD:chessquery}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.default_schema: game
+  flyway:
+    schemas: game
+    default-schema: game
+    create-schemas: true
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:us-east-1}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI}
+          audiences: ${OIDC_AUDIENCE}
+  mvc:
+    async:
+      # Por sobre el long polling (25 s) para que responda la app y no el contenedor
+      request-timeout: 35s
+
+chessquery:
+  events:
+    topic-arn: ${CHESS_EVENTS_TOPIC_ARN:arn:aws:sns:us-east-1:000000000000:chess-events}
+  auth:
+    # users resuelve sub → playerId y entrega nombres y ratings (/internal, con X-Internal-Token)
+    users-url: ${USERS_URL:http://localhost:8081}
+    internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+    # Solo en la nube: users se alcanza por el ALB, que exige X-Origin-Verify (ADR-0002)
+    origin-secret: ${ORIGIN_VERIFY:}
+    roles-claim: roles
+  games:
+    # Un desafío sin respuesta vence a los 10 minutos; el barrido revisa relojes y desafíos cada segundo.
+    challenge-ttl: 10m
+    # Long polling: cuánto espera GET /api/games/{id}?afterVersion=n antes de responder sin cambios.
+    long-poll-timeout: 25s
+
+server:
+  port: ${PORT:8083}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

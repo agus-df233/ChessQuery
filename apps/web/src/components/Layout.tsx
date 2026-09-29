@@ -1,8 +1,29 @@
 import { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { Shell, type ShellNavItem } from '@chessquery/ui-lib';
+import { Shell, type ShellNavItem, type ShellUser } from '@chessquery/ui-lib';
+import type { Me } from '../api/types';
 import { useMe } from '../api/hooks';
+
+const MENU: [id: string, label: string, href: string, icon: string][] = [
+  ['inicio', 'Inicio', '/app', '♔'],
+  ['jugadores', 'Jugadores', '/app/jugadores', '🔍'],
+  ['ranking', 'Ranking', '/app/ranking', '🏆'],
+  ['partidas', 'Partidas', '/app/partidas', '♞'],
+  ['amigos', 'Amigos', '/app/amigos', '👥'],
+  ['torneos', 'Torneos', '/app/torneos', '🏁'],
+  ['perfil', 'Mi perfil', '/app/perfil', '👤'],
+];
+
+/** "/app" solo se marca activo en el inicio exacto; el resto también en sus subrutas. */
+const isActive = (pathname: string, href: string) => pathname === href || (href !== '/app' && pathname.startsWith(href));
+
+/** Datos del usuario para el pie del menú (sin perfil cargado todavía, no se muestra). */
+const shellUser = (me: Me | undefined): ShellUser | undefined => {
+  const p = me?.profile;
+  if (!p) return undefined;
+  return { name: p.displayName ?? `${p.firstName} ${p.lastName}`, email: p.email ?? undefined, role: me.organizer ? 'ORGANIZER' : 'PLAYER' };
+};
 
 /**
  * Marco de navegación de la app autenticada. Una sola app para jugador y organizador:
@@ -13,27 +34,13 @@ export const Layout = ({ children }: { children: ReactNode }) => {
   const { pathname } = useLocation();
   const auth = useAuth();
   const me = useMe();
+  const organizer = !!me.data?.organizer;
 
-  const item = (id: string, label: string, href: string, icon: string): ShellNavItem => ({
-    id, label, icon, href, active: pathname === href || (href !== '/app' && pathname.startsWith(href)),
-    onClick: () => navigate(href),
-  });
-  const items: ShellNavItem[] = [
-    item('inicio', 'Inicio', '/app', '♔'),
-    item('jugadores', 'Jugadores', '/app/jugadores', '🔍'),
-    item('ranking', 'Ranking', '/app/ranking', '🏆'),
-    item('amigos', 'Amigos', '/app/amigos', '👥'),
-    item('perfil', 'Mi perfil', '/app/perfil', '👤'),
-    item('club', me.data?.organizer ? 'Mi club' : 'Crear mi club', '/club', '♜'),
-  ];
-  const p = me.data?.profile;
+  const items: ShellNavItem[] = [...MENU, ['club', organizer ? 'Mi club' : 'Crear mi club', '/club', '♜'] as const]
+    .map(([id, label, href, icon]) => ({ id, label, icon, href, active: isActive(pathname, href), onClick: () => navigate(href) }));
   return (
-    <Shell
-      subtitle={me.data?.organizer ? 'Organizador' : 'Jugador'}
-      items={items}
-      user={p ? { name: p.displayName ?? `${p.firstName} ${p.lastName}`, email: p.email ?? undefined, role: me.data?.organizer ? 'ORGANIZER' : 'PLAYER' } : undefined}
-      onLogout={() => void auth.signoutRedirect()}
-    >
+    <Shell subtitle={organizer ? 'Organizador' : 'Jugador'} items={items} user={shellUser(me.data)}
+           onLogout={() => void auth.signoutRedirect()}>
       {children}
     </Shell>
   );

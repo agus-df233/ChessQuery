@@ -34,4 +34,19 @@ public class PlayerTitle {
 
     @Column(length = 50)
     private String source;
+
+    /** Título vigente nuevo (el anterior se cierra con {@link #close()}). */
+    public static PlayerTitle current(Long playerId, Title title, LocalDate since, String source) {
+        PlayerTitle t = new PlayerTitle();
+        t.playerId = playerId;
+        t.title = title;
+        t.titleDate = since;
+        t.current = true;
+        t.source = source;
+        return t;
+    }
+
+    public void close() {
+        this.current = false;
+    }
 }

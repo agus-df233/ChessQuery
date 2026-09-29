@@ -7,6 +7,9 @@ public final class UsersEvents {
     public static final String PLAYER_PROVISIONED = "player.provisioned";
     public static final String PLAYER_CLAIMED = "player.claimed";
     public static final String PLAYER_UPDATED = "player.updated";
+    public static final String PLAYER_DELETED = "player.deleted";
+    public static final String PLAYER_MERGED = "player.merged";
+    public static final String FEDERATION_LOOKUP_REQUESTED = "federation.lookup.requested";
     public static final String PROVISIONAL_CREATED = "player.provisional.created";
     public static final String FRIEND_REQUEST_CREATED = "friend.request.created";
     public static final String FRIEND_REQUEST_ACCEPTED = "friend.request.accepted";
@@ -14,9 +17,6 @@ public final class UsersEvents {
     // Consumidos
     public static final String ELO_UPDATED = "elo.updated";
     public static final String RATING_UPDATED = "rating.updated";
-
-    public static final String ELO_QUEUE = "users.elo.queue";
-    public static final String RATING_QUEUE = "users.rating.queue";
 
     private UsersEvents() {}
 }

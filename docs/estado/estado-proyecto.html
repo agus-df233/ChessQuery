@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChessQuery v3 — Estado del proyecto</title>
+<style>
+  :root {
+    --ink: #1d1f1a; --ink-2: #4a4d44; --ink-3: #6b6e63; --line: #d9dbd0; --soft: #f3f4ee;
+    --accent: #3d8a4a; --accent-2: #6abf74; --accent-soft: #e6f2e7; --warn: #9a5b00; --warn-soft: #fbf1e1;
+    --bad: #b33a3a; --bad-soft: #f8e6e6; --dark: #111210;
+  }
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 10.2pt/1.5 -apple-system, "Helvetica Neue", "Segoe UI", Arial, sans-serif; color: var(--ink); background: #fff; }
+  h1, h2, h3 { font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; line-height: 1.2; color: var(--dark); }
+  h2 { font-size: 17pt; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--accent-2); }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; }
+  p { margin: 0 0 8px; }
+  ul { margin: 0 0 8px; padding-left: 18px; }
+  li { margin: 2px 0; }
+  code { font: 8.8pt/1.3 "SF Mono", Menlo, monospace; background: var(--soft); padding: 1px 4px; border-radius: 3px; }
+  pre { font: 7.7pt/1.4 "SF Mono", Menlo, monospace; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 6px 0 10px; white-space: pre; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9pt; }
+  th { text-align: left; background: var(--soft); color: var(--ink-2); font-weight: 600; font-size: 8.3pt; text-transform: uppercase; letter-spacing: .03em; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 7px; vertical-align: top; }
+  tr { break-inside: avoid; }
+  .section { break-before: page; }
+  .compact th, .compact td { padding: 3px 6px; font-size: 8.5pt; }
+  .compact h3 { margin-top: 10px; }
+  .muted { color: var(--ink-3); }
+  .small { font-size: 8.6pt; }
+  .pill { display: inline-block; font-size: 7.8pt; font-weight: 600; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
+  .ok { background: var(--accent-soft); color: var(--accent); }
+  .wip { background: var(--warn-soft); color: var(--warn); }
+  .todo { background: var(--bad-soft); color: var(--bad); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 10px 0 14px; }
+  .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; break-inside: avoid; }
+  .kpi b { display: block; font-size: 18pt; line-height: 1.1; color: var(--accent); font-family: "Avenir Next", Arial, sans-serif; }
+  .kpi span { font-size: 8.4pt; color: var(--ink-2); }
+  .box { border: 1px solid var(--line); border-left: 4px solid var(--accent-2); border-radius: 6px; padding: 9px 12px; margin: 8px 0 12px; background: #fbfcf8; break-inside: avoid; }
+  .box.warn { border-left-color: #d99a2b; background: #fffaf1; }
+  .fig { margin: 8px 0 12px; break-inside: avoid; }
+  .fig figcaption { font-size: 8.3pt; color: var(--ink-3); margin-top: 4px; }
+  .shot { width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+  /* Portada */
+  .cover { height: 258mm; display: flex; flex-direction: column; justify-content: space-between; padding: 6mm 2mm; }
+  .cover .brand { font-size: 13pt; color: var(--accent); font-weight: 700; letter-spacing: .02em; }
+  .cover h1 { font-size: 34pt; margin: 18mm 0 6px; }
+  .cover .sub { font-size: 14pt; color: var(--ink-2); max-width: 150mm; }
+  .cover .meta { font-size: 9.5pt; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 8px; }
+  .cover .band { background: var(--dark); color: #e8ead4; border-radius: 10px; padding: 14px 18px; margin-top: 14mm; }
+  .cover .band b { color: var(--accent-2); }
+  svg text { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; }
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────── PORTADA ───────────────────────── -->
+<section class="cover">
+  <div>
+    <div class="brand">♔ ChessQuery</div>
+    <h1>Estado del proyecto v3</h1>
+    <p class="sub">Estructura, últimas implementaciones y lo que falta para los despliegues en la nube y las demos de All In Chile 2026.</p>
+    <div class="band">
+      <p style="margin:0 0 6px"><b>En una línea:</b> la v3 ya corre completa en local, con la arquitectura cloud de destino (bus SNS/SQS, identidad delegada, privacidad por diseño, ETL FIDE con datos reales) y con la infraestructura escrita como código. Falta conectar las cuentas de AWS y construir torneos, partidas y notificaciones.</p>
+      <p style="margin:0" class="small">Rama <code style="background:#1f221c;color:#e8ead4">feat/local-ready</code> · 7 commits · 89 archivos · 84 tests en verde</p>
+    </div>
+  </div>
+  <div class="meta">
+    28 de septiembre de 2026 · Repositorio <code>ChessQuery</code> (monorepo v3) · Documento generado desde el código y los ADR del repositorio. Las cifras de costo son estimaciones de orden de magnitud; las de mercado provienen de la lista oficial de FIDE al 27-09-2026.
+  </div>
+</section>
+
+<!-- ───────────────────────── 1. RESUMEN ───────────────────────── -->
+<section class="section compact">
+  <h2>1. Resumen ejecutivo</h2>
+  <p><b>ChessQuery</b> es la plataforma chilena de ajedrez competitivo: SaaS para que los clubes gestionen torneos presenciales sin papel y un perfil gratuito para jugadores con todos sus ratings, ranking y progreso. Su diferenciador es dar el primer rating al jugador <b>no federado</b> (clubes y colegios) e integrarlo con los datos oficiales de FIDE y de la federación.</p>
+
+  <h3>Tamaño del segmento federado (dato real)</h3>
+  <div class="grid4">
+    <div class="kpi"><b>9.271</b><span>chilenos registrados en FIDE</span></div>
+    <div class="kpi"><b>4.192</b><span>con al menos un rating FIDE</span></div>
+    <div class="kpi"><b>2.459</b><span>de 18 años o menos (26,5 %)</span></div>
+    <div class="kpi"><b>1.250</b><span>mujeres (13,5 %)</span></div>
+  </div>
+  <p class="small muted">Fuente: lista combinada oficial de FIDE (<code>players_list_foa.txt</code>, 27-09-2026), federación CHI. Activos con rating: 1.828. Titulados: 6 GM, 15 IM, 56 FM, 34 CM, 3 WIM, 10 WFM, 7 WCM. Es solo la punta federada: los jugadores de club y colegio no aparecen en ninguna lista, y ese es el mercado principal de ChessQuery.</p>
+
+  <h3>Qué cambió en esta etapa</h3>
+  <table>
+    <tr><th style="width:26%">Tema</th><th>Antes (v2 / inicio de la v3)</th><th>Ahora</th></tr>
+    <tr><td>Despliegue</td><td>Una sola task Fargate de 4 vCPU / 8 GB con 10 contenedores, creada a mano con la CLI (~US$144/mes on-demand)</td><td>Terraform con un servicio por microservicio (Fargate ARM64), CloudFront, RDS y alarmas; validado</td></tr>
+    <tr><td>Mensajería</td><td>RabbitMQ (con contraseña), dentro de la task</td><td>SNS + SQS con filter policy y DLQ; sin contraseña; LocalStack en local</td></tr>
+    <tr><td>Identidad</td><td>Supabase Auth + gateway propio (v2)</td><td>Microsoft Entra External ID (Google federado), PKCE; la app <b>no guarda contraseñas</b></td></tr>
+    <tr><td>Privacidad</td><td>RUT y fecha de nacimiento de terceros en claro; fusión automática por nombre</td><td>Hash de RUT, solo año de nacimiento, menores abreviados, exportar/eliminar cuenta, lista de supresión</td></tr>
+    <tr><td>Datos</td><td>ETL con datos simulados</td><td>ETL FIDE real: 4.192 jugadores importados en ~2 s; ranking público con títulos</td></tr>
+  </table>
+
+  <h3>Estado de un vistazo</h3>
+  <table>
+    <tr><th>Pieza</th><th style="width:16%">Estado</th><th>Comentario</th></tr>
+    <tr><td>Servicio <code>users</code> (jugadores, ranking, clubes, roster, amigos, privacidad)</td><td><span class="pill ok">Listo local</span></td><td>28 tests, cobertura 94 %</td></tr>
+    <tr><td>Web (jugador + organizador + ranking público)</td><td><span class="pill ok">Listo local</span></td><td>17 tests con axe-core (accesibilidad AA)</td></tr>
+    <tr><td>ETL FIDE</td><td><span class="pill ok">Listo local</span></td><td>12 tests, cobertura 99 %; listo para Lambda</td></tr>
+    <tr><td>Infraestructura Academy (Terraform)</td><td><span class="pill wip">Escrita y validada</span></td><td>Falta <code>apply</code>: requiere credenciales del Learner Lab</td></tr>
+    <tr><td>Cuenta AWS propia (API Gateway, OIDC GitHub, Budgets)</td><td><span class="pill todo">Pendiente</span></td><td>Diseñada (ADR-0002); falta configurar la cuenta</td></tr>
+    <tr><td>Servicios <code>tournament</code>, <code>game</code>, <code>notifications</code></td><td><span class="pill todo">Pendiente</span></td><td>Pasos 2 a 4 del plan</td></tr>
+  </table>
+</section>
+
+<!-- ───────────────────────── 2. ESTRUCTURA ───────────────────────── -->
+<section class="section">
+  <h2>2. Estructura del proyecto</h2>
+  <p>Monorepo con tres lenguajes y un solo pipeline de CI: <b>Java 21 / Spring Boot 3.5</b> (servicios), <b>Python 3.12+</b> (ETL) y <b>React 18 + TypeScript</b> (web).</p>
+<pre>ChessQuery/
+├── pom.xml                     aggregator Maven (Boot 3.5, Spring Cloud AWS, Jib, JaCoCo)
+├── libs/
+│   ├── common/                 errores REST, ChessEvent, EventPublisher (SNS), idempotencia
+│   └── auth-starter/           resource server OIDC, @CurrentUser, sub → playerId
+├── services/
+│   └── users/                  jugadores, ratings, ranking, club + roster, amigos,
+│                               privacidad (export · supresión · ¿eres tú?), vistas públicas
+├── etl/                        importador FIDE → S3 (raw/staged/manifest) → SNS rating.updated
+├── apps/web/                   SPA React: jugador, organizador y ranking público (/ranking)
+├── packages/ui-lib/            design system oscuro con contraste AA validado en tests
+├── infra/
+│   ├── docker-compose.yml      Postgres 16 · LocalStack 4.14 (SNS/SQS/S3) · Mailpit
+│   ├── localstack/init/        topología local del bus y buckets
+│   └── terraform/              bootstrap · modules/{network,data,ecs-service,edge,messaging,
+│                               observability} · envs/academy
+├── docs/
+│   ├── adr/                    0001 arquitectura v3 · 0002 despliegue AWS de bajo costo
+│   ├── events.md               catálogo de eventos (fuente de verdad)
+│   └── prototipo/              prompt del agente de prototipos
+├── Makefile                    local-up · users · web · etl-fide-local · test · image · tf-check
+└── .github/workflows/ci.yml    Java · ETL · Web · Terraform · Trivy</pre>
+
+  <h3>Convenciones que atraviesan todo</h3>
+  <ul>
+    <li><b>Identidad siempre del token</b> (<code>@CurrentUser</code>), nunca del body ni de la URL. Ser <i>organizador</i> significa ser dueño de un club; no hay rol autodeclarado.</li>
+    <li><b>Un schema PostgreSQL por servicio</b>, sin claves foráneas entre schemas; Flyway es el dueño del esquema y Hibernate solo lo valida.</li>
+    <li><b>Eventos</b>: envelope <code>{eventId, eventType, timestamp, payload}</code> en el tópico SNS <code>chess-events</code>; una cola SQS por consumidor con DLQ; consumidores idempotentes. Todo evento nuevo se documenta en <code>docs/events.md</code> antes de programarlo.</li>
+    <li><b>Errores REST</b> uniformes: <code>{status, error, message, timestamp}</code>.</li>
+    <li><b>Mismo código en local y en la nube</b>: el SDK de AWS toma <code>AWS_ENDPOINT_URL</code> del entorno (LocalStack en local, rol IAM en la nube).</li>
+    <li><b>Calidad</b>: cobertura mínima del 90 % por módulo como gate de CI; accesibilidad AA verificada con axe-core; escaneo Trivy de dependencias e IaC.</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────── 3. ARQUITECTURA ───────────────────────── -->
+<section class="section">
+  <h2>3. Arquitectura objetivo en AWS</h2>
+  <figure class="fig">
+    <svg viewBox="0 0 720 360" width="100%" role="img" aria-label="Diagrama de arquitectura AWS de ChessQuery">
+      <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4a4d44"/></marker></defs>
+      <g font-size="10.5" fill="#1d1f1a">
+        <!-- usuario / idp -->
+        <rect x="10" y="20" width="110" height="46" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="65" y="40" text-anchor="middle" font-weight="600">Usuario</text><text x="65" y="55" text-anchor="middle" font-size="9" fill="#6b6e63">web · celular (QR)</text>
+        <rect x="10" y="110" width="110" height="56" rx="8" fill="#eef1fb" stroke="#7d8fc9"/><text x="65" y="131" text-anchor="middle" font-weight="600">Entra External ID</text><text x="65" y="146" text-anchor="middle" font-size="9" fill="#6b6e63">IdaaS · Google</text><text x="65" y="158" text-anchor="middle" font-size="9" fill="#6b6e63">sin contraseñas en la app</text>
+        <line x1="65" y1="66" x2="65" y2="108" stroke="#7d8fc9" stroke-dasharray="4 3" marker-end="url(#a)"/><text x="72" y="92" font-size="8.5" fill="#6b6e63">PKCE</text>
+        <!-- edge -->
+        <rect x="160" y="20" width="130" height="46" rx="8" fill="#e6f2e7" stroke="#3d8a4a"/><text x="225" y="40" text-anchor="middle" font-weight="600">CloudFront</text><text x="225" y="55" text-anchor="middle" font-size="9" fill="#6b6e63">HTTPS · caché /api/public</text>
+        <line x1="120" y1="43" x2="158" y2="43" stroke="#4a4d44" marker-end="url(#a)"/>
+        <rect x="330" y="10" width="120" height="34" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="390" y="31" text-anchor="middle">S3 · SPA React</text>
+        <line x1="290" y1="35" x2="328" y2="28" stroke="#4a4d44" marker-end="url(#a)"/>
+        <rect x="330" y="56" width="150" height="46" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="405" y="75" text-anchor="middle" font-weight="600">API Gateway HTTP API</text><text x="405" y="90" text-anchor="middle" font-size="9" fill="#6b6e63">JWT Entra · throttling · (ALB en Academy)</text>
+        <line x1="290" y1="52" x2="328" y2="72" stroke="#4a4d44" marker-end="url(#a)"/>
+        <!-- ecs -->
+        <rect x="300" y="130" width="250" height="96" rx="10" fill="#f3f4ee" stroke="#6b6e63"/><text x="425" y="147" text-anchor="middle" font-weight="600">ECS Fargate ARM64 (Spot fuera de demos)</text>
+        <rect x="312" y="156" width="54" height="26" rx="5" fill="#e6f2e7" stroke="#3d8a4a"/><text x="339" y="173" text-anchor="middle" font-size="9">users</text>
+        <rect x="372" y="156" width="54" height="26" rx="5" fill="#fff" stroke="#b9bbb0" stroke-dasharray="3 2"/><text x="399" y="173" text-anchor="middle" font-size="9">tournament</text>
+        <rect x="432" y="156" width="44" height="26" rx="5" fill="#fff" stroke="#b9bbb0" stroke-dasharray="3 2"/><text x="454" y="173" text-anchor="middle" font-size="9">game</text>
+        <rect x="482" y="156" width="60" height="26" rx="5" fill="#fff" stroke="#b9bbb0" stroke-dasharray="3 2"/><text x="512" y="173" text-anchor="middle" font-size="9">notifications</text>
+        <text x="425" y="206" text-anchor="middle" font-size="8.5" fill="#6b6e63">imágenes Jib · roles IAM (sin claves) · logs 14 días</text>
+        <line x1="405" y1="102" x2="405" y2="128" stroke="#4a4d44" marker-end="url(#a)"/>
+        <!-- rds -->
+        <rect x="300" y="260" width="120" height="50" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="360" y="280" text-anchor="middle" font-weight="600">RDS PostgreSQL 16</text><text x="360" y="295" text-anchor="middle" font-size="9" fill="#6b6e63">un schema por servicio</text>
+        <line x1="360" y1="226" x2="360" y2="258" stroke="#4a4d44" marker-end="url(#a)"/>
+        <!-- bus -->
+        <rect x="585" y="130" width="125" height="50" rx="8" fill="#fff4e0" stroke="#d99a2b"/><text x="647" y="150" text-anchor="middle" font-weight="600">SNS chess-events</text><text x="647" y="165" text-anchor="middle" font-size="9" fill="#6b6e63">atributo eventType</text>
+        <line x1="550" y1="160" x2="583" y2="155" stroke="#4a4d44" marker-end="url(#a)"/>
+        <rect x="585" y="200" width="125" height="50" rx="8" fill="#fff4e0" stroke="#d99a2b"/><text x="647" y="220" text-anchor="middle" font-weight="600">SQS por consumidor</text><text x="647" y="235" text-anchor="middle" font-size="9" fill="#6b6e63">filter policy + DLQ</text>
+        <line x1="647" y1="180" x2="647" y2="198" stroke="#4a4d44" marker-end="url(#a)"/>
+        <path d="M585,225 C565,225 560,200 552,196" fill="none" stroke="#4a4d44" marker-end="url(#a)"/>
+        <!-- realtime -->
+        <rect x="585" y="20" width="125" height="50" rx="8" fill="#eef1fb" stroke="#7d8fc9" stroke-dasharray="4 3"/><text x="647" y="40" text-anchor="middle" font-weight="600">AppSync Events</text><text x="647" y="55" text-anchor="middle" font-size="9" fill="#6b6e63">tablero en vivo (paso 3)</text>
+        <!-- etl -->
+        <rect x="130" y="250" width="140" height="60" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="200" y="270" text-anchor="middle" font-weight="600">Lambda ETL FIDE</text><text x="200" y="284" text-anchor="middle" font-size="9" fill="#6b6e63">EventBridge Scheduler</text><text x="200" y="297" text-anchor="middle" font-size="9" fill="#6b6e63">día 2 de cada mes</text>
+        <rect x="10" y="260" width="95" height="40" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="57" y="284" text-anchor="middle">S3 raw/staged</text>
+        <line x1="130" y1="280" x2="107" y2="280" stroke="#4a4d44" marker-end="url(#a)"/>
+        <path d="M200,310 V330 H568 V168 H583" fill="none" stroke="#d99a2b" marker-end="url(#a)"/><text x="330" y="345" font-size="8.5" fill="#9a5b00">rating.updated → SNS (lotes de 200)</text>
+        <!-- obs -->
+        <rect x="590" y="270" width="120" height="44" rx="8" fill="#fff" stroke="#9a9c8c"/><text x="650" y="289" text-anchor="middle" font-size="9.5">CloudWatch · Budgets</text><text x="650" y="304" text-anchor="middle" font-size="8" fill="#6b6e63">alarmas 5xx · DLQ · RDS</text>
+      </g>
+    </svg>
+    <figcaption>Líneas punteadas: piezas diseñadas pero no construidas todavía. En el entorno Academy, el ALB reemplaza a API Gateway porque el Learner Lab bloquea Cloud Map (ADR-0002).</figcaption>
+  </figure>
+
+  <h3>Veredicto por servicio (ADR-0002)</h3>
+  <table>
+    <tr><th style="width:21%">Servicio</th><th style="width:15%">Veredicto</th><th>Uso y motivo</th></tr>
+    <tr><td>Entra External ID</td><td><span class="pill ok">Se mantiene</span></td><td>Excepción no-AWS justificada: ya integrado, tier gratuito amplio; la app no maneja contraseñas.</td></tr>
+    <tr><td>ECS Fargate</td><td><span class="pill ok">Núcleo</span></td><td>Un servicio por microservicio, ARM64 (~20 % más barato), escala a 0 fuera de horario.</td></tr>
+    <tr><td>SNS + SQS</td><td><span class="pill ok">Implementado</span></td><td>Reemplaza a RabbitMQ/Amazon MQ (~US$25 fijos/mes → ~US$0–1). Sin contraseña de broker.</td></tr>
+    <tr><td>API Gateway HTTP API</td><td><span class="pill wip">Cuenta propia</span></td><td>Authorizer JWT + throttling a US$1 por millón, en vez de ALB + WAF (~US$25/mes). ALB solo en Academy.</td></tr>
+    <tr><td>S3 + CloudFront</td><td><span class="pill ok">En Terraform</span></td><td>SPA privada con OAC; caché de las vistas públicas; HTTPS.</td></tr>
+    <tr><td>Lambda</td><td><span class="pill wip">ETL listo</span></td><td>Solo cargas cortas o programadas (ETL, sync de ratings, emails). No para los servicios Spring.</td></tr>
+    <tr><td>CloudWatch + Budgets</td><td><span class="pill ok">En Terraform</span></td><td>Logs de 14 días, alarmas (5xx, targets, DLQ, disco RDS). Budgets en la cuenta propia.</td></tr>
+    <tr><td>EC2</td><td><span class="pill todo">No</span></td><td>Solo opcional como fck-nat; acceso operativo por ECS Exec, sin bastión.</td></tr>
+    <tr><td>AppSync Events</td><td><span class="pill wip">Paso 3</span></td><td>Tiempo real del tablero: pub/sub gestionado con auth OIDC de Entra; sin ALB ni sticky sessions.</td></tr>
+  </table>
+</section>
+
+<!-- ───────────────────────── 4. IMPLEMENTACIONES ───────────────────────── -->
+<section class="section">
+  <h2>4. Últimas implementaciones</h2>
+  <p>Todo en la rama <code>feat/local-ready</code> (sin push). Cada bloque terminó con las suites en verde.</p>
+  <table>
+    <tr><th style="width:12%">Commit</th><th>Qué incluye</th><th style="width:26%">Verificación</th></tr>
+    <tr><td><code>ec434d6</code><br><b>Build e imagen</b></td><td>Corrige el typo que rompía la compilación; Lombok explícito (compila en JDK 21 y 24); JaCoCo 0.8.13; <b>Jib</b> (imagen arm64/amd64, usuario no-root); usernames de Lichess/Chess.com validados y codificados antes de llamar a las APIs externas.</td><td>Contenedor arranca en 3,8 s · <code>/actuator/health</code> 200 · <code>/api/users/me</code> sin token → 401</td></tr>
+    <tr><td><code>2870661</code><br><b>IaC</b></td><td>ADR-0002 y Terraform: bootstrap del estado (S3 con locking nativo), módulos de red sin NAT, datos (RDS con contraseña gestionada por RDS), servicio ECS genérico, borde (CloudFront + S3 + ALB), observabilidad, entorno Academy con <code>LabRole</code>. Job de Terraform en CI.</td><td><code>terraform validate</code> OK (v1.16.4)</td></tr>
+    <tr><td><code>3457cbc</code><br><b>Bus SNS/SQS</b></td><td><code>EventPublisher</code> sobre SNS con atributo <code>eventType</code>; consumidores <code>@SqsListener</code>; LocalStack reemplaza a RabbitMQ y MinIO; módulo Terraform <code>messaging</code> (colas, filter policy, DLQ y alarma).</td><td>Test de contrato contra SNS/SQS reales (LocalStack) y test de punta a punta hasta PostgreSQL</td></tr>
+    <tr><td><code>e7d7a30</code><br><b>Privacidad</b></td><td>Migración V2: año de nacimiento, hash HMAC del RUT, trazabilidad de fuente, consentimiento parental, lista de supresión. Match federado solo por identificadores; "¿eres tú?" en vez de fusión por nombre. Endpoints públicos, exportar datos y eliminar cuenta.</td><td>Casos de integración: menores abreviados, sin PII, supresión que el ETL respeta</td></tr>
+    <tr><td><code>f11fb01</code><br><b>ETL FIDE</b></td><td>Parser de la lista oficial (columnas desde el encabezado), pipeline S3 raw/staged/manifest, diff mensual, lotes de 200 a SNS; ranking por rating FIDE.</td><td>Lista real: 9.271 leídos, 4.192 publicados en 21 lotes, DLQ vacía</td></tr>
+    <tr><td><code>cc78721</code><br><b>Web pública</b></td><td>Ruta <code>/ranking</code> sin login con selector de rating; títulos FIDE de punta a punta.</td><td>Títulos idénticos a FIDE; axe sin violaciones</td></tr>
+    <tr><td><code>8eef172</code><br><b>DX</b></td><td>Makefile con los comandos del día a día; README actualizado.</td><td><code>make local-up</code>, <code>tf-check</code>, <code>test-etl</code></td></tr>
+  </table>
+
+  <figure class="fig">
+    <img class="shot" src="ranking-publico.png" alt="Ranking público de Chile con datos FIDE reales">
+    <figcaption>Ranking público <code>/ranking</code> corriendo en local con la lista FIDE real (datos públicos de FIDE). Los menores sin cuenta aparecen con el apellido abreviado, como el puesto 7.</figcaption>
+  </figure>
+
+  <h3>Pruebas</h3>
+  <table>
+    <tr><th>Módulo</th><th>Tests</th><th>Cobertura / gate</th></tr>
+    <tr><td><code>libs/common</code></td><td>15 (incluye contrato SNS→SQS)</td><td>≥ 90 % ✓</td></tr>
+    <tr><td><code>libs/auth-starter</code></td><td>12</td><td>≥ 90 % ✓</td></tr>
+    <tr><td><code>services/users</code></td><td>28 (incluye PostgreSQL + LocalStack reales)</td><td>94 %</td></tr>
+    <tr><td><code>etl</code></td><td>12</td><td>99 %</td></tr>
+    <tr><td><code>apps/web</code></td><td>17 (render + axe-core + contraste AA)</td><td>—</td></tr>
+  </table>
+</section>
+
+<!-- ───────────────────────── 5. SEGURIDAD Y PRIVACIDAD ───────────────────────── -->
+<section class="section">
+  <h2>5. Seguridad y privacidad por diseño</h2>
+  <h3>"La aplicación no guarda contraseñas"</h3>
+  <ul>
+    <li><b>Usuarios:</b> login, registro y recuperación viven en Entra External ID. La tabla de jugadores no tiene columna de contraseña; la SPA usa Authorization Code + PKCE sin secreto de cliente.</li>
+    <li><b>Infraestructura:</b> el bus SNS/SQS y S3 usan el rol IAM de la tarea (sin claves). RDS genera y guarda su contraseña maestra (no está en código ni en el estado de Terraform). Configuración y secretos compartidos en SSM Parameter Store. En la cuenta propia, GitHub se autentica en AWS por OIDC.</li>
+  </ul>
+
+  <h3>Ley 19.628 modificada por la Ley 21.719 (vigente desde el 1-dic-2026)</h3>
+  <table>
+    <tr><th style="width:24%">Exigencia</th><th>Cómo lo resuelve ChessQuery hoy</th><th style="width:13%">Estado</th></tr>
+    <tr><td>Minimización</td><td>De terceros solo se guarda el <b>año</b> de nacimiento y un <b>hash HMAC del RUT</b> (el pepper vive fuera de la BD); nunca la fecha ni el RUT en claro.</td><td><span class="pill ok">Hecho</span></td></tr>
+    <tr><td>Calidad del dato</td><td>Match solo por identificadores (id federativo, FIDE id, hash de RUT). Se eliminó la fusión automática por nombre (homónimos); ahora es una sugerencia "¿eres tú?".</td><td><span class="pill ok">Hecho</span></td></tr>
+    <tr><td>Niños, niñas y adolescentes</td><td>26,5 % de los federados tiene 18 años o menos. En vistas para terceros, los menores sin cuenta (o menores de 14 sin consentimiento parental) aparecen con el apellido abreviado.</td><td><span class="pill ok">Hecho</span> <span class="pill wip">Falta flujo de consentimiento</span></td></tr>
+    <tr><td>Acceso y portabilidad</td><td><code>GET /api/users/me/export</code> descarga un JSON con todo lo del titular.</td><td><span class="pill ok">Hecho</span></td></tr>
+    <tr><td>Supresión y oposición</td><td><code>DELETE /api/users/me</code> anonimiza, borra amistades, emite <code>player.deleted</code> y registra los identificadores en la lista de supresión: el ETL <b>no vuelve a importarlos</b>.</td><td><span class="pill ok">Hecho</span></td></tr>
+    <tr><td>Trazabilidad</td><td>Cada dato externo guarda fuente, URL y período ("FIDE · 2026-10").</td><td><span class="pill ok">Hecho</span></td></tr>
+    <tr><td>Responsabilidad demostrada</td><td>Registro de actividades de tratamiento, política de privacidad, runbook de brechas, modelo de prevención de infracciones.</td><td><span class="pill todo">Pendiente</span></td></tr>
+  </table>
+  <div class="box"><b>Para el pitch (criterio "dominio de mercado y normativas"):</b> ChessQuery cumple la ley desde el diseño. No guarda contraseñas, minimiza los datos de terceros, protege a los menores (un cuarto de los federados) y hace que borrar sea definitivo.</div>
+</section>
+
+<!-- ───────────────────────── 6. TIEMPO REAL Y ETL ───────────────────────── -->
+<section class="section">
+  <h2>6. Tiempo real y ETL</h2>
+  <h3>Tablero en vivo (a construir en el paso 3)</h3>
+  <ul>
+    <li><b>Decisión:</b> AWS AppSync Events. Pub/sub gestionado, fan-out incluido, auth OIDC con el mismo token de Entra, costo por mensaje (~US$0–1/mes en demo) y sin ALB. El relay STOMP del ADR-0001 dependía de RabbitMQ, que ya no existe.</li>
+    <li><b>REST es la fuente de verdad</b> y el canal solo avisa. Las jugadas se validan en el servidor y el <b>reloj es del servidor</b> (en la v2 lo reportaba el cliente). Una tarea periódica cierra las partidas por tiempo.</li>
+    <li>Canales: <code>/games/{id}</code>, <code>/tournaments/{id}</code> (tablas en vivo de torneos presenciales) y <code>/users/{id}</code>. Solo el servicio <code>game</code> publica.</li>
+    <li>Fallback en Academy: STOMP con broker simple (1 réplica) detrás del ALB, sobre el puerto <code>EventBroadcaster</code> que ya existe en <code>libs/common</code>.</li>
+  </ul>
+
+  <h3>ETL de ratings: tres universos de jugadores</h3>
+  <table>
+    <tr><th style="width:20%">Segmento</th><th>Fuente</th><th style="width:32%">Estado</th></tr>
+    <tr><td>FIDE (CHI)</td><td>Lista oficial mensual de FIDE (pública, publicada para descarga)</td><td><span class="pill ok">Hecho</span> 4.192 con rating; falta programarlo como Lambda</td></tr>
+    <tr><td>Federados nacionales</td><td>Federación: ELO nacional, club, RUT</td><td><span class="pill todo">Pendiente</span> carga masiva <b>solo con convenio</b>; mientras tanto, consulta puntual cuando el titular vincula su ID</td></tr>
+    <tr><td>Locales / no federados</td><td>ChessQuery es la fuente: roster de clubes y torneos de la plataforma</td><td><span class="pill wip">Parcial</span> roster listo; rating de plataforma con torneos (paso 2)</td></tr>
+  </table>
+<pre>players_list.zip (FIDE) ─► S3 raw/  (lifecycle 30 días)
+                        ─► S3 staged/ + diff contra el mes anterior
+                        ─► SNS rating.updated en lotes de 200 (solo cambios)
+                        ─► users: match por identificadores · supresión · títulos</pre>
+</section>
+
+<!-- ───────────────────────── 7. COSTOS ───────────────────────── -->
+<section class="section">
+  <h2>7. Costos estimados</h2>
+  <p class="muted small">Estimaciones de orden de magnitud en us-east-1, con precios de lista. Se validarán con Cost Explorer la primera semana en la nube.</p>
+  <table>
+    <tr><th>Escenario</th><th style="width:22%">Mensual aprox.</th></tr>
+    <tr><td>v2: task única de 4 vCPU / 8 GB on-demand, 24/7</td><td>~US$144 + RDS</td></tr>
+    <tr><td>v3 cuenta propia, hoy (solo <code>users</code>) 24/7: Fargate ARM + RDS micro + red + CloudWatch/ECR/SNS/SQS/API GW</td><td><b>~US$35</b></td></tr>
+    <tr><td>v3 con los 4 servicios, Spot + apagado automático fuera de horario</td><td><b>~US$30–45</b></td></tr>
+    <tr><td>Learner Lab, sesión de 4 h (ALB + 4 tasks + RDS)</td><td>~US$0,5–0,7 del saldo</td></tr>
+  </table>
+  <h3>Palancas de ahorro ya incorporadas</h3>
+  <ul>
+    <li>ARM64/Graviton; Spot salvo los días de demo; apagado programado de ECS y RDS.</li>
+    <li>Sin NAT Gateway (US$33/mes): subnets públicas con security groups estrictos.</li>
+    <li>SNS/SQS en vez de Amazon MQ; SSM en vez de Secrets Manager para la configuración.</li>
+    <li>API Gateway en vez de ALB + WAF en la cuenta propia; logs con retención de 14 días.</li>
+    <li>Lambda solo para trabajos cortos (el ETL tarda ~2 s con la lista real).</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────── 8. LO QUE FALTA ───────────────────────── -->
+<section class="section compact">
+  <h2>8. Lo que falta</h2>
+  <h3>A. Para salir a la nube (acciones tuyas, en este orden)</h3>
+  <table>
+    <tr><th style="width:4%">#</th><th>Acción</th><th style="width:24%">Por qué</th></tr>
+    <tr><td>1</td><td>Actualizar las Command Line Tools de Xcode (requiere <code>sudo</code>) e instalar Terraform con Homebrew; actualizar AWS CLI (<code>brew upgrade awscli</code>).</td><td>Homebrew bloqueó la instalación; la CLI 2.31 no trae <code>aws login</code></td></tr>
+    <tr><td>2</td><td>Cuenta propia: MFA en root, IAM Identity Center con permission sets de solo lectura y de despliegue, y un Budget de US$20.</td><td>Nunca usar root; control de gasto</td></tr>
+    <tr><td>3</td><td><code>aws login --profile chessquery-ro</code> y <code>aws configure agent-toolkit</code> (MCP de solo lectura para el agente).</td><td>Diagnóstico y costos desde el agente, sin claves</td></tr>
+    <tr><td>4</td><td>Learner Lab: perfil <code>chessquery-academy</code>, <code>bootstrap</code> y <code>apply</code> de <code>envs/academy</code>, push de la imagen, sync de la web y redirect URI en Entra.</td><td>Primera URL pública para el Encargo 1 (11-oct)</td></tr>
+    <tr><td>5</td><td>Verificar en el Learner Lab: AppSync Events, <code>rds-db:connect</code> en <code>LabRole</code>, FARGATE_SPOT.</td><td>Supuestos no verificados</td></tr>
+  </table>
+
+  <h3>B. Código pendiente</h3>
+  <table>
+    <tr><th>Pieza</th><th style="width:16%">Hito objetivo</th><th>Detalle</th></tr>
+    <tr><td><code>envs/aws</code> + módulo <code>jobs</code></td><td>Bootcamp 24-oct</td><td>API Gateway + Cloud Map, OIDC de GitHub y <code>deploy.yml</code>, Budgets, encendido/apagado programado, Lambda ETL con Scheduler y lifecycle, módulo <code>identity</code> (azuread).</td></tr>
+    <tr><td>Reclamo de perfil completo</td><td>Bootcamp</td><td>Hoy "¿eres tú?" solo sugiere; falta la acción que vincula la fila federada a la cuenta.</td></tr>
+    <tr><td>Servicio <code>tournament</code></td><td>Midterm 5-nov</td><td>Inscripción, pareo suizo, desempates, exportación TRF / formato de la federación, <code>tournament.round.generated</code>.</td></tr>
+    <tr><td>Notificaciones</td><td>Midterm</td><td>Lambda SQS→SES: invitación a reclamar perfil, pareos por ronda; consumidores de <code>player.deleted</code>.</td></tr>
+    <tr><td>Privacidad (documental)</td><td>Midterm</td><td>Flujo de consentimiento parental, registro de actividades, política de privacidad, runbook de brechas.</td></tr>
+    <tr><td>Servicio <code>game</code> + AppSync Events</td><td>Final 13-nov (MVP opcional)</td><td>Tablero en vivo con reloj del servidor y espectadores; PGN en S3; <code>elo.updated</code>.</td></tr>
+    <tr><td>Fuentes de datos</td><td>Continuo</td><td>Convenio con la federación (ELO nacional); sync nocturno de Lichess/Chess.com.</td></tr>
+    <tr><td>Plan PRO / pagos</td><td>Post-torneo</td><td>Webpay/Flow/Mercado Pago → <code>subscription.changed</code>.</td></tr>
+  </table>
+
+  <h3>C. Riesgos</h3>
+  <table>
+    <tr><th style="width:30%">Riesgo</th><th>Mitigación</th></tr>
+    <tr><td>LocalStack 2026.x exige token de licencia</td><td>Fijado en 4.14.0 (última versión sin token). Alternativa: ElasticMQ + MinIO.</td></tr>
+    <tr><td>Servicios no disponibles en el Learner Lab</td><td>Terraform con dos modos (ALB/API Gateway) y fallback STOMP para el tiempo real.</td></tr>
+    <tr><td>Rotar el pepper de privacidad deja hashes huérfanos</td><td><code>ignore_changes</code> en Terraform; rotación solo con recálculo planificado.</td></tr>
+    <tr><td>Calendario del torneo ajustado</td><td>Prototipo clicable (prompt en <code>docs/prototipo/</code>) como respaldo de la demo, más un video grabado.</td></tr>
+    <tr><td>Cambios en el formato de la lista FIDE</td><td>El parser lee las columnas desde el encabezado y falla explícitamente si falta alguna; la alarma del ETL avisa.</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

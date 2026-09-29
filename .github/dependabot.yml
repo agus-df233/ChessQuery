@@ -1,13 +1,25 @@
+# Dependabot (ADR-0002, enmienda 2026-09-29): propone actualizaciones de dependencias una vez por semana.
+# - PRs contra develop (main solo recibe cambios desde develop).
+# - Un solo PR por ecosistema y semana (agrupado), para no llenar el repo de ramas.
+# - Sin saltos de versión mayor (p. ej. Spring Boot 3 → 4): esos rompen compatibilidad y se evalúan a mano.
+# Ojo: GitHub lee este archivo desde la rama por defecto (main); los cambios rigen cuando llegan a main.
 version: 2
 updates:
   - package-ecosystem: maven
     directory: /
+    target-branch: develop
     schedule: { interval: weekly }
     groups:
-      spring: { patterns: ["org.springframework*"] }
+      maven: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule: { interval: weekly }
-  - package-ecosystem: docker
-    directory: /infra
-    schedule: { interval: weekly }
+    groups:
+      github-actions: { patterns: ["*"] }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

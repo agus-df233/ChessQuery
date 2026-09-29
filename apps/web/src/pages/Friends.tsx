@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Card, EmptyState, Skeleton } from '@chessquery/ui-lib';
+import { ChallengeButton } from '../components/game/ChallengeButton';
 import { friendsApi } from '../api/users';
 import { StatusMessage } from '../components/StatusMessage';
 
@@ -40,6 +41,7 @@ export const Friends = () => {
             <span><Link to={`/app/jugadores/${f.playerId}`}>{f.firstName} {f.lastName}</Link> <span className="cq-muted">{f.clubName ?? ''}</span></span>
             <div className="cq-actions">
               <span className="cq-muted">ELO {f.eloNational ?? '—'}</span>
+              <ChallengeButton opponentId={f.playerId} opponentName={`${f.firstName} ${f.lastName}`} />
               <Button size="sm" variant="secondary" onClick={() => remove.mutate(f.playerId)}>Quitar</Button>
             </div>
           </div>

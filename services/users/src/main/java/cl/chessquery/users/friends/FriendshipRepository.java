@@ -26,4 +26,9 @@ public interface FriendshipRepository extends JpaRepository<Friendship, Long> {
     List<Friendship> findByAddresseeIdAndStatusOrderByCreatedAtDesc(Long addresseeId, Friendship.Status status);
 
     List<Friendship> findByRequesterIdAndStatusOrderByCreatedAtDesc(Long requesterId, Friendship.Status status);
+
+    /** Borra todas las filas del jugador (supresión de cuenta). */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("delete from Friendship f where f.requesterId = :playerId or f.addresseeId = :playerId")
+    int deleteAllOf(@Param("playerId") Long playerId);
 }

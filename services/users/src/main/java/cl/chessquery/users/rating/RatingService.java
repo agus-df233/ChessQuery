@@ -45,6 +45,14 @@ public class RatingService {
         return true;
     }
 
+    /** Deja constancia de la última fuente externa que actualizó al jugador (trazabilidad). */
+    @Transactional
+    public void markEnriched(Player player, String source) {
+        player.setEnrichmentSource(source);
+        player.setEnrichedAt(Instant.now());
+        players.save(player);
+    }
+
     /** Serie de los últimos {@code months} meses (acotado a {@link #MAX_MONTHS}). */
     @Transactional(readOnly = true)
     public List<RatingHistory.Point> series(Long playerId, RatingType type, int months) {

@@ -61,4 +61,14 @@ class GlobalExceptionHandlerTest {
         assertThat(handler.handleBadInput(new IllegalArgumentException("x")).getStatusCode())
                 .isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    void cambiosConcurrentesSon409() {
+        ResponseEntity<ErrorResponse> r = handler.handleConcurrentChange(
+                new org.springframework.dao.OptimisticLockingFailureException("version"));
+        assertThat(r.getStatusCode().value()).isEqualTo(409);
+        assertThat(r.getBody().error()).isEqualTo("CONCURRENT_UPDATE");
+        assertThat(handler.handleConcurrentChange(new org.springframework.dao.DataIntegrityViolationException("dup"))
+                .getStatusCode().value()).isEqualTo(409);
+    }
 }

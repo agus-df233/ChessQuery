@@ -56,8 +56,21 @@ public class Player {
     @Column(length = 12)
     private String rut;
 
+    /** RUT en claro: solo si lo ingresó su titular o el organizador que lo inscribió. */
+    @Column(name = "rut_hash", length = 64)
+    private String rutHash;
+
+    /** Fecha completa: solo si la entregó su titular. Setter propio: mantiene {@link #birthYear}. */
     @Column(name = "birth_date")
     private LocalDate birthDate;
+
+    /** Año de nacimiento: define la categoría. Único dato de edad de los federados no reclamados. */
+    @Column(name = "birth_year")
+    private Integer birthYear;
+
+    /** Consentimiento parental registrado (menores de 14 con cuenta). */
+    @Column(name = "parental_consent_at")
+    private Instant parentalConsentAt;
 
     /** 'M', 'F' u 'O'. */
     @Column(length = 1)
@@ -108,6 +121,13 @@ public class Player {
     @Column(name = "enriched_at")
     private Instant enrichedAt;
 
+    /** Trazabilidad del dato externo: URL de la ficha o lista y período "YYYY-MM". */
+    @Column(name = "source_url", length = 300)
+    private String sourceUrl;
+
+    @Column(name = "source_period", length = 7)
+    private String sourcePeriod;
+
     // ── Roster provisorio del organizador ────────────────────────────────────
     @Column(nullable = false)
     @Builder.Default
@@ -136,11 +156,18 @@ public class Player {
         Instant now = Instant.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
+        syncBirthYear();
     }
 
     @PreUpdate
     void onUpdate() {
         updatedAt = Instant.now();
+        syncBirthYear();
+    }
+
+    /** La fecha completa, si existe, manda sobre el año (el builder no pasa por el setter). */
+    private void syncBirthYear() {
+        if (birthDate != null) birthYear = birthDate.getYear();
     }
 
     // ── Helpers de dominio ───────────────────────────────────────────────────
@@ -149,45 +176,22 @@ public class Player {
         return (firstName + " " + lastName).trim();
     }
 
+    public void setBirthDate(LocalDate birthDate) {
+        this.birthDate = birthDate;
+        this.birthYear = birthDate == null ? null : birthDate.getYear();
+    }
+
     public boolean hasAccount() {
         return externalSubject != null;
     }
 
     /** Snapshot de una modalidad (null si nunca se registró). */
     public Integer rating(RatingType type) {
-        return switch (type) {
-            case NATIONAL          -> eloNational;
-            case FIDE_STANDARD     -> eloFideStandard;
-            case FIDE_RAPID        -> eloFideRapid;
-            case FIDE_BLITZ        -> eloFideBlitz;
-            case PLATFORM          -> eloPlatform;
-            case LICHESS_BULLET    -> eloLichessBullet;
-            case LICHESS_BLITZ     -> eloLichessBlitz;
-            case LICHESS_RAPID     -> eloLichessRapid;
-            case LICHESS_CLASSICAL -> eloLichessClassical;
-            case CHESSCOM_BULLET   -> eloChesscomBullet;
-            case CHESSCOM_BLITZ    -> eloChesscomBlitz;
-            case CHESSCOM_RAPID    -> eloChesscomRapid;
-            case CHESSCOM_DAILY    -> eloChesscomDaily;
-        };
+        return type.read(this);
     }
 
     public void setRating(RatingType type, Integer value) {
-        switch (type) {
-            case NATIONAL          -> eloNational = value;
-            case FIDE_STANDARD     -> eloFideStandard = value;
-            case FIDE_RAPID        -> eloFideRapid = value;
-            case FIDE_BLITZ        -> eloFideBlitz = value;
-            case PLATFORM          -> eloPlatform = value;
-            case LICHESS_BULLET    -> eloLichessBullet = value;
-            case LICHESS_BLITZ     -> eloLichessBlitz = value;
-            case LICHESS_RAPID     -> eloLichessRapid = value;
-            case LICHESS_CLASSICAL -> eloLichessClassical = value;
-            case CHESSCOM_BULLET   -> eloChesscomBullet = value;
-            case CHESSCOM_BLITZ    -> eloChesscomBlitz = value;
-            case CHESSCOM_RAPID    -> eloChesscomRapid = value;
-            case CHESSCOM_DAILY    -> eloChesscomDaily = value;
-        }
+        type.write(this, value);
     }
 
     /** Etiquetas como lista limpia (sin vacíos ni espacios). */

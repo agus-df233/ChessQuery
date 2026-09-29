@@ -40,9 +40,13 @@ vi.mock('./api/users', () => ({
     ratingHistory: vi.fn().mockResolvedValue(fx.points),
     publicProfile: vi.fn().mockResolvedValue({ ...fx.profile, email: undefined, rut: undefined }),
     search: vi.fn().mockResolvedValue([{ id: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: 'FM', clubName: null, countryIso: 'CHL', fideId: null, eloNational: 1700, eloFideStandard: null, eloPlatform: null }]),
-    ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: null, region: 'RM', clubName: 'X', eloNational: 1700, eloFideStandard: null, ageCategory: 'SUB_14' }]),
+    ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: null, region: 'RM', clubName: 'X', ratingType: 'NATIONAL', rating: 1700, eloNational: 1700, eloFideStandard: null, ageCategory: 'SUB_14' }]),
     countries: vi.fn().mockResolvedValue([]), clubs: vi.fn().mockResolvedValue([]),
-    updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(),
+    updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(), linkFederation: vi.fn(), claim: vi.fn(),
+    claimSuggestions: vi.fn().mockResolvedValue([{ ...fx.profile, id: 44, fideId: '3400001', currentTitle: 'WFM', email: undefined, rut: undefined }]),
+  },
+  publicApi: {
+    ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 12, firstName: 'Vicente', lastName: 'M.', currentTitle: null, region: null, clubName: null, ratingType: 'FIDE_STANDARD', rating: 1923, eloNational: null, eloFideStandard: 1923, ageCategory: 'SUB_12' }]),
   },
   organizationsApi: {
     mine: vi.fn().mockResolvedValue(fx.org),
@@ -64,6 +68,7 @@ import { Dashboard } from './pages/Dashboard';
 import { ProfileEdit } from './pages/ProfileEdit';
 import { PlayerDetail, PlayerSearch } from './pages/Players';
 import { Ranking } from './pages/Ranking';
+import { PublicRanking } from './pages/PublicRanking';
 import { Friends } from './pages/Friends';
 import { Club } from './pages/Club';
 import { Layout } from './components/Layout';
@@ -84,6 +89,9 @@ describe('páginas: render y accesibilidad', () => {
     await screen.findByText(/Hola, Ana/);
     await screen.findByRole('img', { name: /de 1480 a 1500/ });
     expect(screen.getByText('1600')).toBeInTheDocument();
+    await screen.findByText('¿Eres tú?');
+    expect(screen.getByRole('button', { name: 'Soy yo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vincular mi ficha' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -101,6 +109,12 @@ describe('páginas: render y accesibilidad', () => {
     await ranking.findByText('Luis Paz');
     expect(await axe(ranking.container)).toHaveNoViolations();
     ranking.unmount();
+    const pub = renderPage(<PublicRanking />, '/ranking');
+    await pub.findByText('Vicente M.');
+    expect(pub.getByText('1923')).toBeInTheDocument();
+    expect(pub.queryByRole('link', { name: 'Vicente M.' })).toBeNull(); // la vista pública no enlaza perfiles
+    expect(await axe(pub.container)).toHaveNoViolations();
+    pub.unmount();
     const detail = renderPage(<PlayerDetail />, '/app/jugadores/7');
     await detail.findByText('Agregar amigo');
     expect(detail.queryByText('ana@x.cl')).toBeNull();

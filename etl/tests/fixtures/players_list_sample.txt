@@ -1,0 +1,7 @@
+ID Number      Name                                                         Fed Sex Tit  WTit OTit           FOA SRtng SGm SK RRtng RGm Rk BRtng BGm BK B-day Flag
+9000001        Ficticia Soto, Ana Maria                                     CHI F   WFM                          2105         2050         2011         1998
+9000002        Prueba Rojas, Tomas                                          CHI M                                1650                                   2014
+9000003        Ejemplo Diaz, Luis                                           CHI M                                             1500                      1975  i
+9000004        Sinrating Vera, Pia                                          CHI F                                                                       2016
+9000005        Unnombre                                                     CHI M                                                          1400
+9000006        Extranjero, Juan                                             ARG M                                2300                                   1990

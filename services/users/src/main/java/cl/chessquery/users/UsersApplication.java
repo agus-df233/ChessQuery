@@ -26,7 +26,7 @@ public class UsersApplication {
         SpringApplication.run(UsersApplication.class, args);
     }
 
-    /** Consumidor idempotente compartido por todos los @RabbitListener del servicio. */
+    /** Consumidor idempotente compartido por todos los @SqsListener del servicio. */
     @Bean
     public IdempotentConsumer idempotentConsumer(ProcessedEventRepository repository) {
         return new IdempotentConsumer(repository);

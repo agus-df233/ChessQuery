@@ -63,6 +63,8 @@ public class HttpPlayerIdentityResolver implements PlayerIdentityResolver {
             body.put("firstName", claims.get("given_name"));
             body.put("lastName", claims.get("family_name"));
             body.put("displayName", claims.get("name"));
+            body.put("issuer", claims.get("iss") == null ? null : claims.get("iss").toString());
+            body.put("emailVerified", claims.get("email_verified"));
             return client.post()
                     .uri("/internal/players/provision")
                     .body(body)

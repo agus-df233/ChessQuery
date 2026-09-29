@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@chessquery/ui-lib": "*",
@@ -21,10 +22,12 @@
     "sileo": "^0.1.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^4.2.1",
     "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "vite": "^6.4.3"
   }
 }

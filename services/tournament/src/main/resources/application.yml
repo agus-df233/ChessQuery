@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: tournament
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/chessquery}
+    username: ${DB_USER:chessquery}
+    password: ${DB_PASSWORD:chessquery}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.default_schema: tournament
+  flyway:
+    schemas: tournament
+    default-schema: tournament
+    create-schemas: true
+  cloud:
+    aws:
+      region:
+        static: ${AWS_REGION:us-east-1}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI}
+          audiences: ${OIDC_AUDIENCE}
+
+chessquery:
+  events:
+    topic-arn: ${CHESS_EVENTS_TOPIC_ARN:arn:aws:sns:us-east-1:000000000000:chess-events}
+    queues:
+      federation: ${TOURNAMENT_FEDERATION_QUEUE:tournament-federation}
+      players: ${TOURNAMENT_PLAYERS_QUEUE:tournament-players}
+  auth:
+    # users resuelve sub → playerId y entrega nombres, ratings y el plan del club (/internal, con X-Internal-Token)
+    users-url: ${USERS_URL:http://localhost:8081}
+    internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+    # Solo en la nube: users se alcanza por el ALB, que exige X-Origin-Verify (ADR-0002)
+    origin-secret: ${ORIGIN_VERIFY:}
+    roles-claim: roles
+
+server:
+  port: ${PORT:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never

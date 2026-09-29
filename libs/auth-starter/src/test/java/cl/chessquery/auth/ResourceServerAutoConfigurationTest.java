@@ -68,12 +68,31 @@ class ResourceServerAutoConfigurationTest {
 
     @Test
     void propertiesDefaults() {
-        AuthProperties p = new AuthProperties(null, null, " ");
+        AuthProperties p = new AuthProperties(null, null, " ", null);
         assertThat(p.usersUrl()).isEmpty();
+        assertThat(p.originSecret()).isEmpty();
         assertThat(p.internalToken()).isEmpty();
         assertThat(p.rolesClaim()).isEqualTo("roles");
         UserPrincipal u = new UserPrincipal(1, "s", "e", null, java.util.Set.of());
         assertThat(u.isOrganizer()).isFalse();
         assertThat(Map.of()).isEmpty();
+    }
+
+    /** El cliente interno manda el token y, solo si está configurada, la cabecera de origen del ALB. */
+    @Test
+    void internalClientHeaders() {
+        for (String origin : new String[] {"", "secreto-origen"}) {
+            AuthProperties props = new AuthProperties("http://users", "tok", "roles", origin);
+            Map<String, java.util.List<String>> sent = new java.util.HashMap<>();
+            org.springframework.web.client.RestClient client = InternalHttp.usersClient(props).mutate()
+                    .requestInterceptor((req, body, exec) -> {
+                        sent.putAll(req.getHeaders());
+                        throw new java.io.IOException("sin red en la prueba");
+                    }).build();
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> client.get().uri("/internal/x").retrieve().toBodilessEntity())
+                    .isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
+            assertThat(sent.get(InternalTokenFilter.HEADER)).containsExactly("tok");
+            assertThat(sent.containsKey(InternalHttp.ORIGIN_HEADER)).isEqualTo(!origin.isEmpty());
+        }
     }
 }

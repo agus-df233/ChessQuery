@@ -6,13 +6,22 @@ import { Dashboard } from './pages/Dashboard';
 import { ProfileEdit } from './pages/ProfileEdit';
 import { PlayerDetail, PlayerSearch } from './pages/Players';
 import { Ranking } from './pages/Ranking';
+import { PublicRanking } from './pages/PublicRanking';
 import { Friends } from './pages/Friends';
 import { Club } from './pages/Club';
+import { PublicTournamentDetail, PublicTournaments } from './pages/PublicTournaments';
+import { TournamentPage, Tournaments } from './pages/Tournaments';
+import { Games } from './pages/Games';
+import { GamePage } from './pages/GamePage';
+import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTournaments';
 
-/** Rutas: `/` pública; `/app/**` jugador; `/club` organizador (o su creación). */
+/** Rutas: `/`, `/ranking` y `/torneos` públicas; `/app/**` jugador; `/club/**` organizador (o su creación). */
 export const App = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
+    <Route path="/ranking" element={<PublicRanking />} />
+    <Route path="/torneos" element={<PublicTournaments />} />
+    <Route path="/torneos/:id" element={<PublicTournamentDetail />} />
     <Route path="/app/*" element={<RequireAuth><Layout><Routes>
       <Route index element={<Dashboard />} />
       <Route path="perfil" element={<ProfileEdit />} />
@@ -20,9 +29,15 @@ export const App = () => (
       <Route path="jugadores/:id" element={<PlayerDetail />} />
       <Route path="ranking" element={<Ranking />} />
       <Route path="amigos" element={<Friends />} />
+      <Route path="partidas" element={<Games />} />
+      <Route path="partidas/:id" element={<GamePage />} />
+      <Route path="torneos" element={<Tournaments />} />
+      <Route path="torneos/:id" element={<TournamentPage />} />
       <Route path="*" element={<Navigate to="/app" replace />} />
     </Routes></Layout></RequireAuth>} />
     <Route path="/club" element={<RequireAuth><Layout><Club /></Layout></RequireAuth>} />
+    <Route path="/club/torneos" element={<RequireAuth><Layout><OrganizerTournaments /></Layout></RequireAuth>} />
+    <Route path="/club/torneos/:id" element={<RequireAuth><Layout><OrganizerTournament /></Layout></RequireAuth>} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );

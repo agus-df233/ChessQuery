@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +17,8 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     Optional<Player> findByExternalSubject(String externalSubject);
     Optional<Player> findByEmail(String email);
     Optional<Player> findByRut(String rut);
+    Optional<Player> findByRutHash(String rutHash);
+    List<Player> findByRutIsNotNullAndRutHashIsNull();
     Optional<Player> findByFideId(String fideId);
     Optional<Player> findByFederationId(String federationId);
     Optional<Player> findByLichessUsernameIgnoreCase(String username);
@@ -36,39 +37,57 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     @Query("select p.chesscomUsername from Player p where p.chesscomUsername is not null")
     List<String> findAllChesscomUsernames();
 
-    /** Match exacto por nombre completo (último recurso del enriquecimiento AJEFECH). */
+    /**
+     * Filas federadas sin dueño con el mismo nombre completo: candidatas a "¿eres tú?". Nunca se
+     * fusionan solas (homónimos); las confirma el titular.
+     */
     @Query(value = """
             SELECT p.* FROM users.player p
             WHERE lower(p.first_name || ' ' || p.last_name) = lower(:fullName)
-            LIMIT 1
+              AND p.external_subject IS NULL AND p.provisional = FALSE AND p.active = TRUE
+              AND p.id <> :excludeId
+            ORDER BY p.id
+            LIMIT 5
             """, nativeQuery = true)
-    Optional<Player> findByFullNameIgnoreCase(@Param("fullName") String fullName);
+    List<Player> findUnclaimedByFullName(@Param("fullName") String fullName, @Param("excludeId") Long excludeId);
 
     /**
      * Búsqueda difusa. El operador {@code %} de pg_trgm usa el índice GIN de la misma
-     * expresión; RUT y FIDE id se comparan exactos. Ordena por similaridad.
+     * expresión; el RUT se compara por su hash (nunca en claro) y el FIDE id exacto.
      */
     @Query(value = """
             SELECT p.* FROM users.player p
             WHERE  lower(p.first_name || ' ' || p.last_name) % lower(:q)
-                OR p.rut = :q
+                OR p.rut_hash = :rutHash
                 OR p.fide_id = :q
             ORDER BY similarity(lower(p.first_name || ' ' || p.last_name), lower(:q)) DESC
             LIMIT :limit
             """, nativeQuery = true)
-    List<Player> searchFuzzy(@Param("q") String q, @Param("limit") int limit);
+    List<Player> searchFuzzy(@Param("q") String q, @Param("rutHash") String rutHash, @Param("limit") int limit);
 
-    /** Ranking por ELO nacional, filtrable por región y rango de nacimiento (categoría de edad). */
+    /**
+     * Ranking por un tipo de rating (nacional o FIDE standard/rapid/blitz), filtrable por región
+     * y rango de año de nacimiento (categoría). El tipo llega ya validado por RankingService.
+     */
     @Query(value = """
             SELECT p.* FROM users.player p
-            WHERE  p.elo_national IS NOT NULL
+            WHERE  (CASE CAST(:type AS text)
+                        WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
+                        WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
+                        WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        ELSE p.elo_national END) IS NOT NULL
               AND (CAST(:region AS text) IS NULL OR lower(p.region) = lower(CAST(:region AS text)))
-              AND (CAST(:minBirth AS date) IS NULL OR p.birth_date >= CAST(:minBirth AS date))
-              AND (CAST(:maxBirth AS date) IS NULL OR p.birth_date <= CAST(:maxBirth AS date))
-            ORDER BY p.elo_national DESC, p.last_name ASC
+              AND (CAST(:minYear AS integer) IS NULL OR p.birth_year >= CAST(:minYear AS integer))
+              AND (CAST(:maxYear AS integer) IS NULL OR p.birth_year <= CAST(:maxYear AS integer))
+            ORDER BY (CASE CAST(:type AS text)
+                        WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
+                        WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
+                        WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        ELSE p.elo_national END) DESC, p.last_name ASC
             """, nativeQuery = true)
-    List<Player> findRanking(@Param("region") String region,
-                             @Param("minBirth") LocalDate minBirth,
-                             @Param("maxBirth") LocalDate maxBirth,
+    List<Player> findRanking(@Param("type") String type,
+                             @Param("region") String region,
+                             @Param("minYear") Integer minYear,
+                             @Param("maxYear") Integer maxYear,
                              Pageable pageable);
 }
