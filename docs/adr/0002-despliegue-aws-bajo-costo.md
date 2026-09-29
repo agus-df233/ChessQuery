@@ -53,3 +53,21 @@ IAM) como en una **cuenta AWS propia**. Además, debe sostener las demos del tor
 - Aparecen dos modos de entrada (ALB/API Gateway) que el módulo `edge` debe mantener.
 - Costo estimado: ~US$35/mes con `users` 24/7 y ~US$30–45/mes con los cuatro servicios en Spot
   y apagado fuera de horario; unos US$0.5–0.7 por sesión de 4 h en Learner Lab.
+
+## Enmienda — 28-09-2026: restricciones reales del Learner Lab
+
+Verificado con las credenciales del lab: **CloudFront, AppSync y Cloud Map están bloqueados** (AccessDenied).
+API Gateway v2, S3 (sin bloqueo público de cuenta), SNS/SQS, Lambda, Scheduler, RDS y ECS sí están permitidos.
+
+Decisiones para `envs/academy` (la cuenta propia no cambia):
+1. **Entrada HTTPS con API Gateway (HTTP API)**, no CloudFront: dominio `*.execute-api.amazonaws.com` con TLS
+   (Entra exige HTTPS en los redirect URIs). `ANY /api/{proxy+}` → ALB; `$default` → sitio estático S3 de la SPA.
+   Un solo origen: sin CORS.
+2. **El ALB exige la cabecera `X-Origin-Verify`** (secreto generado por Terraform) que agrega el borde: como API
+   Gateway no tiene rangos IP fijos, el puerto 80 queda abierto y esa cabecera es la que impide saltarse el borde.
+   En la cuenta propia la misma cabecera se suma al filtro por prefix list de CloudFront.
+3. **Tiempo real con el fallback STOMP** (simple broker, 1 réplica detrás del ALB); AppSync solo en la cuenta propia.
+4. **Fargate x86 en Academy** (ARM64 no verificado en el lab); ARM64 en la cuenta propia.
+5. El bucket de la web en Academy es público de solo lectura: contiene únicamente el build de la SPA.
+
+Validado con `terraform plan` contra el lab (57 recursos, sin errores de permisos) antes de cualquier `apply`.
