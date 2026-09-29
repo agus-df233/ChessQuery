@@ -157,10 +157,7 @@ module "messaging" {
   source          = "../../modules/messaging"
   name            = local.name
   alarm_topic_arn = module.observability.alerts_topic_arn
-  consumers = {
-    "users-elo"    = ["elo.updated"]
-    "users-rating" = ["rating.updated"]
-  }
+  consumers       = jsondecode(file("${path.root}/../../../events/topology.json")).consumers
 }
 
 module "observability" {

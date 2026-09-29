@@ -8,6 +8,8 @@ public final class UsersEvents {
     public static final String PLAYER_CLAIMED = "player.claimed";
     public static final String PLAYER_UPDATED = "player.updated";
     public static final String PLAYER_DELETED = "player.deleted";
+    public static final String PLAYER_MERGED = "player.merged";
+    public static final String FEDERATION_LOOKUP_REQUESTED = "federation.lookup.requested";
     public static final String PROVISIONAL_CREATED = "player.provisional.created";
     public static final String FRIEND_REQUEST_CREATED = "friend.request.created";
     public static final String FRIEND_REQUEST_ACCEPTED = "friend.request.accepted";

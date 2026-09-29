@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
+  ClaimRequest, Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
   PublicProfile, RankedType, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
 } from './types';
 
@@ -11,6 +11,10 @@ export const usersApi = {
   myRatingHistory: (type: RatingType = 'NATIONAL', months = 12) =>
     http.get<RatingPoint[]>('/api/users/me/rating-history', { params: { type, months } }).then((r) => r.data),
   syncExternalRatings: () => http.post<Profile>('/api/users/me/external-ratings/sync').then((r) => r.data),
+  linkFederation: (federationId: string) =>
+    http.post<Profile>('/api/users/me/federation-link', { federationId }).then((r) => r.data),
+  claim: (body: ClaimRequest) => http.post<Profile>('/api/users/me/claim', body).then((r) => r.data),
+  claimSuggestions: () => http.get<PublicProfile[]>('/api/users/me/claim-suggestions').then((r) => r.data),
   publicProfile: (id: number) => http.get<PublicProfile>(`/api/users/${id}/public-profile`).then((r) => r.data),
   ratingHistory: (id: number, type: RatingType = 'NATIONAL', months = 12) =>
     http.get<RatingPoint[]>(`/api/users/${id}/rating-history`, { params: { type, months } }).then((r) => r.data),

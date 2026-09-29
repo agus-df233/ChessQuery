@@ -14,6 +14,8 @@ spring:
       sqs:
         enabled: false
 chessquery:
+  identity:
+    trusted-email-issuers: http://localhost/test-issuer
   privacy:
     pepper: test-pepper-0123456789
   auth:

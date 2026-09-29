@@ -4,6 +4,7 @@
 #   make web              web en http://localhost:5173 (proxy /api → users)
 #   make etl-fide-local   importa la lista FIDE real (CHI) y la publica en LocalStack
 #   make federation-contract / federation-tournaments-local   Federación: esquema y torneos en vivo
+#   make federation-worker   atiende los pedidos de ficha de los jugadores (cola etl-federation-lookup)
 #   make etl-docs         regenera el PDF de la guía del ETL desde docs/etl/*.md
 #   make test             Java + ETL + web
 #   make image            imagen OCI de users en el Docker local (Jib, arm64)
@@ -17,7 +18,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: local-up local-down users web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-docs test test-java test-etl test-web image tf-check complexity
+.PHONY: local-up local-down users web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -47,6 +48,10 @@ federation-contract: etl/.venv
 
 federation-tournaments-local: etl/.venv
 	$(LOCAL_AWS) PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud etl/.venv/bin/python -m chessquery_etl.federation.cli tournaments
+
+# Cuando un jugador vincula su id federativo, users publica federation.lookup.requested; esto consulta su ficha.
+federation-worker: etl/.venv
+	$(LOCAL_AWS) PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud etl/.venv/bin/python -m chessquery_etl.federation.cli worker
 
 # PDF de la guía del ETL generado desde los Markdown (fuente única, también la leen los agentes).
 etl-docs:

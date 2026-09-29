@@ -9,6 +9,7 @@ import { RATING_GROUPS, displayName } from '../lib/ratings';
 import { RatingsGrid } from '../components/RatingsGrid';
 import { RatingChart } from '../components/RatingChart';
 import { StatusMessage } from '../components/StatusMessage';
+import { ClaimSuggestions, FederationCard } from '../components/FederationCard';
 
 const CHART_OPTIONS = RATING_GROUPS.flatMap((g) => g.items.map((i) => ({ type: i.type, label: `${g.source} · ${i.label}` })));
 
@@ -77,8 +78,10 @@ export const Dashboard = () => {
   return (
     <div className="cq-page">
       <h1>Hola, {p.displayName ?? p.firstName}</h1>
+      <ClaimSuggestions />
       <div className="cq-grid">
         <MyCard profile={p} organizer={me.data.organizer} />
+        <FederationCard profile={p} />
         <ExternalAccountsCard profile={p} />
       </div>
       <Card header="Mis ratings"><RatingsGrid ratings={p.ratings} /></Card>

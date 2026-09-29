@@ -6,8 +6,10 @@ Comandos (``python -m chessquery_etl.federation.cli <comando>``):
 - ``tournaments``   trae los torneos rankeados (o ``--word``) y publica los nuevos/modificados.
 - ``lookup ID``     consulta puntual de un jugador por id federativo (vía consentida).
 - ``players-bulk``  descarga masiva; falla si ``FEDERATION_BULK_PLAYERS_ENABLED`` no está en true.
+- ``worker``        atiende la cola ``etl-federation-lookup`` (pedidos de los jugadores al vincular su ficha).
 
 Lambda: el evento indica el modo, p. ej. ``{"mode": "tournaments"}`` o ``{"mode": "lookup", "federationId": "738"}``.
+Si el evento trae ``Records`` viene de la cola SQS de pedidos: se atiende cada uno (ver ``worker.py``).
 Variables: ver docs/etl/federacion.md. S3/SNS se resuelven igual que en FIDE (``AWS_ENDPOINT_URL`` en local).
 """
 from __future__ import annotations
@@ -18,7 +20,7 @@ import os
 from datetime import datetime, timezone
 
 from .. import handler as fide_handler
-from . import contract, ingest, players, tournaments
+from . import contract, ingest, players, tournaments, worker
 from .client import FederationClient
 from .config import FederationConfig
 from .privacy import Pepper
@@ -57,7 +59,17 @@ def execute(mode: str, env=os.environ, *, federation_id: str | None = None, word
 
 def lambda_handler(event, _context):
     event = event or {}
+    if "Records" in event:
+        return worker.handle_records(event["Records"], lambda fid: execute("lookup", federation_id=fid))
     return execute(event.get("mode", "tournaments"), federation_id=event.get("federationId"), word=event.get("word"))
+
+
+def _run_worker(once: bool) -> None:
+    import boto3  # import tardío, igual que en handler.py
+    sqs = boto3.client("sqs")
+    url = sqs.get_queue_url(QueueName=os.environ.get("FEDERATION_LOOKUP_QUEUE", worker.DEFAULT_QUEUE))["QueueUrl"]
+    print(f"Atendiendo pedidos de consulta en {url} (Ctrl+C para salir)")
+    worker.poll(sqs, url, lambda fid: execute("lookup", federation_id=fid), once=once)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -67,7 +79,11 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("tournaments").add_argument("--word")
     sub.add_parser("lookup").add_argument("federation_id")
     sub.add_parser("players-bulk")
+    sub.add_parser("worker").add_argument("--once", action="store_true", help="una sola vuelta de polling")
     args = ap.parse_args(argv)
+    if args.mode == "worker":
+        _run_worker(args.once)
+        return
     mode = "bulk" if args.mode == "players-bulk" else args.mode
     print(json.dumps(execute(mode, federation_id=getattr(args, "federation_id", None),
                              word=getattr(args, "word", None)), indent=2, ensure_ascii=False))

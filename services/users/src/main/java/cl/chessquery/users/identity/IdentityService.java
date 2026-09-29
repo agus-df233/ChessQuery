@@ -25,6 +25,11 @@ import java.util.Optional;
  * <p>Orden al provisionar: (1) fila con ese sub → listo; (2) fila con el mismo email →
  * se adopta: si era un provisorio del roster de un club, el jugador <b>reclama</b> esa fila y
  * conserva su historial (ADR-0004 v2), avisando con {@code player.claimed}; (3) fila nueva.
+ *
+ * <p>La adopción por email solo ocurre si el email está <b>verificado</b>: el token viene de un emisor
+ * confiable ({@code chessquery.identity.trusted-email-issuers}, por defecto el tenant de Entra, que verifica
+ * el correo con Google o con código de un solo uso) o trae {@code email_verified=true}. Así, un proveedor que no
+ * verifique correos no puede usarse para quedarse con el perfil de otra persona.
  */
 @Slf4j
 @Service
@@ -34,6 +39,7 @@ public class IdentityService implements PlayerIdentityResolver {
     private final PlayerRepository players;
     private final OrganizationRepository organizations;
     private final EventPublisher events;
+    private final TrustedEmailIssuers trustedIssuers;
 
     @Override
     @Transactional
@@ -56,15 +62,18 @@ public class IdentityService implements PlayerIdentityResolver {
 
     private Player adoptOrCreate(String subject, Map<String, Object> claims) {
         String email = Emails.normalize(str(claims.get("email")));
-        Optional<Player> byEmail = email == null ? Optional.empty() : players.findByEmail(email);
+        boolean verified = trustedIssuers.emailIsVerified(claims);
+        Optional<Player> byEmail = email == null || !verified ? Optional.empty() : players.findByEmail(email);
         if (byEmail.isPresent()) {
             return adopt(byEmail.get(), subject, email);
         }
+        Names names = Names.from(claims);
         Player fresh = Player.builder()
                 .externalSubject(subject)
-                .email(email)
-                .firstName(firstOr(str(claims.get("given_name")), "Jugador"))
-                .lastName(firstOr(str(claims.get("family_name")), ""))
+                // Un email sin verificar no se guarda: podría ser de otra persona y bloquear su registro.
+                .email(verified ? email : null)
+                .firstName(names.first())
+                .lastName(names.last())
                 .displayName(str(claims.get("name")))
                 .build();
         try {
@@ -106,7 +115,23 @@ public class IdentityService implements PlayerIdentityResolver {
         return o == null ? null : o.toString();
     }
 
-    private static String firstOr(String v, String fallback) {
-        return v == null || v.isBlank() ? fallback : v.trim();
+    /**
+     * Nombre y apellido del token. Si el IdP no manda {@code given_name}/{@code family_name} (optional claims no
+     * configurados), se separa {@code name}: la primera palabra es el nombre y el resto el apellido.
+     */
+    record Names(String first, String last) {
+        static Names from(Map<String, Object> claims) {
+            String given = blankToNull(str(claims.get("given_name")));
+            String family = blankToNull(str(claims.get("family_name")));
+            if (given != null) return new Names(given, family == null ? "" : family);
+            String full = blankToNull(str(claims.get("name")));
+            if (full == null) return new Names("Jugador", "");
+            String[] parts = full.split("\\s+", 2);
+            return new Names(parts[0], parts.length > 1 ? parts[1] : "");
+        }
+    }
+
+    private static String blankToNull(String v) {
+        return v == null || v.isBlank() ? null : v.trim();
     }
 }

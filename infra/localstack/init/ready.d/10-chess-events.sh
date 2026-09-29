@@ -1,16 +1,18 @@
 #!/bin/bash
 # Topología local del bus y buckets (ADR-0002). Espejo de infra/terraform/modules/messaging:
 # tópico SNS chess-events → una cola SQS por consumidor con filter policy por eventType, raw
-# delivery y DLQ (5 intentos). Para agregar un consumidor: una línea en CONSUMERS.
+# delivery y DLQ (5 intentos). Las colas salen de infra/events/topology.json (la misma fuente que Terraform).
 set -euo pipefail
 
 TOPIC_ARN=$(awslocal sns create-topic --name chess-events --query TopicArn --output text)
 
-# cola|eventType[,eventType...]
-CONSUMERS=(
-  "users-elo|elo.updated"
-  "users-rating|rating.updated"
-)
+TOPOLOGY=/etc/chessquery/events/topology.json
+
+# Una línea "cola|eventType[,eventType...]" por consumidor
+mapfile -t CONSUMERS < <(python3 -c '
+import json, sys
+for queue, types in json.load(open(sys.argv[1]))["consumers"].items():
+    print(queue + "|" + ",".join(types))' "$TOPOLOGY")
 
 for entry in "${CONSUMERS[@]}"; do
   queue="${entry%%|*}"

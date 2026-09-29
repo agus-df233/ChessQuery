@@ -18,7 +18,8 @@ services:
       retries: 10
 
   # SNS + SQS + S3 locales (ADR-0002). Fijado en 4.14.0: desde las versiones 2026.x la imagen
-  # exige LOCALSTACK_AUTH_TOKEN. La topología la crea infra/localstack/init/ready.d.
+  # exige LOCALSTACK_AUTH_TOKEN. La topología la crea infra/localstack/init/ready.d
+  # a partir de infra/events/topology.json.
   localstack:
     image: localstack/localstack:4.14.0
     environment:
@@ -27,8 +28,10 @@ services:
     ports: ["127.0.0.1:4566:4566"]
     volumes:
       - ./localstack/init/ready.d:/etc/localstack/init/ready.d:ro
+      - ./events:/etc/chessquery/events:ro
     healthcheck:
-      test: ["CMD-SHELL", "awslocal sqs get-queue-url --queue-name users-rating >/dev/null 2>&1"]
+      # Los buckets se crean al final del script: si existen, la topología está completa
+      test: ["CMD-SHELL", "awslocal s3api head-bucket --bucket chessquery-etl >/dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 30

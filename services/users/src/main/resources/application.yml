@@ -35,6 +35,9 @@ chessquery:
     queues:
       elo: ${USERS_ELO_QUEUE:users-elo}
       rating: ${USERS_RATING_QUEUE:users-rating}
+  identity:
+    # Emisores cuyo email se considera verificado (adopción de perfiles del roster por email).
+    trusted-email-issuers: ${OIDC_TRUSTED_EMAIL_ISSUERS:${OIDC_ISSUER_URI}}
   privacy:
     # Pepper del HMAC de RUT/FIDE/id federativo. En la nube viene de SSM y NUNCA se cambia sin
     # recalcular rut_hash y data_suppression (quedarían huérfanos). El default solo sirve en local.

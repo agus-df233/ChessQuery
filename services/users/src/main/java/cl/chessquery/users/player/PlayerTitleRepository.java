@@ -27,4 +27,9 @@ public interface PlayerTitleRepository extends JpaRepository<PlayerTitle, Long> 
     default String currentTitleOf(Long id) {
         return findFirstByPlayerIdAndCurrentTrue(id).map(t -> t.getTitle().name()).orElse(null);
     }
+
+    /** Traspasa los títulos de una ficha federada a la cuenta que la reclamó. */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("update PlayerTitle t set t.playerId = :to where t.playerId = :from")
+    int reassign(@Param("from") Long from, @Param("to") Long to);
 }

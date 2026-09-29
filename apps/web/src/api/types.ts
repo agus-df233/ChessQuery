@@ -83,3 +83,6 @@ export interface FriendshipStatus { status: FriendshipState; requestId: number |
 
 /** Cuerpo de error único de la plataforma. */
 export interface ApiError { status: number; error: string; message: string; timestamp: string }
+
+/** Reclamo de una ficha federada: por id de ficha ("¿eres tú?") o por id federativo, con RUT si la ficha lo tiene. */
+export interface ClaimRequest { playerId?: number; federationId?: string; rut?: string }

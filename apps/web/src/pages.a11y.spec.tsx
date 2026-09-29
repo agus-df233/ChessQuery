@@ -42,7 +42,8 @@ vi.mock('./api/users', () => ({
     search: vi.fn().mockResolvedValue([{ id: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: 'FM', clubName: null, countryIso: 'CHL', fideId: null, eloNational: 1700, eloFideStandard: null, eloPlatform: null }]),
     ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: null, region: 'RM', clubName: 'X', ratingType: 'NATIONAL', rating: 1700, eloNational: 1700, eloFideStandard: null, ageCategory: 'SUB_14' }]),
     countries: vi.fn().mockResolvedValue([]), clubs: vi.fn().mockResolvedValue([]),
-    updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(),
+    updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(), linkFederation: vi.fn(), claim: vi.fn(),
+    claimSuggestions: vi.fn().mockResolvedValue([{ ...fx.profile, id: 44, fideId: '3400001', currentTitle: 'WFM', email: undefined, rut: undefined }]),
   },
   publicApi: {
     ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 12, firstName: 'Vicente', lastName: 'M.', currentTitle: null, region: null, clubName: null, ratingType: 'FIDE_STANDARD', rating: 1923, eloNational: null, eloFideStandard: 1923, ageCategory: 'SUB_12' }]),
@@ -88,6 +89,9 @@ describe('páginas: render y accesibilidad', () => {
     await screen.findByText(/Hola, Ana/);
     await screen.findByRole('img', { name: /de 1480 a 1500/ });
     expect(screen.getByText('1600')).toBeInTheDocument();
+    await screen.findByText('¿Eres tú?');
+    expect(screen.getByRole('button', { name: 'Soy yo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vincular mi ficha' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
