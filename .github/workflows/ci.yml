@@ -37,6 +37,15 @@ jobs:
       - run: pip install -e 'etl[dev]'
       - run: pytest -q etl
 
+  complexity:
+    name: Complejidad ciclomática (informativo)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # informativo al principio; pasa a bloqueante cuando el equipo lo acuerde
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: make complexity
+
   web:
     name: Web (Vitest + axe + build)
     runs-on: ubuntu-latest

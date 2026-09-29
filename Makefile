@@ -6,6 +6,7 @@
 #   make test             Java + ETL + web
 #   make image            imagen OCI de users en el Docker local (Jib, arm64)
 #   make tf-check         terraform fmt + validate de todos los entornos
+#   make complexity       complejidad ciclomática ≤ 10 por función (lizard, Java + Python + TypeScript)
 
 SHELL := /bin/bash
 TF ?= terraform
@@ -14,7 +15,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: local-up local-down users web etl-setup etl-fide-local test test-java test-etl test-web image tf-check
+.PHONY: local-up local-down users web etl-setup etl-fide-local test test-java test-etl test-web image tf-check complexity
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -51,6 +52,12 @@ test-web:
 
 image:
 	mvn -B -ntp -q -pl services/users -am -DskipTests package jib:dockerBuild -Djib.from.platforms=linux/arm64
+
+# Umbral del equipo: CCN ≤ 10 por función; 100 líneas como techo (en JSX el largo es markup, no lógica).
+# Player.java se excluye: lizard confunde sus anotaciones JPA con una función (falso positivo).
+complexity:
+	uvx lizard libs/*/src/main services/*/src/main etl/chessquery_etl apps/web/src packages/ui-lib/src \
+	  -x "*.spec.*" -x "*/player/Player.java" -C 10 -L 100 -w
 
 tf-check:
 	$(TF) fmt -check -recursive infra/terraform
