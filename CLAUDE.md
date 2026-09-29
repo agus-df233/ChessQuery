@@ -8,6 +8,7 @@ instrucciones y los ADR mandan sobre cualquier regla genérica de más abajo.
 ## Comandos
 
 ```bash
+make dev               # app completa en :5173 con IdP simulado y Federación falsa; Ctrl+C apaga todo
 make local-up          # Postgres 16 · LocalStack 4.14 (SNS/SQS/S3) · Mailpit
 make users             # servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
 make tournament        # servicio tournament en :8082 (necesita users)

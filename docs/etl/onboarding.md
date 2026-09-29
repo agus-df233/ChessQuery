@@ -60,8 +60,19 @@ hay red ni AWS. Para una fuente nueva, crea fixtures sintéticas con la **forma 
 
 ## 6. Cómo se despliega
 
-Cada fuente es una Lambda (`handler.lambda_handler` para FIDE, `federation.cli.lambda_handler` para la Federación)
-programada con EventBridge Scheduler. El módulo Terraform `jobs` está pendiente; mientras tanto se corre local.
+Cada fuente es una Lambda (`handler.lambda_handler` para FIDE, `federation.cli.lambda_handler` para la Federación),
+definida en el módulo Terraform `infra/terraform/modules/etl-jobs`:
+
+| Lambda | Cuándo corre | Qué hace |
+|---|---|---|
+| `fide-import` | día 2 de cada mes (regla de EventBridge) | lista FIDE (CHI) → `rating.updated` |
+| `federation-tournaments` | todos los días | torneos de la Federación → `federation.tournament.published` |
+| `federation-lookup` | cuando llega un mensaje a la cola `etl-federation-lookup` | ficha de un jugador que la vinculó → `rating.updated` |
+
+El código se empaqueta tal cual desde `etl/chessquery_etl` (solo usa `boto3`, que ya viene en el runtime de Lambda).
+El pepper para el hash del RUT se lee de SSM (`PRIVACY_PEPPER_PARAM`), nunca de una variable en texto plano. Se usan
+reglas de EventBridge y no Scheduler porque el Learner Lab no permite crear el rol que Scheduler necesita. En local
+todo se corre con `make` (ver `etl/README.md`).
 
 ## 7. Siguientes lecturas
 

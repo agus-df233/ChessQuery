@@ -1,5 +1,6 @@
 # build
 target/
+.logs/
 node_modules/
 dist/
 coverage/

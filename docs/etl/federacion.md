@@ -19,6 +19,23 @@ de cuotas, incluidos menores. Sin convenio no hay una base legal clara para desc
 `personRanking` (`id`, `elo`) no están documentados: `FEDERATION_RANKING_ID` y `FEDERATION_RANKING_ELO` se completan
 cuando la Federación confirme su significado.
 
+## Consulta puntual: el jugador vincula su ficha
+
+Es la única vía por la que hoy entran datos personales de la Federación, y siempre a pedido del titular:
+
+1. En "Mi inicio", el jugador escribe su id federativo → `users` lo guarda en su cuenta y publica
+   `federation.lookup.requested { playerId, federationId }`.
+2. La cola `etl-federation-lookup` lo recibe. En la nube la atiende la Lambda `federation-lookup` (disparada por
+   SQS); en local, `make federation-worker` (`federation/worker.py`, long polling).
+3. Se corre el modo `lookup` para **solo ese id** (`person(id)`) → validación → minimización (RUT → `rutHash`,
+   fecha → año) → `rating.updated` (source `FEDERACION`).
+4. `users` encuentra la cuenta por el id federativo y completa ELO nacional, club y año de nacimiento.
+
+Si la consulta falla, el mensaje vuelve a la cola (`batchItemFailures`) y tras 5 intentos pasa a la DLQ
+`etl-federation-lookup-dlq` (alarma). Un mensaje mal formado se descarta con un log: reintentarlo no lo arregla.
+Si la ficha ya existía en ChessQuery sin dueño, el jugador la **reclama** ("¿Eres tú?") verificando su RUT; eso lo
+resuelve `users` (evento `player.merged`), no el ETL.
+
 ## Parámetros (variables de entorno)
 
 | Variable | Por defecto | Efecto |

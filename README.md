@@ -1,84 +1,83 @@
 # ChessQuery
 
-Plataforma de ajedrez competitivo para Chile: gestión digital de torneos presenciales para
-clubes (SaaS) y partidas en vivo, perfil y progreso para jugadores (gratis).
+Plataforma de ajedrez competitivo para Chile: gestión digital de torneos presenciales para clubes (SaaS) y
+partidas en línea, perfil y progreso para jugadores (gratis).
 
-Tercera iteración de la arquitectura: **Java (servicios) + Python (ETL) + React (web)**,
-identidad delegada a **Microsoft Entra External ID** (Google federado), realtime propio por
-WebSocket y despliegue cloud-native en AWS. Decisiones en `docs/adr/`.
+Tercera iteración de la arquitectura: **Java 21 / Spring Boot 3.5 (servicios) + Python (ETL) + React (web)**, identidad
+delegada a **Microsoft Entra External ID** (con Google; la app no guarda contraseñas) y despliegue en AWS con
+Terraform. Decisiones en `docs/adr/`. ¿Vas a trabajar en el repo? Lee **`CONTRIBUTING.md`**.
 
-## Estructura
+## Empezar en 5 minutos
 
-```
-libs/common         contrato de errores REST, envelope de eventos ChessEvents, idempotencia, EventBroadcaster
-libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, X-Internal-Token
-services/users      jugadores, identidad interna, catálogo, ratings e historial, ranking, organización (club) y roster, amistades
-services/tournament torneos del club: inscripción, pareo suizo y round robin, desempates, cierre con rating, TRF, vista pública
-services/game       partidas en línea: desafíos, jugadas validadas y reloj en el servidor, PGN, rating; en vivo por long polling
-services/notifications (pendiente)
-etl                 FIDE mensual y Federación (torneos, ficha pedida por el jugador) → S3 + SNS, listo para Lambda
-infra/terraform     IaC: envs/academy (LabRole, API Gateway + ALB, ECS, Lambdas del ETL) y módulos; envs/aws pendiente
-infra/events        topología única del bus (qué cola recibe qué evento), la leen LocalStack y Terraform
-infra/localstack    topología local SNS/SQS/S3
-apps/web            una sola app React (jugador y organizador) con login OIDC
-packages/ui-lib     design system (dark, contraste AA validado en tests)
+Requisitos: **JDK 21, Maven 3.9, Docker, Node 20, Python 3.12** y [`uv`](https://docs.astral.sh/uv/)
+(Terraform 1.10+ solo si tocas infraestructura).
+
+```bash
+npm install
+make dev          # la app completa en http://localhost:5173 · Ctrl+C apaga todo
 ```
 
-## API del servicio users (prefijos que el ALB enruta a `users`)
+`make dev` levanta Postgres, LocalStack (SNS/SQS/S3), un IdP simulado que hace de Entra, los servicios `users`,
+`tournament` y `game`, el worker del ETL, una Federación falsa con datos ficticios y la web. Para entrar: **"Entrar
+con mi correo"**, cualquier usuario y los claims que imprime la consola. No necesita tenant de Entra ni acceso a
+AWS. Los logs quedan en `.logs/`.
 
-| Prefijo | Qué hay |
+## Qué hay en cada carpeta
+
+```
+libs/common         errores REST, sobre de eventos ChessEvent, idempotencia, cálculo ELO, lectura de payloads
+libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, cliente interno hacia users
+services/users      jugadores e identidad, catálogo, ratings e historial, ranking, club y roster, amistades, privacidad
+services/tournament torneos del club: inscripción, pareo suizo y round robin, desempates, cierre con rating, TRF
+services/game       partidas en línea: desafíos, jugadas y reloj en el servidor, PGN, rating; en vivo por long polling
+etl                 FIDE mensual y Federación (torneos, ficha pedida por el jugador) → S3 + eventos; Lambdas en la nube
+apps/web            una sola app React para jugador y organizador (+ pruebas E2E en apps/web/e2e)
+packages/ui-lib     design system (tema oscuro, contraste AA probado)
+infra/terraform     IaC: envs/academy (Learner Lab) y módulos; envs/aws (cuenta propia) pendiente
+infra/events        topología única del bus: qué cola recibe qué evento (la leen LocalStack y Terraform)
+infra/localstack    arranque de LocalStack a partir de infra/events
+scripts             make dev / make e2e (stack local) y benchmark v2 vs v3
+docs                ADR, catálogo de eventos, guías del ETL, verificaciones (ver docs/README.md)
+```
+
+`services/notifications` está pendiente.
+
+## APIs (el ALB y el proxy de Vite enrutan por prefijo)
+
+| Servicio | Prefijos | Qué hay |
+|---|---|---|
+| `users` :8081 | `/api/users/**` | yo (`/me`), perfil, historial de rating, exportar/borrar mis datos, vincular ficha federativa, reclamar ficha ("¿Eres tú?"), búsqueda, ranking |
+| | `/api/organizations/**` | crear mi club (= ser organizador), datos del club, roster |
+| | `/api/friends/**`, `/api/catalog/**` | amistades; países y clubes federativos |
+| | `/api/public/**` | sin login: ranking y perfil público (menores con apellido abreviado) |
+| `tournament` :8082 | `/api/tournaments/**` | mis torneos, crear/editar, inscribir, rondas, resultados por mesa, cerrar, exportar TRF |
+| | `/api/public/tournaments/**` | sin login: listado, detalle, rondas, tabla y calendario de la Federación |
+| `game` :8083 | `/api/games/**` | mis partidas, desafiar, aceptar/rechazar, jugar, abandonar, tablas; `?afterVersion=n` espera cambios (long polling) |
+| | `/api/public/games/**` | sin login: ver una partida y descargar su PGN |
+| `users` | `/internal/**` | solo servicio→servicio con `X-Internal-Token` (nunca expuesto por API Gateway) |
+
+Errores: `{ status, error, message, timestamp }`. Eventos entre servicios: `docs/events.md`.
+
+## Comandos
+
+| Comando | Qué hace |
 |---|---|
-| `/api/users/**` | `GET /me`, `PUT /me/profile`, `GET /me/rating-history`, `POST /me/external-ratings/sync`, `GET /me/export`, `DELETE /me`, `GET /me/claim-suggestions`, `GET /{id}/public-profile`, `GET /{id}/rating-history`, `GET /search?q=`, `GET /ranking?type=&category=&region=` |
-| `/api/public/**` | sin login, cache 5 min: `GET /ranking?type=NATIONAL\|FIDE_STANDARD\|FIDE_RAPID\|FIDE_BLITZ&category=&region=`, `GET /players/{id}` |
-| `/api/organizations/**` | `POST /` (crear mi club = ser organizador), `GET/PUT /me`, roster: `GET/POST /me/roster`, `PATCH /me/roster/{id}/tags`, `DELETE /me/roster/{id}` |
-| `/api/friends/**` | lista, solicitudes (`?direction=incoming|outgoing`), aceptar/rechazar, quitar, `GET /status/{otherId}` |
-| `/api/catalog/**` | países y clubes federativos |
-| `/internal/**` | solo servicio→servicio con `X-Internal-Token`: identidad por `sub`, provisión, resúmenes en lote, plan del organizador, `are-friends`, usernames para el ETL |
+| `make dev` | app completa en local (ver arriba) |
+| `make test` | todas las pruebas: Java (`mvn clean verify`, cobertura ≥ 90 %), ETL (pytest), web (Vitest + axe) |
+| `make e2e` | recorridos del jugador y del organizador en Chromium (Playwright) contra el stack local |
+| `make complexity` | complejidad ciclomática ≤ 10 por función |
+| `make tf-check` | `terraform fmt` + `validate` |
+| `make local-up` / `make users` / `make tournament` / `make game` / `make web` | piezas sueltas (ver `Makefile`) |
+| `make etl-fide-local` | carga la lista FIDE real (≈ 4.200 jugadores chilenos) en tu entorno local |
 
-Eventos publicados y consumidos: ver `docs/events.md`.
+Piezas sueltas con el IdP simulado: `OIDC_ISSUER_URI=http://localhost:8090/chessquery` y `OIDC_AUDIENCE=default`
+(login desde la web) o `chessquery-api` (token por `client_credentials` para probar la API con curl).
 
-## Desarrollo local
+## Convenciones (resumen; detalle en `CONTRIBUTING.md` y `CLAUDE.md`)
 
-Auth local sin Entra: `make local-up` levanta un IdP de desarrollo (mock OIDC) en `http://localhost:8090/chessquery`.
-Token para probar la API: `curl -X POST localhost:8090/chessquery/token -d grant_type=client_credentials -d client_id=<sub> -d client_secret=x -d scope=chessquery-api`
-y correr los servicios con `OIDC_ISSUER_URI=http://localhost:8090/chessquery OIDC_AUDIENCE=chessquery-api`.
-Desde la web (login en el navegador) el IdP simulado emite `aud=default`: en ese caso usar `OIDC_AUDIENCE=default`
-(así lo hace `make e2e`).
-
-Atajos: `make local-up` · `make users` · `make tournament` · `make game` · `make web` · `make etl-fide-local` ·
-`make federation-worker` · `make test` · `make e2e` · `make image` · `make tf-check` · `make complexity` (ver `Makefile`).
-Recorridos verificados en el navegador: `docs/verificacion/flujos-e2e.md`. Con `make etl-fide-local` la BD local queda con
-los ~4.200 jugadores chilenos con rating FIDE: el ranking público (`/ranking`) muestra datos reales.
-
-Requisitos: JDK 21, Maven 3.9, Docker, Node 20.
-
-```bash
-docker compose -f infra/docker-compose.yml up -d     # postgres, localstack (SNS/SQS/S3), mailpit
-set -a; source infra/.env.example; set +a            # endpoint y credenciales dummy de LocalStack
-export OIDC_ISSUER_URI=https://<tenant>.ciamlogin.com/<tenant-id>/v2.0
-export OIDC_AUDIENCE=<client-id-de-la-api>
-mvn -pl services/users spring-boot:run
-curl -H "Authorization: Bearer <token>" localhost:8081/api/users/me
-
-# Web (proxy de /api hacia el servicio local)
-cp apps/web/.env.example apps/web/.env   # completar authority, client id y scope de Entra
-npm install && npm run dev
-```
-
-Tests y cobertura (JaCoCo ≥ 90% por módulo, gate de CI):
-
-```bash
-mvn clean verify          # Java: usar siempre `clean`, los recursos de test viejos quedan en target/
-npm run test -w web       # Vitest + axe-core + contraste AA
-```
-
-`PostgresSchemaTest` aplica Flyway contra PostgreSQL 16 en Testcontainers y arranca JPA con
-`ddl-auto=validate`; es lo único que valida las migraciones. Se salta si no hay Docker.
-
-## Convenciones
-
-- Identidad: siempre desde `@CurrentUser UserPrincipal`, nunca del body. `ORGANIZER` = dueño de una organización.
-- Errores REST: `{ status, error, message, timestamp }`. JSON en camelCase, columnas en snake_case.
-- Eventos: envelope `{ eventId, eventType, timestamp, payload }` en el tópico SNS `chess-events`; una cola SQS dedicada por consumidor (filter policy por `eventType`, DLQ); catálogo en `docs/events.md`.
-- Cada servicio es dueño de su schema PostgreSQL (`users`, `tournament`, `game`, `notifications`, `etl`); sin FKs entre schemas.
-- `main` protegida; todo por PR con CI verde.
+- Identidad siempre desde `@CurrentUser UserPrincipal`, nunca del body ni de la URL.
+- Datos personales (Ley 21.719): a terceros nunca RUT, email, fecha de nacimiento ni género; menores abreviados.
+- Un schema PostgreSQL por servicio, sin FKs entre schemas; Flyway es dueño del esquema.
+- Eventos: sobre `ChessEvent` en el tópico SNS `chess-events`, una cola SQS por consumidor; todo evento nuevo se
+  documenta primero en `docs/events.md`.
+- Ramas: se trabaja en `develop` y ramas de feature, todo por PR con CI verde; `main` recibe solo desde `develop`.
