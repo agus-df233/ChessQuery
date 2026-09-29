@@ -40,7 +40,9 @@ export const Landing = () => {
         <p className="cq-muted" style={{ marginTop: 12 }}>
           ChessQuery no guarda contraseñas: tu identidad la verifica Google o Microsoft Entra.
         </p>
-        <p style={{ marginTop: 20 }}><Link to="/ranking">Ver el ranking de Chile sin cuenta</Link></p>
+        <p style={{ marginTop: 20 }}>
+          <Link to="/ranking">Ver el ranking de Chile sin cuenta</Link> · <Link to="/torneos">Torneos</Link>
+        </p>
       </div>
     </main>
   );

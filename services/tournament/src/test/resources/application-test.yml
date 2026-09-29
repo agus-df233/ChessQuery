@@ -1,0 +1,17 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost/test-issuer
+          audiences: test-audience
+  cloud:
+    aws:
+      sns:
+        enabled: false
+      sqs:
+        enabled: false
+chessquery:
+  auth:
+    users-url: http://127.0.0.1:1
+    internal-token: test-token

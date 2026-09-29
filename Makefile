@@ -1,6 +1,7 @@
 # Atajos del día a día. Todo corre en local; nada de esto toca una cuenta cloud.
 #   make local-up         infra local (Postgres, LocalStack SNS/SQS/S3, Mailpit)
 #   make users            servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
+#   make tournament       servicio tournament (8082); necesita users corriendo
 #   make web              web en http://localhost:5173 (proxy /api → users)
 #   make etl-fide-local   importa la lista FIDE real (CHI) y la publica en LocalStack
 #   make federation-contract / federation-tournaments-local   Federación: esquema y torneos en vivo
@@ -18,7 +19,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: local-up local-down users web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
+.PHONY: local-up local-down users tournament web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs test test-java test-etl test-web image tf-check complexity
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -30,6 +31,10 @@ local-down:
 users:
 	mvn -B -ntp -q -DskipTests install
 	cd services/users && $(LOCAL_AWS) mvn -B -ntp spring-boot:run
+
+tournament:
+	mvn -B -ntp -q -DskipTests install
+	cd services/tournament && $(LOCAL_AWS) mvn -B -ntp spring-boot:run
 
 web:
 	npm run dev -w web

@@ -1,6 +1,6 @@
 package cl.chessquery.users.rating;
 
-import cl.chessquery.users.events.Payloads;
+import cl.chessquery.common.events.Payloads;
 import cl.chessquery.users.player.Player;
 import cl.chessquery.users.player.PlayerRepository;
 import lombok.RequiredArgsConstructor;

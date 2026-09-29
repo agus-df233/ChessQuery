@@ -79,14 +79,20 @@ public final class PlayerDtos {
         }
     }
 
-    public record Summary(Long id, String firstName, String lastName, String currentTitle, String clubName,
-                          Integer eloNational, Integer eloFideStandard, Integer eloPlatform,
+    /**
+     * Resumen para otros servicios (torneos, partidas). {@code publicLastName} ya aplica la abreviatura de menores:
+     * es el que se muestra a terceros; {@code lastName} completo queda para el organizador (p. ej. el TRF).
+     */
+    public record Summary(Long id, String firstName, String lastName, String publicLastName, String currentTitle,
+                          String clubName, Integer eloNational, Integer eloFideStandard, Integer eloPlatform,
+                          String fideId, String federationId, Integer birthYear, String gender,
                           boolean provisional, Long createdByOrganizerId, boolean hasAccount) {
 
         public static Summary of(Player p, String title) {
-            return new Summary(p.getId(), p.getFirstName(), p.getLastName(), title,
+            return new Summary(p.getId(), p.getFirstName(), p.getLastName(), PublicNames.lastName(p), title,
                     p.getClub() != null ? p.getClub().getName() : null,
                     p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform(),
+                    p.getFideId(), p.getFederationId(), p.getBirthYear(), p.getGender(),
                     p.isProvisional(), p.getCreatedByOrganizerId(), p.hasAccount());
         }
     }

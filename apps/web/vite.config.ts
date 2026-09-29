@@ -3,14 +3,18 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Configuración de Vite y Vitest de la app web.
-// - En desarrollo, /api e /internal se proxean al servicio local (por ahora `users`;
-//   cuando existan los demás servicios el ALB de cloud enruta por prefijo).
+// - En desarrollo, /api se proxea al servicio local según el prefijo, igual que el ALB en la nube:
+//   torneos → tournament (8082), partidas → game (8083), el resto → users (8081).
 // - Los vendors pesados van en chunks separados para que el caché sobreviva entre releases.
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
+      '/api/tournaments': { target: 'http://localhost:8082', changeOrigin: true },
+      '/api/public/tournaments': { target: 'http://localhost:8082', changeOrigin: true },
+      '/api/games': { target: 'http://localhost:8083', changeOrigin: true },
+      '/api/public/games': { target: 'http://localhost:8083', changeOrigin: true },
       '/api': { target: process.env.VITE_DEV_API ?? 'http://localhost:8081', changeOrigin: true },
     },
   },

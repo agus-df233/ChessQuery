@@ -36,6 +36,7 @@
     <module>libs/common</module>
     <module>libs/auth-starter</module>
     <module>services/users</module>
+    <module>services/tournament</module>
   </modules>
 
   <dependencyManagement>

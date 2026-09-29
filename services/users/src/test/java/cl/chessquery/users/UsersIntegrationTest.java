@@ -261,6 +261,12 @@ class UsersIntegrationTest {
            .andExpect(jsonPath("$[1].delta").value(14));
         mvc.perform(as(get("/api/users/" + pedroId + "/rating-history").param("type", "LICHESS_BLITZ"), "sub-ana", "ana@x.cl"))
            .andExpect(jsonPath("$[0].source").value("LICHESS"));
+        // Cierre de un torneo del club: el historial de plataforma queda con fuente TOURNAMENT
+        eloConsumer.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", pedroId, "oldElo", 1500,
+                "newElo", 1520, "delta", 20, "ratingType", "PLATFORM", "source", "TOURNAMENT", "tournamentId", 5)));
+        assertThat(players.findById(pedroId).orElseThrow().getEloPlatform()).isEqualTo(1520);
+        mvc.perform(as(get("/api/users/me/rating-history").param("type", "PLATFORM"), "sub-pedro", "pedro@x.cl"))
+           .andExpect(jsonPath("$[0].source").value("TOURNAMENT"));
         // Sync externo con APIs inalcanzables: no rompe, devuelve el perfil
         mvc.perform(as(post("/api/users/me/external-ratings/sync"), "sub-pedro", "pedro@x.cl"))
            .andExpect(status().isOk()).andExpect(jsonPath("$.lichessUsername").value("pedrito"));
@@ -280,7 +286,12 @@ class UsersIntegrationTest {
            .andExpect(status().isBadRequest());
         mvc.perform(internal(get("/internal/players").param("ids", pedroId + ",999999")))
            .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
-           .andExpect(jsonPath("$[0].hasAccount").value(true));
+           .andExpect(jsonPath("$[0].hasAccount").value(true))
+           // Pedro es menor y no hay consentimiento parental: a terceros se le abrevia el apellido
+           .andExpect(jsonPath("$[0].lastName").value("Rojas"))
+           .andExpect(jsonPath("$[0].publicLastName").value("R."))
+           .andExpect(jsonPath("$[0].fideId").value("3404803"))
+           .andExpect(jsonPath("$[0].birthYear").isNumber());
         mvc.perform(internal(get("/internal/players/" + pedroId))).andExpect(jsonPath("$.rut").value("11111111-1"));
         mvc.perform(internal(get("/internal/players/by-email").param("email", "PEDRO@x.cl")))
            .andExpect(jsonPath("$.id").value(pedroId));

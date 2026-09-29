@@ -2,7 +2,7 @@ package cl.chessquery.users.rating;
 
 import cl.chessquery.common.events.ChessEvent;
 import cl.chessquery.common.events.IdempotentConsumer;
-import cl.chessquery.users.events.Payloads;
+import cl.chessquery.common.events.Payloads;
 import cl.chessquery.users.events.UsersEvents;
 import io.awspring.cloud.sqs.annotation.SqsListener;
 import lombok.extern.slf4j.Slf4j;

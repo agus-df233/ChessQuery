@@ -42,8 +42,9 @@ public class InternalController {
         return identity.find(subject);
     }
 
+    /** {@code issuer}/{@code emailVerified}: sin ellos el correo no se considera verificado (no adopta perfiles). */
     public record ProvisionRequest(@NotBlank String subject, String email, String firstName,
-                                   String lastName, String displayName) {}
+                                   String lastName, String displayName, String issuer, Boolean emailVerified) {}
 
     @PostMapping("/players/provision")
     @ResponseStatus(HttpStatus.CREATED)
@@ -53,6 +54,8 @@ public class InternalController {
         claims.put("given_name", req.firstName());
         claims.put("family_name", req.lastName());
         claims.put("name", req.displayName());
+        claims.put("iss", req.issuer());
+        claims.put("email_verified", req.emailVerified());
         return identity.resolve(req.subject(), claims);
     }
 

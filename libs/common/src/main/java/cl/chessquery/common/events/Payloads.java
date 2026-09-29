@@ -1,4 +1,4 @@
-package cl.chessquery.users.events;
+package cl.chessquery.common.events;
 
 import java.time.LocalDate;
 import java.util.Map;

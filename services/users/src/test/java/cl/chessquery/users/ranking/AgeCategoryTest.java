@@ -1,6 +1,6 @@
 package cl.chessquery.users.ranking;
 
-import cl.chessquery.users.events.Payloads;
+import cl.chessquery.common.events.Payloads;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
