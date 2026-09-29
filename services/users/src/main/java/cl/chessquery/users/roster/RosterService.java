@@ -38,20 +38,11 @@ public class RosterService {
 
     @Transactional
     public Profile add(Long organizerId, CreateRequest req) {
-        int max = organizations.planOf(organizerId).maxRosterPlayers();
-        if (organizations.rosterCount(organizerId) >= max) {
-            throw ApiException.conflict("PLAN_LIMIT_REACHED",
-                    "Alcanzaste el límite de tu plan (" + max + " jugadores en el roster)");
-        }
+        ensureWithinPlan(organizerId);
         String email = Emails.normalize(req.email());
-        if (email != null && players.findByEmail(email).isPresent()) {
-            throw ApiException.conflict("EMAIL_TAKEN", "Ya existe un jugador con ese email");
-        }
         String rut = req.rut() == null || req.rut().isBlank() ? null : req.rut().trim();
         String rutHash = hasher.rut(rut);
-        if (rutHash != null && players.findByRutHash(rutHash).isPresent()) {
-            throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
-        }
+        ensureUniqueIdentity(email, rutHash);
         Player p = Player.builder()
                 .firstName(req.firstName().trim()).lastName(req.lastName().trim())
                 .email(email).rut(rut).rutHash(rutHash)
@@ -71,6 +62,25 @@ public class RosterService {
         events.publish(UsersEvents.PROVISIONAL_CREATED, payload);
         log.info("Provisorio {} creado por organizador {}", p.getId(), organizerId);
         return Profile.of(p, null);
+    }
+
+    /** El plan (FREE/PRO) limita cuántos jugadores activos puede tener el roster. */
+    private void ensureWithinPlan(Long organizerId) {
+        int max = organizations.planOf(organizerId).maxRosterPlayers();
+        if (organizations.rosterCount(organizerId) >= max) {
+            throw ApiException.conflict("PLAN_LIMIT_REACHED",
+                    "Alcanzaste el límite de tu plan (" + max + " jugadores en el roster)");
+        }
+    }
+
+    /** Email y RUT identifican a una persona: no se puede cargar a alguien que ya existe en la plataforma. */
+    private void ensureUniqueIdentity(String email, String rutHash) {
+        if (email != null && players.findByEmail(email).isPresent()) {
+            throw ApiException.conflict("EMAIL_TAKEN", "Ya existe un jugador con ese email");
+        }
+        if (rutHash != null && players.findByRutHash(rutHash).isPresent()) {
+            throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
+        }
     }
 
     @Transactional(readOnly = true)

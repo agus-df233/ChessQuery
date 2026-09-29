@@ -84,7 +84,8 @@ class PlayerServiceTest {
 
         service.syncExternalRatings(1L);
         verify(ratings).apply(eq(me), eq(RatingType.LICHESS_BLITZ), eq(1500), any(), eq("LICHESS"));
-        assertThat(me.getEnrichmentSource()).isEqualTo("LICHESS");
+        verify(ratings).markEnriched(me, "LICHESS");
+        verify(ratings, never()).markEnriched(me, "CHESSCOM"); // Chess.com no respondió: no se marca
     }
 
     @Test

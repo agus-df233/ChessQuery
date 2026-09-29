@@ -346,6 +346,13 @@ class UsersIntegrationTest {
                 Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "WIM"),
                 Map.of("firstName", "Ana", "lastName", "Soto", "fideId", "3400001", "title", "XX")))));
         mvc.perform(get("/api/public/players/" + federada.getId())).andExpect(jsonPath("$.currentTitle").value("WIM"));
+        // La Federación envía solo el hash del RUT (calculado en el ETL): igual encuentra a Pedro, sin RUT en tránsito
+        long pedroId = players.findByRut("11111111-1").orElseThrow().getId();
+        ratingConsumer.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "FEDERACION", "players", List.of(
+                Map.of("firstName", "Pedro", "lastName", "Rojas", "federationId", "738",
+                        "rutHash", "7d7edbece292f36b2b80583906aca532834c790b51922835aec58cca59ad4e96",
+                        "eloNational", 1611)))));
+        assertThat(players.findById(pedroId).orElseThrow().getEloNational()).isEqualTo(1611);
         mvc.perform(get("/api/public/ranking").param("type", "LICHESS_BLITZ")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/public/ranking").param("type", "NOPE")).andExpect(status().isBadRequest());
     }

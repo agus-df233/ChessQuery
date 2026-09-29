@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /** Lecturas y edición del perfil del jugador, búsqueda y sincronización de cuentas externas. */
@@ -87,7 +88,17 @@ public class PlayerService {
     public Profile updateProfile(Long id, UpdateProfileRequest req) {
         Player p = require(id);
         List<String> changed = new ArrayList<>();
+        applyPersonalData(p, req, changed);
+        applyCatalog(p, req, changed);
+        applyLinkedAccounts(p, req, changed);
+        if (!changed.isEmpty()) {
+            players.save(p);
+            events.publish(UsersEvents.PLAYER_UPDATED, Map.of("playerId", id, "fields", changed));
+        }
+        return Profile.of(p, titles.currentTitleOf(id));
+    }
 
+    private void applyPersonalData(Player p, UpdateProfileRequest req, List<String> changed) {
         apply(changed, "firstName", req.firstName(), p::setFirstName);
         apply(changed, "lastName", req.lastName(), p::setLastName);
         apply(changed, "displayName", req.displayName(), v -> p.setDisplayName(blankToNull(v)));
@@ -97,10 +108,13 @@ public class PlayerService {
         if (req.rut() != null) {
             String rut = blankToNull(req.rut());
             String rutHash = hasher.rut(rut);
-            if (rutHash != null) players.findByRutHash(rutHash).filter(o -> !o.getId().equals(id))
-                    .ifPresent(o -> { throw ApiException.conflict("RUT_TAKEN", "Ese RUT ya pertenece a otro jugador"); });
+            ensureNotTakenByOther(p, Optional.ofNullable(rutHash).flatMap(players::findByRutHash),
+                    "RUT_TAKEN", "Ese RUT ya pertenece a otro jugador");
             apply(changed, "rut", req.rut(), v -> { p.setRut(rut); p.setRutHash(rutHash); });
         }
+    }
+
+    private void applyCatalog(Player p, UpdateProfileRequest req, List<String> changed) {
         if (req.countryId() != null) {
             p.setCountry(countries.findById(req.countryId())
                     .orElseThrow(() -> ApiException.notFound("COUNTRY_NOT_FOUND", "País no encontrado")));
@@ -111,26 +125,30 @@ public class PlayerService {
                     .orElseThrow(() -> ApiException.notFound("CLUB_NOT_FOUND", "Club no encontrado")));
             changed.add("club");
         }
+    }
+
+    private void applyLinkedAccounts(Player p, UpdateProfileRequest req, List<String> changed) {
         if (req.lichessUsername() != null) {
             String u = blankToNull(req.lichessUsername());
-            if (u != null) players.findByLichessUsernameIgnoreCase(u).filter(o -> !o.getId().equals(id))
-                    .ifPresent(o -> { throw ApiException.conflict("LICHESS_USERNAME_TAKEN", "Ese usuario de Lichess ya está vinculado a otro jugador"); });
+            ensureNotTakenByOther(p, Optional.ofNullable(u).flatMap(players::findByLichessUsernameIgnoreCase),
+                    "LICHESS_USERNAME_TAKEN", "Ese usuario de Lichess ya está vinculado a otro jugador");
             p.setLichessUsername(u);
             changed.add("lichessUsername");
         }
         if (req.chesscomUsername() != null) {
             String u = blankToNull(req.chesscomUsername());
-            if (u != null) players.findByChesscomUsernameIgnoreCase(u).filter(o -> !o.getId().equals(id))
-                    .ifPresent(o -> { throw ApiException.conflict("CHESSCOM_USERNAME_TAKEN", "Ese usuario de Chess.com ya está vinculado a otro jugador"); });
+            ensureNotTakenByOther(p, Optional.ofNullable(u).flatMap(players::findByChesscomUsernameIgnoreCase),
+                    "CHESSCOM_USERNAME_TAKEN", "Ese usuario de Chess.com ya está vinculado a otro jugador");
             p.setChesscomUsername(u);
             changed.add("chesscomUsername");
         }
+    }
 
-        if (!changed.isEmpty()) {
-            players.save(p);
-            events.publish(UsersEvents.PLAYER_UPDATED, Map.of("playerId", id, "fields", changed));
+    /** Un identificador (RUT, username) no puede quedar en dos jugadores: 409 si ya lo tiene otro. */
+    private static void ensureNotTakenByOther(Player me, Optional<Player> holder, String error, String message) {
+        if (holder.filter(o -> !o.getId().equals(me.getId())).isPresent()) {
+            throw ApiException.conflict(error, message);
         }
-        return Profile.of(p, titles.currentTitleOf(id));
     }
 
     /**
@@ -144,13 +162,13 @@ public class PlayerService {
         if (p.getLichessUsername() != null) {
             external.lichess(p.getLichessUsername()).ifPresent(map -> {
                 map.forEach((type, value) -> ratings.apply(p, type, value, now, "LICHESS"));
-                mark(p, "LICHESS", now);
+                ratings.markEnriched(p, "LICHESS");
             });
         }
         if (p.getChesscomUsername() != null) {
             external.chesscom(p.getChesscomUsername()).ifPresent(map -> {
                 map.forEach((type, value) -> ratings.apply(p, type, value, now, "CHESSCOM"));
-                mark(p, "CHESSCOM", now);
+                ratings.markEnriched(p, "CHESSCOM");
             });
         }
         return Profile.of(p, titles.currentTitleOf(id));
@@ -161,12 +179,6 @@ public class PlayerService {
     Player require(Long id) {
         return players.findById(id)
                 .orElseThrow(() -> ApiException.notFound("PLAYER_NOT_FOUND", "Jugador " + id + " no encontrado"));
-    }
-
-    private void mark(Player p, String source, Instant at) {
-        p.setEnrichmentSource(source);
-        p.setEnrichedAt(at);
-        players.save(p);
     }
 
     private static <T> void apply(List<String> changed, String field, T value, Consumer<T> setter) {

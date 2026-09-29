@@ -187,39 +187,11 @@ public class Player {
 
     /** Snapshot de una modalidad (null si nunca se registró). */
     public Integer rating(RatingType type) {
-        return switch (type) {
-            case NATIONAL          -> eloNational;
-            case FIDE_STANDARD     -> eloFideStandard;
-            case FIDE_RAPID        -> eloFideRapid;
-            case FIDE_BLITZ        -> eloFideBlitz;
-            case PLATFORM          -> eloPlatform;
-            case LICHESS_BULLET    -> eloLichessBullet;
-            case LICHESS_BLITZ     -> eloLichessBlitz;
-            case LICHESS_RAPID     -> eloLichessRapid;
-            case LICHESS_CLASSICAL -> eloLichessClassical;
-            case CHESSCOM_BULLET   -> eloChesscomBullet;
-            case CHESSCOM_BLITZ    -> eloChesscomBlitz;
-            case CHESSCOM_RAPID    -> eloChesscomRapid;
-            case CHESSCOM_DAILY    -> eloChesscomDaily;
-        };
+        return type.read(this);
     }
 
     public void setRating(RatingType type, Integer value) {
-        switch (type) {
-            case NATIONAL          -> eloNational = value;
-            case FIDE_STANDARD     -> eloFideStandard = value;
-            case FIDE_RAPID        -> eloFideRapid = value;
-            case FIDE_BLITZ        -> eloFideBlitz = value;
-            case PLATFORM          -> eloPlatform = value;
-            case LICHESS_BULLET    -> eloLichessBullet = value;
-            case LICHESS_BLITZ     -> eloLichessBlitz = value;
-            case LICHESS_RAPID     -> eloLichessRapid = value;
-            case LICHESS_CLASSICAL -> eloLichessClassical = value;
-            case CHESSCOM_BULLET   -> eloChesscomBullet = value;
-            case CHESSCOM_BLITZ    -> eloChesscomBlitz = value;
-            case CHESSCOM_RAPID    -> eloChesscomRapid = value;
-            case CHESSCOM_DAILY    -> eloChesscomDaily = value;
-        }
+        type.write(this, value);
     }
 
     /** Etiquetas como lista limpia (sin vacíos ni espacios). */

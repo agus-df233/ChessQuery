@@ -44,14 +44,16 @@ class ConsumersUnitTest {
 
     @Test
     void ratingConsumerHandlesMissingSourceUnknownUsernameAndCreateRace() {
-        RatingUpdatedConsumer c = new RatingUpdatedConsumer(idempotent, players, clubs, ratings,
-                new IdentifierHasher("test-pepper-0123456789"), mock(DataSuppressionRepository.class),
-                mock(cl.chessquery.users.player.PlayerTitleRepository.class));
+        RatingUpdatedConsumer c = new RatingUpdatedConsumer(idempotent, List.of(
+                new FederatedRatingSource(players, clubs, mock(cl.chessquery.users.player.PlayerTitleRepository.class),
+                        ratings, new IdentifierHasher("test-pepper-0123456789"), mock(DataSuppressionRepository.class)),
+                new LinkedAccountRatingSource(players, ratings)));
         c.onRatingUpdated(ChessEvent.of("x", Map.of()));
         c.onRatingUpdated(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of()));
         verify(idempotent, times(1)).handle(any(), any());
 
         c.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("players", List.of())));      // sin fuente
+        c.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "DESCONOCIDA", "players", List.of())));
         c.apply(ChessEvent.of(UsersEvents.RATING_UPDATED, Map.of("source", "CHESSCOM", "players", List.of(
                 Map.of("chesscomUsername", "nadie"), "basura"))));
         when(players.findByChesscomUsernameIgnoreCase("nadie")).thenReturn(Optional.empty());
