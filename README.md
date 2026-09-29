@@ -13,9 +13,12 @@ WebSocket y despliegue cloud-native en AWS. Decisiones en `docs/adr/`.
 libs/common         contrato de errores REST, envelope de eventos ChessEvents, idempotencia, EventBroadcaster
 libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, X-Internal-Token
 services/users      jugadores, identidad interna, catálogo, ratings e historial, ranking, organización (club) y roster, amistades
-services/tournament (paso 2)   services/game (paso 3)   services/notifications (paso 4)
-etl                 importador FIDE (Lambda-ready) → S3 + SNS rating.updated
-infra/terraform     IaC: envs/academy (LabRole + ALB) y módulos; envs/aws pendiente
+services/tournament torneos del club: inscripción, pareo suizo y round robin, desempates, cierre con rating, TRF, vista pública
+services/game       partidas en línea: desafíos, jugadas validadas y reloj en el servidor, PGN, rating; en vivo por long polling
+services/notifications (pendiente)
+etl                 FIDE mensual y Federación (torneos, ficha pedida por el jugador) → S3 + SNS, listo para Lambda
+infra/terraform     IaC: envs/academy (LabRole, API Gateway + ALB, ECS, Lambdas del ETL) y módulos; envs/aws pendiente
+infra/events        topología única del bus (qué cola recibe qué evento), la leen LocalStack y Terraform
 infra/localstack    topología local SNS/SQS/S3
 apps/web            una sola app React (jugador y organizador) con login OIDC
 packages/ui-lib     design system (dark, contraste AA validado en tests)
@@ -38,10 +41,13 @@ Eventos publicados y consumidos: ver `docs/events.md`.
 
 Auth local sin Entra: `make local-up` levanta un IdP de desarrollo (mock OIDC) en `http://localhost:8090/chessquery`.
 Token para probar la API: `curl -X POST localhost:8090/chessquery/token -d grant_type=client_credentials -d client_id=<sub> -d client_secret=x -d scope=chessquery-api`
-y correr `users` con `OIDC_ISSUER_URI=http://localhost:8090/chessquery OIDC_AUDIENCE=chessquery-api`.
+y correr los servicios con `OIDC_ISSUER_URI=http://localhost:8090/chessquery OIDC_AUDIENCE=chessquery-api`.
+Desde la web (login en el navegador) el IdP simulado emite `aud=default`: en ese caso usar `OIDC_AUDIENCE=default`
+(así lo hace `make e2e`).
 
-Atajos: `make local-up` · `make users` · `make web` · `make etl-fide-local` · `make test` ·
-`make image` · `make tf-check` (ver `Makefile`). Con `make etl-fide-local` la BD local queda con
+Atajos: `make local-up` · `make users` · `make tournament` · `make game` · `make web` · `make etl-fide-local` ·
+`make federation-worker` · `make test` · `make e2e` · `make image` · `make tf-check` · `make complexity` (ver `Makefile`).
+Recorridos verificados en el navegador: `docs/verificacion/flujos-e2e.md`. Con `make etl-fide-local` la BD local queda con
 los ~4.200 jugadores chilenos con rating FIDE: el ranking público (`/ranking`) muestra datos reales.
 
 Requisitos: JDK 21, Maven 3.9, Docker, Node 20.

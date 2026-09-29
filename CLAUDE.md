@@ -10,9 +10,13 @@ instrucciones y los ADR mandan sobre cualquier regla genérica de más abajo.
 ```bash
 make local-up          # Postgres 16 · LocalStack 4.14 (SNS/SQS/S3) · Mailpit
 make users             # servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
-make web               # web en :5173 con proxy /api → :8081
+make tournament        # servicio tournament en :8082 (necesita users)
+make game              # servicio game en :8083 (necesita users)
+make web               # web en :5173; el proxy enruta por prefijo como el ALB (torneos → 8082, partidas → 8083, resto → 8081)
 make etl-fide-local    # lista FIDE real (CHI) → LocalStack → users
 make test              # mvn clean verify + pytest + vitest (siempre `clean`: target/ guarda recursos viejos)
+make e2e               # Playwright: recorridos del jugador y del organizador contra el stack local completo
+make complexity        # CCN ≤ 10 por función (umbral del equipo)
 make image             # imagen de users con Jib (arm64)
 make tf-check          # terraform fmt + validate de todos los entornos
 ```
@@ -39,7 +43,8 @@ make tf-check          # terraform fmt + validate de todos los entornos
 
 - **IaC = Terraform** (ADR-0002), no CDK ni CloudFormation. Un solo código, dos entornos:
   `envs/academy` (Learner Lab: `LabRole`, API Gateway + ALB + S3) y `envs/aws` (cuenta propia: CloudFront, API Gateway, OIDC).
-- El Learner Lab **bloquea CloudFront y AppSync**: en Academy la entrada HTTPS es API Gateway y el tiempo real usa el fallback STOMP.
+- El Learner Lab **bloquea CloudFront, AppSync y Cloud Map**: en Academy la entrada HTTPS es API Gateway, las partidas en vivo
+  usan long polling (ADR-0002, enmienda 2026-09-29) y tournament/game llaman a users por el ALB (`/internal/*`).
 - Región `us-east-1`. Perfiles: `chessquery-ro` (solo lectura, lo usa el MCP del agente),
   `chessquery-deploy` (despliegue, lo usa una persona o el CI), `chessquery-academy` (Learner Lab).
 - El agente **no ejecuta** `terraform apply/destroy` ni comandos AWS que creen, modifiquen o borren recursos:
