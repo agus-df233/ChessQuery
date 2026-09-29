@@ -36,6 +36,10 @@ Eventos publicados y consumidos: ver `docs/events.md`.
 
 ## Desarrollo local
 
+Auth local sin Entra: `make local-up` levanta un IdP de desarrollo (mock OIDC) en `http://localhost:8090/chessquery`.
+Token para probar la API: `curl -X POST localhost:8090/chessquery/token -d grant_type=client_credentials -d client_id=<sub> -d client_secret=x -d scope=chessquery-api`
+y correr `users` con `OIDC_ISSUER_URI=http://localhost:8090/chessquery OIDC_AUDIENCE=chessquery-api`.
+
 Atajos: `make local-up` · `make users` · `make web` · `make etl-fide-local` · `make test` ·
 `make image` · `make tf-check` (ver `Makefile`). Con `make etl-fide-local` la BD local queda con
 los ~4.200 jugadores chilenos con rating FIDE: el ranking público (`/ranking`) muestra datos reales.

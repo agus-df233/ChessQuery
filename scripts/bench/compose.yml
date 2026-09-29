@@ -1,0 +1,52 @@
+# Comparación v2 vs v3 del servicio de jugadores, con los mismos límites de recursos (1 CPU, 1 GB).
+# v2: imagen local infrastructure-ms-users (repo ChessQuery_FS3) + su Postgres + RabbitMQ.
+# v3: imagen Jib chessquery/users contra la infra local (Postgres, LocalStack, mock OIDC) en una BD aparte
+#     (chessquery_bench) para no tocar los datos de demo. Uso: scripts/bench/README.md
+name: chessquery-bench
+
+services:
+  v2-db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: chessquery, POSTGRES_PASSWORD: chessquery_dev, POSTGRES_DB: user_db }
+    ports: ["127.0.0.1:15433:5432"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U chessquery"], interval: 3s, retries: 20 }
+
+  v2-rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment: { RABBITMQ_DEFAULT_USER: chessquery, RABBITMQ_DEFAULT_PASS: chessquery_dev }
+    ports: ["127.0.0.1:15672:15672"]
+    healthcheck: { test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"], interval: 5s, retries: 20 }
+
+  v2-users:
+    image: infrastructure-ms-users:latest
+    environment:
+      DB_URL: jdbc:postgresql://v2-db:5432/user_db
+      DB_USER: chessquery
+      DB_PASSWORD: chessquery_dev
+      RABBITMQ_HOST: v2-rabbitmq
+      RABBITMQ_USER: chessquery
+      RABBITMQ_PASSWORD: chessquery_dev
+      SERVER_PORT: "8081"
+    ports: ["127.0.0.1:18081:8081"]
+    cpus: 1.0
+    mem_limit: 1g
+    depends_on:
+      v2-db: { condition: service_healthy }
+      v2-rabbitmq: { condition: service_healthy }
+
+  v3-users:
+    image: chessquery/users:3.0.0-SNAPSHOT
+    environment:
+      DB_URL: jdbc:postgresql://host.docker.internal:5432/chessquery_bench
+      DB_USER: chessquery
+      DB_PASSWORD: chessquery
+      AWS_ENDPOINT_URL: http://host.docker.internal:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      OIDC_ISSUER_URI: http://host.docker.internal:8090/chessquery
+      OIDC_AUDIENCE: chessquery-api
+      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+    ports: ["127.0.0.1:28081:8081"]
+    cpus: 1.0
+    mem_limit: 1g

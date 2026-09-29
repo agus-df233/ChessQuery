@@ -1,0 +1,104 @@
+{
+  "config": {
+    "requests": 2000,
+    "concurrency": 20,
+    "warmup": 200
+  },
+  "cases": {
+    "ranking_global": {
+      "v2": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 95.3,
+        "p50_ms": 199.1,
+        "p95_ms": 314.5,
+        "p99_ms": 399.7
+      },
+      "v3": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 188.4,
+        "p50_ms": 101.8,
+        "p95_ms": 181.1,
+        "p99_ms": 199.9
+      }
+    },
+    "ranking_region": {
+      "v2": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 119.2,
+        "p50_ms": 182.8,
+        "p95_ms": 281.0,
+        "p99_ms": 306.7
+      },
+      "v3": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 234.8,
+        "p50_ms": 85.7,
+        "p95_ms": 165.9,
+        "p99_ms": 196.5
+      }
+    },
+    "busqueda": {
+      "v2": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 81.4,
+        "p50_ms": 229.3,
+        "p95_ms": 360.5,
+        "p99_ms": 426.8
+      },
+      "v3": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 213.7,
+        "p50_ms": 86.8,
+        "p95_ms": 170.4,
+        "p99_ms": 208.9
+      }
+    },
+    "perfil": {
+      "v2": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 1048.9,
+        "p50_ms": 5.3,
+        "p95_ms": 81.8,
+        "p99_ms": 87.0
+      },
+      "v3": {
+        "ok": 2000,
+        "errors": 0,
+        "rps": 399.6,
+        "p50_ms": 24.4,
+        "p95_ms": 99.5,
+        "p99_ms": 171.5
+      }
+    }
+  },
+  "paridad_top50": {
+    "global": {
+      "misma_secuencia_elo": true,
+      "mismos_jugadores": true,
+      "n": 50
+    },
+    "region": {
+      "misma_secuencia_elo": true,
+      "mismos_jugadores": true,
+      "n": 50
+    }
+  },
+  "eventos": {
+    "v2_rabbitmq": {
+      "p50_ms": 17.7,
+      "max_ms": 62.8
+    },
+    "v3_sns_sqs": {
+      "p50_ms": 25.8,
+      "max_ms": 57.9
+    },
+    "muestras": 20
+  }
+}

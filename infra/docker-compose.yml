@@ -33,6 +33,16 @@ services:
       timeout: 5s
       retries: 30
 
+  # IdP de desarrollo (reemplaza a Entra External ID solo en local): emite JWT reales firmados para probar la API
+  # autenticada y el login de la web sin tenant. Issuer: http://localhost:8090/chessquery (ver docs/desarrollo-local.md).
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    environment:
+      SERVER_PORT: "8080"
+      # Sin callbacks: el token lleva sub = client_id y aud = scope (usar scope=chessquery-api).
+      JSON_CONFIG: '{"interactiveLogin": true}'
+    ports: ["127.0.0.1:8090:8080"]
+
   mailpit:
     image: axllent/mailpit:v1.24
     ports:
