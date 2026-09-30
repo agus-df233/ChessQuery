@@ -90,6 +90,8 @@ module "data" {
   name       = local.name
   subnet_ids = module.network.public_subnet_ids
   db_sg_id   = module.network.db_sg_id
+  # El lab niega leer "object lock" de los buckets: se crean con la AWS CLI (modules/s3-bucket)
+  bucket_via_cli = true
 }
 
 resource "aws_ecr_repository" "svc" {
@@ -149,10 +151,11 @@ module "alb" {
 }
 
 module "edge" {
-  source        = "../../modules/edge-apigw"
-  name          = local.name
-  alb_dns_name  = module.alb.dns_name
-  origin_secret = random_password.origin_secret.result
+  source         = "../../modules/edge-apigw"
+  name           = local.name
+  alb_dns_name   = module.alb.dns_name
+  origin_secret  = random_password.origin_secret.result
+  bucket_via_cli = true
 }
 
 # ── Servicios ─────────────────────────────────────────────────────────────────
@@ -229,6 +232,7 @@ module "etl" {
   topic_arn                 = module.messaging.topic_arn
   lookup_queue_arn          = module.messaging.queue_arn_by_name["etl-federation-lookup"]
   privacy_pepper_param_name = module.data.privacy_pepper_param_name
+  bucket_via_cli            = true
 }
 
 # ── Bus de eventos (ADR-0002) ─────────────────────────────────────────────────

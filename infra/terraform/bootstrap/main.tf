@@ -20,24 +20,34 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_s3_bucket" "state" {
-  bucket = "chessquery-tfstate-${data.aws_caller_identity.current.account_id}"
+variable "bucket_via_cli" {
+  description = "true en el Learner Lab: el lab niega leer object lock y el bucket se crea con la AWS CLI"
+  type        = bool
+  default     = false
+}
+
+# El estado nunca se borra con el bucket: force_destroy = false.
+module "state_bucket" {
+  source        = "../modules/s3-bucket"
+  name          = "chessquery-tfstate-${data.aws_caller_identity.current.account_id}"
+  use_cli       = var.bucket_via_cli
+  force_destroy = false
 }
 
 resource "aws_s3_bucket_versioning" "state" {
-  bucket = aws_s3_bucket.state.id
+  bucket = module.state_bucket.id
   versioning_configuration { status = "Enabled" }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
-  bucket = aws_s3_bucket.state.id
+  bucket = module.state_bucket.id
   rule {
     apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "state" {
-  bucket                  = aws_s3_bucket.state.id
+  bucket                  = module.state_bucket.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -45,5 +55,5 @@ resource "aws_s3_bucket_public_access_block" "state" {
 }
 
 output "state_bucket" {
-  value = aws_s3_bucket.state.bucket
+  value = module.state_bucket.id
 }

@@ -120,7 +120,7 @@ TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",gam
 
 academy-bootstrap:
 	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap init -input=false
-	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap apply
+	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap apply -var bucket_via_cli=true
 
 academy-init:
 	$(ACADEMY_TF) init -input=false -reconfigure \

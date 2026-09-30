@@ -7,6 +7,13 @@
 variable "name" { type = string }
 variable "alb_dns_name" { type = string }
 
+variable "bucket_via_cli" {
+  description = "true en el Learner Lab: crea el bucket con la AWS CLI (ver modules/s3-bucket)"
+  type        = bool
+  default     = false
+}
+
+
 variable "origin_secret" {
   type      = string
   sensitive = true
@@ -19,19 +26,22 @@ variable "throttle_rate" {
 }
 
 # ── SPA en S3 (sitio estático) ────────────────────────────────────────────────
-resource "aws_s3_bucket" "web" {
-  bucket_prefix = "${var.name}-web-"
-  force_destroy = true # el contenido se regenera en cada build
+data "aws_caller_identity" "current" {}
+
+module "web_bucket" {
+  source  = "../s3-bucket"
+  name    = "${var.name}-web-${data.aws_caller_identity.current.account_id}"
+  use_cli = var.bucket_via_cli # el contenido se regenera en cada build: se borra al destruir
 }
 
 resource "aws_s3_bucket_website_configuration" "web" {
-  bucket = aws_s3_bucket.web.id
+  bucket = module.web_bucket.id
   index_document { suffix = "index.html" }
   error_document { key = "index.html" } # rutas del router de React (/app, /ranking, ...)
 }
 
 resource "aws_s3_bucket_public_access_block" "web" {
-  bucket                  = aws_s3_bucket.web.id
+  bucket                  = module.web_bucket.id
   block_public_acls       = true
   ignore_public_acls      = true
   block_public_policy     = false
@@ -41,7 +51,7 @@ resource "aws_s3_bucket_public_access_block" "web" {
 data "aws_iam_policy_document" "web_public_read" {
   statement {
     actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.web.arn}/*"]
+    resources = ["${module.web_bucket.arn}/*"]
     principals {
       type        = "*"
       identifiers = ["*"]
@@ -50,7 +60,7 @@ data "aws_iam_policy_document" "web_public_read" {
 }
 
 resource "aws_s3_bucket_policy" "web" {
-  bucket     = aws_s3_bucket.web.id
+  bucket     = module.web_bucket.id
   policy     = data.aws_iam_policy_document.web_public_read.json
   depends_on = [aws_s3_bucket_public_access_block.web]
 }
@@ -105,4 +115,4 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 output "app_url" { value = aws_apigatewayv2_api.this.api_endpoint }
-output "web_bucket" { value = aws_s3_bucket.web.bucket }
+output "web_bucket" { value = module.web_bucket.id }

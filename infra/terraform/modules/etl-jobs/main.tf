@@ -12,18 +12,28 @@ variable "topic_arn" { type = string }
 variable "lookup_queue_arn" { type = string }
 variable "privacy_pepper_param_name" { type = string }
 
+variable "bucket_via_cli" {
+  description = "true en el Learner Lab: crea el bucket con la AWS CLI (ver modules/s3-bucket)"
+  type        = bool
+  default     = false
+}
+
+
 variable "federation_tournaments_enabled" {
   type    = bool
   default = true
 }
 
-resource "aws_s3_bucket" "etl" {
-  bucket_prefix = "${var.name}-etl-"
-  force_destroy = true
+data "aws_caller_identity" "current" {}
+
+module "etl_bucket" {
+  source  = "../s3-bucket"
+  name    = "${var.name}-etl-${data.aws_caller_identity.current.account_id}"
+  use_cli = var.bucket_via_cli
 }
 
 resource "aws_s3_bucket_public_access_block" "etl" {
-  bucket                  = aws_s3_bucket.etl.id
+  bucket                  = module.etl_bucket.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -31,14 +41,14 @@ resource "aws_s3_bucket_public_access_block" "etl" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "etl" {
-  bucket = aws_s3_bucket.etl.id
+  bucket = module.etl_bucket.id
   rule {
     apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
   }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "etl" {
-  bucket = aws_s3_bucket.etl.id
+  bucket = module.etl_bucket.id
   rule {
     id     = "raw-30-dias"
     status = "Enabled"
@@ -56,7 +66,7 @@ data "archive_file" "etl" {
 
 locals {
   common_env = {
-    ETL_BUCKET             = aws_s3_bucket.etl.bucket
+    ETL_BUCKET             = module.etl_bucket.id
     CHESS_EVENTS_TOPIC_ARN = var.topic_arn
     PRIVACY_PEPPER_PARAM   = var.privacy_pepper_param_name
   }
@@ -137,5 +147,5 @@ resource "aws_lambda_event_source_mapping" "lookup" {
   function_response_types = ["ReportBatchItemFailures"]
 }
 
-output "bucket" { value = aws_s3_bucket.etl.bucket }
+output "bucket" { value = module.etl_bucket.id }
 output "function_names" { value = { for k, f in aws_lambda_function.fn : k => f.function_name } }
