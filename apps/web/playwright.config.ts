@@ -16,6 +16,8 @@ export default defineConfig({
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:5173',
     locale: 'es-CL',
     timezoneId: 'America/Santiago',
+    // Un clic que no encuentra su botón falla en ese paso (con traza) en vez de agotar el timeout de la prueba
+    actionTimeout: 20_000,
     trace: 'retain-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

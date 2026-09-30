@@ -1,0 +1,173 @@
+package cl.chessquery.game.live;
+
+import cl.chessquery.auth.PlayerIdentityResolver;
+import cl.chessquery.auth.PlayerIdentityResolver.ResolvedIdentity;
+import cl.chessquery.common.events.EventPublisher;
+import cl.chessquery.game.users.UsersClient;
+import cl.chessquery.game.users.UsersClient.PlayerSummary;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.BadJwtException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.Instant;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * El camino de la nube: API Gateway WebSocket llama a {@code /internal/ws/*} y las respuestas salen por el canal
+ * (aquí simulado). Contra PostgreSQL real: conectar con token, suscribirse, recibir cada jugada y limpiar conexiones.
+ */
+@SpringBootTest(properties = {"chessquery.live.mode=apigateway", "chessquery.live.management-endpoint=http://localhost:1"})
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Testcontainers(disabledWithoutDocker = true)
+class LiveApiGatewayIntegrationTest {
+
+    @Container
+    @ServiceConnection
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+
+    @MockitoBean JwtDecoder jwtDecoder;
+    @MockitoBean EventPublisher events;
+    @MockitoBean UsersClient users;
+    @MockitoBean PlayerIdentityResolver identity;
+    @MockitoBean LiveChannel channel;
+
+    @Autowired MockMvc mvc;
+    @Autowired ObjectMapper json;
+    @Autowired WsConnectionRepository connections;
+    @Autowired LiveConnections live;
+
+    static final long ANA = 1, LUIS = 2;
+
+    @BeforeEach
+    void mocks() {
+        clearInvocations(channel);
+        when(channel.send(anyString(), anyString())).thenReturn(true);
+        when(identity.resolve(anyString(), anyMap())).thenAnswer(inv ->
+                new ResolvedIdentity(Long.parseLong(inv.getArgument(0, String.class).substring(4)), null));
+        when(users.player(anyLong())).thenAnswer(inv -> {
+            long id = inv.getArgument(0, Long.class);
+            return new PlayerSummary(id, id == ANA ? "Ana" : "Luis", "E2E", null, 1500, null, null, true);
+        });
+        when(jwtDecoder.decode(anyString())).thenAnswer(inv -> {
+            String token = inv.getArgument(0);
+            if (!token.startsWith("token-")) throw new BadJwtException("token inválido");
+            return Jwt.withTokenValue(token).header("alg", "none").subject("sub-" + token.substring(6))
+                    .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(300)).build();
+        });
+    }
+
+    /** Como API Gateway: token interno + id de la conexión (+ token del jugador al conectar). */
+    private static MockHttpServletRequestBuilder gateway(String path, String connectionId) {
+        return post("/internal/ws/" + path).header("X-Internal-Token", "test-token").header("X-Connection-Id", connectionId);
+    }
+
+    private long startGame() throws Exception {
+        String created = mvc.perform(post("/api/games").with(jwt().jwt(j -> j.subject("sub-" + ANA)))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"opponentId\":2,\"minutes\":5,\"color\":\"WHITE\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = json.readTree(created).get("id").asLong();
+        mvc.perform(post("/api/games/" + id + "/accept").with(jwt().jwt(j -> j.subject("sub-" + LUIS)))).andExpect(status().isOk());
+        return id;
+    }
+
+    @Test
+    void conectarExigeTokenValidoYElTokenInterno() throws Exception {
+        mvc.perform(post("/internal/ws/connect").header("X-Connection-Id", "c0").header("X-Ws-Token", "token-1"))
+           .andExpect(status().isUnauthorized()); // sin X-Internal-Token no es API Gateway
+        mvc.perform(gateway("connect", "c1")).andExpect(status().isUnauthorized());
+        mvc.perform(gateway("connect", "c2").header("X-Ws-Token", "falso"))
+           .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error").value("INVALID_TOKEN"));
+        mvc.perform(gateway("connect", "c3").header("X-Ws-Token", "token-1")).andExpect(status().isOk());
+        assertThat(connections.findById("c3")).get().extracting(WsConnection::getPlayerId).isEqualTo(ANA);
+        mvc.perform(gateway("message", "desconocida").content("{\"action\":\"ping\"}")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void suscritoRecibeElEstadoYCadaJugada() throws Exception {
+        long gameId = startGame();
+        mvc.perform(gateway("connect", "luis-1").header("X-Ws-Token", "token-2")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "luis-1").content("{\"action\":\"subscribe\",\"gameId\":" + gameId + "}"))
+           .andExpect(status().isOk());
+        verify(channel).send(eq("luis-1"), argThat(m -> m.contains("\"type\":\"game\"") && m.contains("\"ply\":0")));
+
+        mvc.perform(post("/api/games/" + gameId + "/moves").with(jwt().jwt(j -> j.subject("sub-" + ANA)))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"uci\":\"e2e4\"}")).andExpect(status().isOk());
+        // Se envía después del commit, en otro hilo
+        verify(channel, timeout(5000)).send(eq("luis-1"), argThat(m -> m.contains("\"ply\":1") && m.contains("\"e4\"")));
+
+        mvc.perform(gateway("message", "luis-1").content("{\"action\":\"ping\"}")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "luis-1").content("{\"action\":\"otra\"}")).andExpect(status().isOk());
+        verify(channel).send(eq("luis-1"), argThat(m -> m.contains("UNKNOWN_ACTION")));
+        mvc.perform(gateway("message", "luis-1").content("{\"action\":\"subscribe\"}")).andExpect(status().isOk());
+        verify(channel).send(eq("luis-1"), argThat(m -> m.contains("MISSING_GAME")));
+        mvc.perform(gateway("message", "luis-1").content("no es json")).andExpect(status().isBadRequest());
+        mvc.perform(gateway("message", "luis-1").content("{\"action\":\"subscribe\",\"gameId\":999999}"))
+           .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void conexionesQueYaNoExistenSeBorran() throws Exception {
+        long gameId = startGame();
+        mvc.perform(gateway("connect", "ida").header("X-Ws-Token", "token-1")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "ida").content("{\"action\":\"subscribe\",\"gameId\":" + gameId + "}")).andExpect(status().isOk());
+        when(channel.send(eq("ida"), anyString())).thenReturn(false); // API Gateway respondió 410 Gone
+        live.broadcast(gameId);
+        assertThat(connections.findById("ida")).isEmpty();
+
+        mvc.perform(gateway("connect", "vieja").header("X-Ws-Token", "token-2")).andExpect(status().isOk());
+        mvc.perform(gateway("disconnect", "vieja")).andExpect(status().isOk());
+        assertThat(connections.findById("vieja")).isEmpty();
+        mvc.perform(gateway("disconnect", "vieja")).andExpect(status().isOk()); // repetir no falla
+
+        mvc.perform(gateway("connect", "olvidada").header("X-Ws-Token", "token-2")).andExpect(status().isOk());
+        assertThat(live.purgeSeenBefore(Instant.now().plusSeconds(60))).isGreaterThanOrEqualTo(1);
+        assertThat(connections.findById("olvidada")).isEmpty();
+    }
+
+    /** Regresión (E2E del 30-09): el ganador cierra su socket al ver el mate y el envío a él falla. */
+    @Test
+    void unEnvioQueFallaNoDejaSinMensajeAlRival() throws Exception {
+        long gameId = startGame();
+        for (String[] c : new String[][] {{"ganadora", "token-1"}, {"rival", "token-2"}}) {
+            mvc.perform(gateway("connect", c[0]).header("X-Ws-Token", c[1])).andExpect(status().isOk());
+            mvc.perform(gateway("message", c[0]).content("{\"action\":\"subscribe\",\"gameId\":" + gameId + "}"))
+               .andExpect(status().isOk());
+        }
+        when(channel.send(eq("ganadora"), anyString())).thenThrow(new IllegalStateException("sesión cerrada"));
+        clearInvocations(channel);
+        live.broadcast(gameId);
+        verify(channel).send(eq("rival"), argThat(m -> m.contains("\"type\":\"game\"")));
+        assertThat(connections.findById("ganadora")).isEmpty();
+        assertThat(connections.findById("rival")).isPresent();
+    }
+}

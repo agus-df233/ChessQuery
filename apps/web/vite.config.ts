@@ -14,6 +14,8 @@ export default defineConfig({
       '/api/tournaments': { target: 'http://localhost:8082', changeOrigin: true },
       '/api/public/tournaments': { target: 'http://localhost:8082', changeOrigin: true },
       '/api/games': { target: 'http://localhost:8083', changeOrigin: true },
+      // Partidas en vivo por WebSocket (en la nube lo atiende API Gateway WebSocket)
+      '/ws': { target: 'ws://localhost:8083', ws: true, changeOrigin: true },
       '/api/public/games': { target: 'http://localhost:8083', changeOrigin: true },
       '/api': { target: process.env.VITE_DEV_API ?? 'http://localhost:8081', changeOrigin: true },
     },

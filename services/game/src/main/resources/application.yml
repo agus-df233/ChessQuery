@@ -40,11 +40,17 @@ chessquery:
     # Solo en la nube: users se alcanza por el ALB, que exige X-Origin-Verify (ADR-0002)
     origin-secret: ${ORIGIN_VERIFY:}
     roles-claim: roles
+    # El handshake del WebSocket local no lleva Bearer: el token va en la query y lo valida LiveConnections
+    public-paths: /ws
   games:
     # Un desafío sin respuesta vence a los 10 minutos; el barrido revisa relojes y desafíos cada segundo.
     challenge-ttl: 10m
     # Long polling: cuánto espera GET /api/games/{id}?afterVersion=n antes de responder sin cambios.
     long-poll-timeout: 25s
+  live:
+    # local: WebSocket nativo en /ws · apigateway: API Gateway WebSocket (nube), que llama a /internal/ws/*
+    mode: ${LIVE_MODE:local}
+    management-endpoint: ${LIVE_MANAGEMENT_ENDPOINT:}
 
 server:
   port: ${PORT:8083}

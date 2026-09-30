@@ -22,6 +22,7 @@ import java.util.List;
  * <ul>
  *   <li>{@code /api/public/**}, actuator health/info y preflight CORS: anónimo.</li>
  *   <li>{@code /internal/**}: solo con {@code X-Internal-Token}.</li>
+ *   <li>{@code chessquery.auth.public-paths}: rutas que valida el propio servicio (p. ej. el handshake {@code /ws}).</li>
  *   <li>Todo lo demás: Bearer JWT del issuer configurado en
  *       {@code spring.security.oauth2.resourceserver.jwt.issuer-uri} (+ audiencia).</li>
  * </ul>
@@ -41,6 +42,7 @@ public class ResourceServerAutoConfiguration {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/public/**", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
+                .requestMatchers(props.publicPaths().toArray(String[]::new)).permitAll()
                 .requestMatchers("/internal/**").hasAuthority(InternalTokenFilter.ROLE)
                 .anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(j -> { }));

@@ -12,6 +12,8 @@ spring:
       sqs:
         enabled: false
 chessquery:
+  scheduling:
+    enabled: false
   auth:
     users-url: http://127.0.0.1:1
     internal-token: test-token

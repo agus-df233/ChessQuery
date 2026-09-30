@@ -68,9 +68,10 @@ class ResourceServerAutoConfigurationTest {
 
     @Test
     void propertiesDefaults() {
-        AuthProperties p = new AuthProperties(null, null, " ", null);
+        AuthProperties p = new AuthProperties(null, null, " ", null, null);
         assertThat(p.usersUrl()).isEmpty();
         assertThat(p.originSecret()).isEmpty();
+        assertThat(p.publicPaths()).isEmpty();
         assertThat(p.internalToken()).isEmpty();
         assertThat(p.rolesClaim()).isEqualTo("roles");
         UserPrincipal u = new UserPrincipal(1, "s", "e", null, java.util.Set.of());
@@ -82,7 +83,7 @@ class ResourceServerAutoConfigurationTest {
     @Test
     void internalClientHeaders() {
         for (String origin : new String[] {"", "secreto-origen"}) {
-            AuthProperties props = new AuthProperties("http://users", "tok", "roles", origin);
+            AuthProperties props = new AuthProperties("http://users", "tok", "roles", origin, java.util.List.of("/ws"));
             Map<String, java.util.List<String>> sent = new java.util.HashMap<>();
             org.springframework.web.client.RestClient client = InternalHttp.usersClient(props).mutate()
                     .requestInterceptor((req, body, exec) -> {

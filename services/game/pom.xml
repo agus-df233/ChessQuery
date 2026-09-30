@@ -56,6 +56,15 @@
       <artifactId>lombok</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!-- Partidas en vivo: WebSocket nativo en local (/ws) y, en la nube, envío a las conexiones de API Gateway. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-websocket</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>apigatewaymanagementapi</artifactId>
+    </dependency>
     <!-- Reglas del ajedrez (jugadas legales, mate, tablas, SAN, PGN). MIT, en Maven Central. -->
     <dependency>
       <groupId>io.github.wolfraam</groupId>

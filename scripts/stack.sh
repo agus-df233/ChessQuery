@@ -48,7 +48,8 @@ start_stack() {
 
   echo "== Web"
   (cd "$ROOT/apps/web" && VITE_OIDC_AUTHORITY="$OIDC_ISSUER_URI" VITE_OIDC_CLIENT_ID=chessquery-web \
-    VITE_OIDC_SCOPE="openid profile email" exec npx vite --port 5173 --strictPort) > "$LOGS/web.log" 2>&1 &
+    VITE_OIDC_SCOPE="openid profile email" VITE_WS_URL=ws://localhost:5173/ws \
+    exec npx vite --port 5173 --strictPort) > "$LOGS/web.log" 2>&1 &
   PIDS+=($!)
 
   wait_http http://localhost:8081/actuator/health users

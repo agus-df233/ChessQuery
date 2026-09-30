@@ -16,12 +16,18 @@ public record AuthProperties(
         /** Claim de Entra con app roles (p. ej. ADMIN). */
         String rolesClaim,
         /** Cabecera X-Origin-Verify para llamar a users a través del ALB (vacío en local). */
-        String originSecret
+        String originSecret,
+        /**
+         * Rutas extra sin Bearer, que valida el propio servicio (p. ej. {@code /ws}: el navegador no puede mandar
+         * cabeceras al abrir un WebSocket, así que el token viaja en la query y lo verifica game).
+         */
+        java.util.List<String> publicPaths
 ) {
     public AuthProperties {
         if (usersUrl == null) usersUrl = "";
         if (internalToken == null) internalToken = "";
         if (rolesClaim == null || rolesClaim.isBlank()) rolesClaim = "roles";
         if (originSecret == null) originSecret = "";
+        publicPaths = publicPaths == null ? java.util.List.of() : java.util.List.copyOf(publicPaths);
     }
 }

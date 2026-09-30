@@ -3,6 +3,7 @@ package cl.chessquery.game;
 import cl.chessquery.game.domain.Game;
 import cl.chessquery.game.domain.GameRepository;
 import cl.chessquery.game.domain.GameStatus;
+import cl.chessquery.game.live.LiveConnections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,6 +30,7 @@ public class GameSweeper {
     private final GameService service;
     private final GameNotifier notifier;
     private final TransactionTemplate tx;
+    private final LiveConnections live;
     private final Clock clock;
 
     @Value("${chessquery.games.challenge-ttl:10m}")
@@ -42,6 +44,13 @@ public class GameSweeper {
                 .forEach(g -> safely(g.getId(), () -> flagTimeout(g.getId(), now)));
         games.findByStatusAndCreatedAtBefore(GameStatus.PENDING, now.minus(challengeTtl))
                 .forEach(g -> safely(g.getId(), () -> expire(g.getId())));
+    }
+
+    /** Conexiones en vivo sin actividad por más de 2 h (el máximo que API Gateway mantiene una conexión). */
+    @Scheduled(fixedDelay = 600_000, initialDelay = 60_000)
+    public void purgeLiveConnections() {
+        int purged = live.purgeSeenBefore(clock.instant().minus(Duration.ofHours(2)));
+        if (purged > 0) log.info("Conexiones en vivo vencidas borradas: {}", purged);
     }
 
     private void flagTimeout(long id, Instant now) {

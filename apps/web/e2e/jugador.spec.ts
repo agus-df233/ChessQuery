@@ -58,6 +58,9 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await l.goto('/app/partidas');
   await captureBoth(l, 'mis-partidas');
   await l.getByRole('button', { name: 'Aceptar' }).first().click();
+  // Las jugadas del rival deben llegar por el WebSocket (frames recibidos con el estado de la partida)
+  const framesLuis: string[] = [];
+  l.on('websocket', (ws) => ws.on('framereceived', (f) => framesLuis.push(String(f.payload))));
   await l.goto(gameUrl);
   await expect(a.getByText('Tu turno')).toBeVisible();
 
@@ -67,6 +70,8 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   for (const [page, from, to] of moves) await play(page, from, to);
 
   await expect(a.getByText('Ganaste · jaque mate')).toBeVisible();
+  const jugadasPorSocket = framesLuis.filter((f) => f.includes('"type":"game"') && /"ply":[1-7]/.test(f));
+  expect(jugadasPorSocket.length, 'Luis recibió las jugadas de Ana por WebSocket').toBeGreaterThanOrEqual(3);
   await expect(l.getByText('Perdiste · jaque mate')).toBeVisible();
   await expect(a.getByRole('link', { name: 'Descargar PGN' })).toBeVisible();
   await captureBoth(a, 'partida-terminada');
