@@ -131,7 +131,7 @@ resource "aws_ecs_service" "this" {
     rollback = true
   }
 
-  # `desired_count` lo cambian también el encendido/apagado programado y `make demo-down`.
+  # `desired_count` también lo cambia `make academy-down` (apagar sin borrar); Terraform no lo revierte.
   lifecycle {
     ignore_changes = [desired_count]
   }

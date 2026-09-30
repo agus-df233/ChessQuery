@@ -104,8 +104,10 @@ tf-check:
 	done
 
 # ── Despliegue al Learner Lab (lo ejecuta una persona; el agente solo prepara y hace plan) ──────────────
-# Credenciales del lab en AWS_PROFILE (por defecto `default`). Orden: academy-bootstrap (una vez) →
-# academy-apply con IMAGE_TAG → academy-image → academy-web. Ver infra/terraform/README.md.
+# Credenciales del lab en AWS_PROFILE (por defecto `default`). Orden (ver infra/terraform/README.md):
+# academy-bootstrap (una vez) → academy-plan → academy-ecr → academy-image → academy-apply → academy-web.
+# Las imágenes van ANTES del apply completo: ECS tiene rollback automático y un primer despliegue sin imagen queda
+# fallido. Todo con el mismo IMAGE_TAG (el commit actual).
 ACADEMY_PROFILE ?= default
 ACADEMY_DIR := infra/terraform/envs/academy
 ACADEMY_TF := AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=$(ACADEMY_DIR)
@@ -114,7 +116,7 @@ SERVICES := users tournament game
 # Mismo tag para los tres servicios (se construyen juntos desde el mismo commit).
 TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",game="$(IMAGE_TAG)"}'
 
-.PHONY: academy-bootstrap academy-init academy-plan academy-apply academy-image academy-web academy-down academy-destroy
+.PHONY: academy-bootstrap academy-init academy-plan academy-ecr academy-apply academy-image academy-web academy-down academy-destroy
 
 academy-bootstrap:
 	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap init -input=false
@@ -126,6 +128,10 @@ academy-init:
 
 academy-plan: academy-init
 	$(ACADEMY_TF) plan -var-file=academy.tfvars $(TAGS_VAR)
+
+# Solo los repositorios de imágenes (ECR), para poder subir las imágenes antes de crear los servicios.
+academy-ecr: academy-init
+	$(ACADEMY_TF) apply -var-file=academy.tfvars $(TAGS_VAR) -target=aws_ecr_repository.svc -target=aws_ecr_lifecycle_policy.svc
 
 academy-apply: academy-init
 	$(ACADEMY_TF) apply -var-file=academy.tfvars $(TAGS_VAR)
