@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { RUN, captureBoth, expectAccessible, login, persona } from './support/helpers';
+import { RUN, captureBoth, expectAccessible, login, persona, reloadUntil } from './support/helpers';
 
 /**
- * Recorrido del organizador: crea su club → carga el roster por CSV → crea un torneo suizo de 3 rondas →
- * inscribe al roster → genera rondas y carga resultados → cierra el torneo (ratings) → exporta TRF → la sala ve
- * la tabla sin login.
+ * Recorrido del organizador: crea su club → carga el roster por CSV → etiqueta a un jugador → crea un torneo suizo
+ * de 3 rondas → inscribe al roster → genera rondas y carga resultados → cierra el torneo (ratings) → exporta TRF →
+ * la ficha del jugador muestra su nuevo rating de plataforma → la sala ve la tabla sin login.
  */
 const org = persona('Olga');
 
@@ -22,6 +22,13 @@ test('organizador: club, roster, torneo suizo completo, TRF y vista pública', a
   await expect(page.getByText('5 para importar')).toBeVisible();
   await page.getByRole('button', { name: 'Importar' }).click();
   await expect(page.getByText('Importados 5')).toBeVisible();
+
+  // Info de jugadores del club: etiquetas editables en el roster
+  page.once('dialog', (d) => void d.accept('sub12, federado'));
+  await page.getByRole('button', { name: `Editar etiquetas de Beto Roster${RUN}` }).click();
+  const beto = page.getByRole('row').filter({ hasText: `Beto Roster${RUN}` });
+  await expect(beto.getByText('sub12')).toBeVisible();
+  await expect(beto.getByText('federado')).toBeVisible();
   await captureBoth(page, 'club');
   await expectAccessible(page);
 
@@ -63,6 +70,15 @@ test('organizador: club, roster, torneo suizo completo, TRF y vista pública', a
   });
   expect(trf.startsWith(`012 Abierto E2E ${RUN}`)).toBe(true);
   expect(trf.split('\n').filter((l) => l.startsWith('001'))).toHaveLength(5);
+
+  // El cierre actualiza los datos del jugador: su ficha muestra el rating de plataforma (elo.updated → users)
+  await page.goto('/app/jugadores');
+  await page.getByLabel('Buscar jugador').fill(`Beto Roster${RUN}`);
+  await page.getByRole('button', { name: 'Buscar' }).click();
+  await page.getByRole('link', { name: new RegExp(`Beto Roster${RUN}`) }).click();
+  await reloadUntil(page, 'Plataforma');
+  await expect(page.getByRole('region', { name: 'Ratings ChessQuery' })).toContainText(/\d{3,4}/);
+  await captureBoth(page, 'ficha-jugador-roster');
 
   // La sala: vista pública sin login
   const sala = await (await browser.newContext()).newPage();

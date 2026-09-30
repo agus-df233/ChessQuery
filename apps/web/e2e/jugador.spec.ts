@@ -2,9 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 import { RUN, captureBoth, expectAccessible, login, persona, reloadUntil } from './support/helpers';
 
 /**
- * Recorrido del jugador: login → vincular ficha federativa (el ETL la trae) → buscar a otro jugador → desafiarlo →
- * el rival acepta → partida en vivo hasta el mate (mate del pastor) → ambos ven el resultado y el rating de
- * plataforma actualizado en su inicio.
+ * Recorrido del jugador: login → editar perfil → vincular ficha federativa (el ETL la trae) → buscar a otro jugador
+ * → solicitud de amistad y aceptación → desafiarlo → el rival acepta → partida en vivo hasta el mate (mate del
+ * pastor) → ambos ven el resultado y el rating de plataforma actualizado en su inicio.
  */
 const ana = persona('Ana');
 const luis = persona('Luis');
@@ -27,13 +27,27 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await expect(a.getByText(`Ficha federativa ${fichaId}`)).toBeVisible();
   await reloadUntil(a, 'ELO nacional 1720');
 
+  // Datos del perfil
+  await a.goto('/app/perfil');
+  await a.getByLabel('Región').fill('Valparaíso');
+  await a.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(a.getByText('Perfil guardado')).toBeVisible();
+
   const l = await login(browser, luis);
 
-  // Ana busca a Luis y lo desafía con blancas
+  // Ana busca a Luis, le envía solicitud de amistad y Luis la acepta
   await a.goto('/app/jugadores');
   await a.getByLabel('Buscar jugador').fill(`Luis ${luis.lastName}`);
   await a.getByRole('button', { name: 'Buscar' }).click();
   await a.getByRole('link', { name: new RegExp(`Luis ${luis.lastName}`) }).click();
+  const perfilLuis = a.url();
+  await a.getByRole('button', { name: 'Agregar amigo' }).click();
+  await l.goto('/app/amigos');
+  await l.getByRole('button', { name: 'Aceptar' }).first().click();
+  await expect(l.getByText(`Ana ${ana.lastName}`)).toBeVisible();
+
+  // Ana lo desafía con blancas desde su perfil
+  await a.goto(perfilLuis);
   await a.getByRole('button', { name: 'Desafiar' }).click();
   await a.getByLabel('Juego con').selectOption('WHITE');
   await a.getByRole('button', { name: 'Enviar desafío' }).click();
