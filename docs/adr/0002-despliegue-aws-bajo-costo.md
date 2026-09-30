@@ -104,3 +104,8 @@ Venían en el esqueleto del proyecto sin una decisión escrita; se revisan y que
    versión mayor (se evalúan a mano, p. ej. Spring Boot 4). Se quitó el escaneo de Docker: `/infra` no tiene
    Dockerfile (las imágenes locales se fijan en `docker-compose.yml` y las de los servicios las arma Jib).
 4. El CI tiene solo permiso de lectura sobre el repositorio.
+
+**Actualización 30-09-2026:** se probó en el Learner Lab que **API Gateway WebSocket API sí funciona** (crear la API,
+conectarse por `wss://` y empujar mensajes desde el `LabRole`); evidencia en
+`docs/verificacion/2026-09-30-websocket-learner-lab.md`. El long polling sigue como mecanismo actual y como respaldo;
+el WebSocket por API Gateway queda como el camino para el tiempo real también en el lab.
