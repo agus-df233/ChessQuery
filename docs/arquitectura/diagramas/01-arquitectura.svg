@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 770" width="1200" height="770"><rect width="100%" height="100%" fill="white"/><defs><marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/></marker></defs>
+<rect x="20" y="140" width="150" height="50" rx="8" fill="#f5f5f5" stroke="#424242" stroke-width="1.6"/>
+<text x="95.0" y="160" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#424242" text-anchor="middle">Jugador</text>
+<text x="95.0" y="177" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">navegador o celular</text>
+<rect x="20" y="210" width="150" height="50" rx="8" fill="#f5f5f5" stroke="#424242" stroke-width="1.6"/>
+<text x="95.0" y="230" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#424242" text-anchor="middle">Organizador</text>
+<text x="95.0" y="247" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">su club y torneos</text>
+<rect x="20" y="280" width="150" height="50" rx="8" fill="#f5f5f5" stroke="#424242" stroke-width="1.6"/>
+<text x="95.0" y="300" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#424242" text-anchor="middle">Sala / público</text>
+<text x="95.0" y="317" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">vistas sin login</text>
+<rect x="230" y="25" width="220" height="75" rx="8" fill="#fce4ec" stroke="#ad1457" stroke-width="1.6"/>
+<text x="340.0" y="45" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#ad1457" text-anchor="middle">Entra External ID</text>
+<text x="340.0" y="62" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">login con Google o código al correo</text>
+<text x="340.0" y="77" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">entrega el token (OIDC + PKCE)</text>
+<rect x="230" y="195" width="220" height="90" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.6"/>
+<text x="340.0" y="215" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1565c0" text-anchor="middle">API Gateway (HTTP API)</text>
+<text x="340.0" y="232" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">HTTPS · execute-api.amazonaws.com</text>
+<text x="340.0" y="247" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">/api/* → ALB</text>
+<text x="340.0" y="262" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">el resto → web (S3)</text>
+<rect x="230" y="330" width="220" height="60" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.6"/>
+<text x="340.0" y="350" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1565c0" text-anchor="middle">S3 · sitio web</text>
+<text x="340.0" y="367" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">la SPA React (build de Vite)</text>
+<rect x="495" y="195" width="175" height="90" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.6"/>
+<text x="582.5" y="215" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#1565c0" text-anchor="middle">ALB</text>
+<text x="582.5" y="232" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">enruta por prefijo</text>
+<text x="582.5" y="247" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">exige X-Origin-Verify</text>
+<text x="582.5" y="262" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">(nadie se salta la entrada)</text>
+<rect x="715" y="50" width="245" height="400" rx="10" fill="none" stroke="#2e7d32" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="725" y="66" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#2e7d32" text-anchor="start">ECS Fargate · 1 tarea por servicio</text>
+<rect x="730" y="80" width="215" height="105" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="837.5" y="100" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#2e7d32" text-anchor="middle">users :8081</text>
+<text x="837.5" y="117" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">identidad y perfil, club y roster,</text>
+<text x="837.5" y="132" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">amigos, ranking, ratings e historial,</text>
+<text x="837.5" y="147" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">ficha federativa, privacidad</text>
+<rect x="730" y="200" width="215" height="105" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="837.5" y="220" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#2e7d32" text-anchor="middle">tournament :8082</text>
+<text x="837.5" y="237" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">torneos del club, inscripción,</text>
+<text x="837.5" y="252" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">pareo suizo y round robin,</text>
+<text x="837.5" y="267" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">tabla, cierre con rating, TRF</text>
+<rect x="730" y="320" width="215" height="115" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="837.5" y="340" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#2e7d32" text-anchor="middle">game :8083</text>
+<text x="837.5" y="357" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">partidas 1 vs 1, desafíos,</text>
+<text x="837.5" y="372" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">jugadas y reloj en el servidor,</text>
+<text x="837.5" y="387" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">long polling, PGN, ELO</text>
+<rect x="1005" y="60" width="180" height="70" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.6"/>
+<text x="1095.0" y="80" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#6a1b9a" text-anchor="middle">SSM Parameter Store</text>
+<text x="1095.0" y="97" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">token interno, pepper,</text>
+<text x="1095.0" y="112" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">cabecera de origen</text>
+<rect x="1005" y="200" width="180" height="95" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.6"/>
+<text x="1095.0" y="220" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#6a1b9a" text-anchor="middle">RDS PostgreSQL 16</text>
+<text x="1095.0" y="237" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">un schema por servicio:</text>
+<text x="1095.0" y="252" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">users · tournament · game</text>
+<text x="1095.0" y="267" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">(Flyway es dueño)</text>
+<rect x="1005" y="335" width="180" height="70" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.6"/>
+<text x="1095.0" y="355" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#6a1b9a" text-anchor="middle">CloudWatch</text>
+<text x="1095.0" y="372" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">logs de cada servicio</text>
+<text x="1095.0" y="387" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">alarmas → tu correo</text>
+<rect x="20" y="490" width="430" height="265" rx="10" fill="none" stroke="#00695c" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="30" y="506" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#00695c" text-anchor="start">ETL · AWS Lambda (Python, sin dependencias)</text>
+<rect x="35" y="520" width="125" height="55" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="97.5" y="540" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#00695c" text-anchor="middle">EventBridge</text>
+<text x="97.5" y="557" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">reglas programadas</text>
+<rect x="35" y="590" width="125" height="75" rx="8" fill="#fafafa" stroke="#757575" stroke-width="1.6"/>
+<text x="97.5" y="610" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#757575" text-anchor="middle">Fuentes</text>
+<text x="97.5" y="627" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">FIDE (lista mensual)</text>
+<text x="97.5" y="642" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">Federación (GraphQL)</text>
+<rect x="180" y="518" width="255" height="40" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="307.5" y="538" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">fide-import</text>
+<text x="307.5" y="555" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">día 2 de cada mes</text>
+<rect x="180" y="568" width="255" height="40" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="307.5" y="588" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">federation-tournaments</text>
+<text x="307.5" y="605" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">todos los días</text>
+<rect x="180" y="618" width="255" height="40" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="307.5" y="638" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">federation-lookup</text>
+<text x="307.5" y="655" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">cuando un jugador vincula su ficha</text>
+<rect x="35" y="685" width="400" height="55" rx="8" fill="#f3e5f5" stroke="#6a1b9a" stroke-width="1.6"/>
+<text x="235.0" y="705" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#6a1b9a" text-anchor="middle">S3 · bucket del ETL</text>
+<text x="235.0" y="722" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">raw/ (se borra a los 30 días) · staged/ · rejected/ · manifests/</text>
+<rect x="495" y="520" width="175" height="70" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="582.5" y="540" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#e65100" text-anchor="middle">SNS chess-events</text>
+<text x="582.5" y="557" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">sobre ChessEvent</text>
+<text x="582.5" y="572" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">+ atributo eventType</text>
+<rect x="715" y="490" width="470" height="265" rx="10" fill="none" stroke="#e65100" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="725" y="506" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#e65100" text-anchor="start">SQS · una cola por consumidor (con DLQ y alarma)</text>
+<rect x="730" y="512" width="440" height="42" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="950.0" y="532" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">users-elo</text>
+<text x="950.0" y="549" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">elo.updated → users</text>
+<rect x="730" y="560" width="440" height="42" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="950.0" y="580" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">users-rating</text>
+<text x="950.0" y="597" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">rating.updated → users</text>
+<rect x="730" y="608" width="440" height="42" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="950.0" y="628" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">tournament-federation</text>
+<text x="950.0" y="645" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">federation.tournament.published → tournament</text>
+<rect x="730" y="656" width="440" height="42" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="950.0" y="676" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">tournament-players</text>
+<text x="950.0" y="693" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">player.merged → tournament</text>
+<rect x="730" y="704" width="440" height="42" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="950.0" y="724" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">etl-federation-lookup</text>
+<text x="950.0" y="741" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">federation.lookup.requested → Lambda</text>
+<line x1="170" y1="165" x2="230" y2="240" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="170" y1="235" x2="230" y2="240" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="170" y1="305" x2="230" y2="240" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="170" y1="150" x2="230" y2="80" stroke="#ad1457" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#flecha)"/>
+<rect x="171.25" y="108" width="37.5" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="190" y="119.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#ad1457" text-anchor="middle">login</text>
+<line x1="450" y1="62" x2="730" y2="95" stroke="#ad1457" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#flecha)"/>
+<rect x="521.1" y="68.5" width="137.8" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="590.0" y="80.0" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#ad1457" text-anchor="middle">valida el token (JWKS)</text>
+<line x1="340" y1="285" x2="340" y2="330" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="312.4" y="297.5" width="55.2" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="340.0" y="309.0" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">$default</text>
+<line x1="450" y1="240" x2="495" y2="240" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="450.8" y="230.0" width="43.400000000000006" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="472.5" y="241.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">/api/*</text>
+<line x1="670" y1="225" x2="730" y2="135" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="670" y1="240" x2="730" y2="250" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="670" y1="255" x2="730" y2="375" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="730" y1="420" x2="630" y2="285" stroke="#455a64" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#flecha)"/>
+<rect x="559.3" y="350" width="161.4" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="640" y="361.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">/internal (token + origen)</text>
+<line x1="960" y1="245" x2="1005" y2="245" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="966.7" y="235.0" width="31.6" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="982.5" y="246.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">JDBC</text>
+<line x1="1005" y1="95" x2="960" y2="95" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="954.9" y="85.0" width="55.2" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="982.5" y="96.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">secretos</text>
+<line x1="960" y1="370" x2="1005" y2="370" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="966.7" y="360.0" width="31.6" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="982.5" y="371.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">logs</text>
+<line x1="760" y1="450" x2="620" y2="520" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="651.75" y="472" width="96.5" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="700" y="483.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">publica eventos</text>
+<line x1="670" y1="555" x2="715" y2="555" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="900" y1="490" x2="900" y2="452" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="927.4" y="462" width="55.2" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="955" y="473.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">consumen</text>
+<line x1="160" y1="540" x2="180" y2="538" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="160" y1="555" x2="180" y2="588" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="160" y1="625" x2="180" y2="600" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="435" y1="540" x2="495" y2="548" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="440.35" y="520" width="49.300000000000004" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="465" y="531.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">publica</text>
+<line x1="730" y1="725" x2="435" y2="642" stroke="#455a64" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#flecha)"/>
+<rect x="522.0" y="680" width="126.0" height="15" rx="3" fill="white" fill-opacity="0.92"/>
+<text x="585" y="691.5" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">dispara (lotes de 5)</text>
+<line x1="305" y1="658" x2="305" y2="685" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+</svg>

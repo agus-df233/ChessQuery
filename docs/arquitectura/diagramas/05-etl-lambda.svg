@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 470" width="1150" height="470"><rect width="100%" height="100%" fill="white"/><defs><marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/></marker></defs>
+<rect x="20" y="20" width="250" height="430" rx="10" fill="none" stroke="#00695c" stroke-width="1.2" stroke-dasharray="4 3"/>
+<text x="30" y="36" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#00695c" text-anchor="start">Disparadores</text>
+<rect x="35" y="55" width="220" height="70" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="145.0" y="75" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">EventBridge · día 2, 09:00 UTC</text>
+<text x="145.0" y="92" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">→ fide-import</text>
+<rect x="35" y="145" width="220" height="70" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="145.0" y="165" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">EventBridge · diario, 10:00 UTC</text>
+<text x="145.0" y="182" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">→ federation-tournaments</text>
+<rect x="35" y="235" width="220" height="85" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="145.0" y="255" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">SQS etl-federation-lookup</text>
+<text x="145.0" y="272" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">lotes de 5 · reintenta solo</text>
+<text x="145.0" y="287" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">los que fallan · DLQ tras 5</text>
+<rect x="35" y="340" width="220" height="95" rx="8" fill="#fffde7" stroke="#9e9d24" stroke-width="1.6"/>
+<text x="145.0" y="360" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#9e9d24" text-anchor="middle">Manual (prueba)</text>
+<text x="145.0" y="377" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">aws lambda invoke</text>
+<text x="145.0" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">--invocation-type Event</text>
+<rect x="310" y="40" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="445.0" y="60" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">1 · Obtener</text>
+<text x="445.0" y="77" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">descarga FIDE o consulta la Federación</text>
+<text x="445.0" y="92" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">(ritmo máx. 5/s, reintentos, corte)</text>
+<line x1="445" y1="120" x2="445" y2="145" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="310" y="145" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="445.0" y="165" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">2 · Contrato</text>
+<text x="445.0" y="182" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">la Federación: si cambió el esquema,</text>
+<text x="445.0" y="197" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">falla sin bajar datos</text>
+<line x1="445" y1="225" x2="445" y2="250" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="310" y="250" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="445.0" y="270" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">3 · Validar</text>
+<text x="445.0" y="287" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">reglas por fila; los rechazos</text>
+<text x="445.0" y="302" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">se guardan solo con id y motivo</text>
+<line x1="445" y1="330" x2="445" y2="355" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="310" y="355" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="445.0" y="375" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">4 · Minimizar</text>
+<text x="445.0" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">RUT → rutHash (HMAC + pepper de SSM),</text>
+<text x="445.0" y="407" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">fecha de nacimiento → solo el año</text>
+<rect x="610" y="40" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="745.0" y="60" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">5 · Guardar en S3</text>
+<text x="745.0" y="77" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">raw/ (30 días) · staged/ ·</text>
+<text x="745.0" y="92" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">rejected/ · manifests/</text>
+<line x1="745" y1="120" x2="745" y2="145" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="610" y="145" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="745.0" y="165" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">6 · Diff</text>
+<text x="745.0" y="182" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">solo lo nuevo o cambiado</text>
+<text x="745.0" y="197" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">respecto de la corrida anterior</text>
+<line x1="745" y1="225" x2="745" y2="250" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="610" y="250" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
+<text x="745.0" y="270" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">7 · Publicar</text>
+<text x="745.0" y="287" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">SNS en lotes de 200 (≈ 60 KB):</text>
+<text x="745.0" y="302" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">rating.updated / torneos publicados</text>
+<line x1="580" y1="395" x2="610" y2="80" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="90" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="180" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="278" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="387" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<rect x="610" y="355" width="270" height="80" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="745.0" y="375" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#2e7d32" text-anchor="middle">SNS chess-events → SQS</text>
+<text x="745.0" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">users: ratings y fichas de jugadores</text>
+<text x="745.0" y="407" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">tournament: calendario federativo</text>
+<line x1="745" y1="330" x2="745" y2="355" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+</svg>

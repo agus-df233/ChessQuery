@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 700" width="1150" height="700"><rect width="100%" height="100%" fill="white"/><defs><marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/></marker></defs>
+<rect x="20" y="15" width="140" height="38" rx="8" fill="#f5f5f5" stroke="#424242" stroke-width="1.6"/>
+<text x="90.0" y="39.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#424242" text-anchor="middle">Jugador A</text>
+<line x1="90" y1="53" x2="90" y2="680" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="200" y="15" width="140" height="38" rx="8" fill="#f5f5f5" stroke="#424242" stroke-width="1.6"/>
+<text x="270.0" y="39.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#424242" text-anchor="middle">Jugador B</text>
+<line x1="270" y1="53" x2="270" y2="680" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="450" y="15" width="140" height="38" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="520.0" y="39.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#2e7d32" text-anchor="middle">game</text>
+<line x1="520" y1="53" x2="520" y2="680" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="720" y="15" width="140" height="38" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="790.0" y="39.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#2e7d32" text-anchor="middle">users</text>
+<line x1="790" y1="53" x2="790" y2="680" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="4 4"/>
+<rect x="960" y="15" width="140" height="38" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="1030.0" y="39.0" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#e65100" text-anchor="middle">SNS → SQS</text>
+<line x1="1030" y1="53" x2="1030" y2="680" stroke="#b0bec5" stroke-width="1.2" stroke-dasharray="4 4"/>
+<line x1="90" y1="85" x2="520" y2="85" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="305.0" y="79" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">POST /api/games {rival, ritmo, color} → PENDING</text>
+<line x1="520" y1="120" x2="790" y2="120" stroke="#455a64" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#flecha)"/>
+<text x="655.0" y="114" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">nombre público y rating (/internal)</text>
+<line x1="270" y1="160" x2="520" y2="160" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="395.0" y="154" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">Mis partidas: ve el desafío y lo acepta → ACTIVE</text>
+<rect x="400" y="180" width="240" height="34" rx="8" fill="#fffde7" stroke="#9e9d24" stroke-width="1.6"/>
+<text x="520.0" y="202.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#9e9d24" text-anchor="middle">empieza a correr el reloj de blancas</text>
+<line x1="90" y1="245" x2="520" y2="245" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="305.0" y="239" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">GET /api/games/{id}?afterVersion=n  (espera ≤ 25 s)</text>
+<line x1="270" y1="285" x2="520" y2="285" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="395.0" y="279" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">GET …?afterVersion=n  (espera la jugada del rival)</text>
+<line x1="90" y1="325" x2="520" y2="325" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="305.0" y="319" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">POST /moves {uci}: valida la jugada, descuenta el reloj, suma incremento</text>
+<line x1="520" y1="360" x2="270" y2="360" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="395.0" y="354" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#2e7d32" text-anchor="middle">responde el long poll de B con la jugada (versión + 1)</text>
+<rect x="30" y="385" width="620" height="34" rx="8" fill="#fffde7" stroke="#9e9d24" stroke-width="1.6"/>
+<text x="340.0" y="407.0" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#9e9d24" text-anchor="middle">se repite jugada a jugada · tablas, abandono, y un barrido cada 1 s cierra por tiempo aunque nadie esté conectado</text>
+<rect x="390" y="440" width="260" height="50" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="520.0" y="460" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#2e7d32" text-anchor="middle">fin de la partida</text>
+<text x="520.0" y="477" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">mate, tablas, abandono o tiempo → PGN + ELO</text>
+<line x1="520" y1="520" x2="1030" y2="520" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="775.0" y="514" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">elo.updated × 2 (PLATFORM, source GAME) + game.finished</text>
+<line x1="1030" y1="560" x2="790" y2="560" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="910.0" y="554" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">cola users-elo (idempotente)</text>
+<rect x="665" y="580" width="250" height="42" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
+<text x="790.0" y="600" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#2e7d32" text-anchor="middle">actualiza rating de plataforma</text>
+<text x="790.0" y="617" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">e historial de ambos jugadores</text>
+<line x1="90" y1="650" x2="790" y2="650" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<text x="440.0" y="644" font-family="Helvetica, Arial, sans-serif" font-size="10.5" fill="#455a64" text-anchor="middle">GET /api/users/me → Mi inicio muestra el nuevo rating y el gráfico</text>
+</svg>

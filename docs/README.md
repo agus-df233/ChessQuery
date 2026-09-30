@@ -4,6 +4,7 @@
 
 | Documento | Para qué |
 |---|---|
+| `arquitectura/arquitectura-v3.md` (+ PDF) | **Empezar acá:** diagrama completo, partida 1 vs 1, flujo del organizador, eventos, Terraform paso a paso y el ETL con Lambda (`make arquitectura-docs`) |
 | `adr/0001-arquitectura-v3.md` | Arquitectura de la v3 y por qué |
 | `adr/0002-despliegue-aws-bajo-costo.md` | Despliegue en AWS, bus SNS/SQS, Terraform; enmiendas: Learner Lab, tiempo real por long polling, CI/Trivy/Dependabot |
 | `events.md` | Catálogo de eventos entre servicios: **fuente de verdad**, se edita antes de codificar |
