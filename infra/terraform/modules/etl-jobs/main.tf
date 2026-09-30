@@ -57,11 +57,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "etl" {
   }
 }
 
+# El zip debe llevar la carpeta del paquete (chessquery_etl/...) en su raíz: los handlers se importan como
+# `chessquery_etl.handler` y el código usa imports relativos. Con `source_dir` el zip quedaba con los archivos
+# sueltos y la Lambda fallaba con ImportModuleError. Solo se empaquetan los .py (el paquete no tiene otros archivos).
 data "archive_file" "etl" {
   type        = "zip"
-  source_dir  = var.source_dir
   output_path = "${path.root}/.build/chessquery-etl.zip"
-  excludes    = ["**/__pycache__/**", "**/*.pyc"]
+
+  dynamic "source" {
+    for_each = fileset(var.source_dir, "**/*.py")
+    content {
+      content  = file("${var.source_dir}/${source.value}")
+      filename = "chessquery_etl/${source.value}"
+    }
+  }
 }
 
 locals {
