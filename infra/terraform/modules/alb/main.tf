@@ -67,15 +67,14 @@ resource "aws_lb_listener" "http" {
 }
 
 # Un ALB acepta hasta 5 valores de condición por regla y la cabecera de origen ocupa uno: los paths de cada
-# servicio se reparten en reglas de a 4 (prioridad = listener_pri * 10 + n° de bloque). Un número de prioridad
-# menor se evalúa antes: los servicios con rutas más específicas (p. ej. /api/public/tournaments/*) deben tener
-# listener_pri menor que el que tiene el comodín (/api/public/* de users).
+# servicio se reparten en reglas de a 4 (prioridad = listener_pri * 10 + n° de bloque). Siempre de a 4, con o sin
+# cabecera: el tamaño no puede depender de `origin_secret`, que recién se conoce al aplicar (las claves de for_each
+# deben conocerse en el plan). Un número de prioridad menor se evalúa antes: los servicios con rutas más específicas
+# (p. ej. /api/public/tournaments/*) deben tener listener_pri menor que el que tiene el comodín (/api/public/* de users).
 locals {
-  # Solo se compara con null (un booleano, no revela el secreto): por eso puede ser no sensible.
-  paths_per_rule = nonsensitive(var.origin_secret == null) ? 5 : 4
   rules = merge([
     for svc, r in var.routes : {
-      for i, chunk in chunklist(r.paths, local.paths_per_rule) :
+      for i, chunk in chunklist(r.paths, 4) :
       "${svc}-${i}" => { service = svc, paths = chunk, priority = r.listener_pri * 10 + i }
     }
   ]...)

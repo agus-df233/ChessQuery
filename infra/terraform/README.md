@@ -5,7 +5,7 @@ código con dos entornos:
 
 | Entorno | Cuenta | Entrada (HTTPS) | IAM | Estado |
 |---|---|---|---|---|
-| `envs/academy` | AWS Academy Learner Lab | API Gateway HTTP API → ALB (`/api`) y S3 (web) | `LabRole` existente | `validate` OK; falta `plan` con torneos, partidas y Lambdas, y `apply` |
+| `envs/academy` | AWS Academy Learner Lab | API Gateway HTTP API → ALB (`/api`) y S3 (web) | `LabRole` existente | `plan` contra el lab OK (30-09-2026: 107 recursos, 0 cambios, 0 borrados); falta `apply` |
 | `envs/aws` | Cuenta propia | CloudFront → ALB y S3 privado | Roles propios + GitHub OIDC | pendiente |
 
 ```
