@@ -42,6 +42,8 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await a.getByRole('link', { name: new RegExp(`Luis ${luis.lastName}`) }).click();
   const perfilLuis = a.url();
   await a.getByRole('button', { name: 'Agregar amigo' }).click();
+  // Esperar a que la solicitud quede guardada: si Luis abre Amigos antes, no la ve (la página no se refresca sola)
+  await expect(a.getByRole('button', { name: 'Cancelar solicitud' })).toBeVisible();
   await l.goto('/app/amigos');
   await l.getByRole('button', { name: 'Aceptar' }).first().click();
   await expect(l.getByText(`Ana ${ana.lastName}`)).toBeVisible();
