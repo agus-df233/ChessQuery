@@ -51,6 +51,7 @@ public class RegistrationService {
     private final TournamentQueries queries;
     private final UsersClient users;
     private final Clock clock;
+    private final TournamentLive live;
 
     /** El jugador se inscribe a sí mismo con las reglas del torneo. */
     @Transactional
@@ -68,6 +69,7 @@ public class RegistrationService {
         RegistrationStatus status = full(t) ? RegistrationStatus.WAITLIST
                 : t.isRequiresApproval() ? RegistrationStatus.PENDING : RegistrationStatus.CONFIRMED;
         enroll(t, p, status);
+        live.changed(id);
         return queries.detail(id);
     }
 
@@ -77,6 +79,7 @@ public class RegistrationService {
         Tournament t = lifecycle.owned(me, id);
         requireOpen(t);
         enroll(t, users.player(playerId), RegistrationStatus.CONFIRMED);
+        live.changed(id);
         return queries.detail(id);
     }
 
@@ -91,6 +94,7 @@ public class RegistrationService {
         for (Long playerId : playerIds.stream().distinct().toList()) {
             report.add(bulkRow(t, playerId, found.get(playerId)));
         }
+        live.changed(id);
         return report;
     }
 
@@ -116,6 +120,7 @@ public class RegistrationService {
             throw ApiException.conflict("NOT_PENDING", "Esa inscripción no está pendiente");
         }
         r.setStatus(RegistrationStatus.CONFIRMED);
+        live.changed(id);
         return queries.detail(id);
     }
 
@@ -133,6 +138,7 @@ public class RegistrationService {
             registrations.flush();
             if (freedSeat) promoteWaitlist(t);
         });
+        live.changed(id);
         return queries.detail(id);
     }
 
@@ -150,6 +156,7 @@ public class RegistrationService {
         r.setStatus(RegistrationStatus.WITHDRAWN);
         r.setWithdrawnFromRound(rounds.findByTournamentIdOrderByNumberAsc(id).size() + 1);
         log.info("Torneo {}: jugador {} retirado desde la ronda {}", id, playerId, r.getWithdrawnFromRound());
+        live.changed(id);
         return queries.detail(id);
     }
 
@@ -161,6 +168,7 @@ public class RegistrationService {
         Registration r = registrations.findByCheckinCode(code == null ? "" : code.trim())
                 .filter(x -> x.getTournamentId() == id)
                 .orElseThrow(() -> ApiException.notFound("CODE_NOT_FOUND", "Ese código no es de una inscripción de este torneo"));
+        live.changed(id);
         return checkin(r);
     }
 
@@ -168,6 +176,7 @@ public class RegistrationService {
     @Transactional
     public CheckinResult checkinManually(UserPrincipal me, long id, long playerId) {
         requireOpen(lifecycle.owned(me, id));
+        live.changed(id);
         return checkin(require(id, playerId));
     }
 
@@ -176,6 +185,7 @@ public class RegistrationService {
         requireOpen(lifecycle.owned(me, id));
         Registration r = require(id, playerId);
         r.setCheckedInAt(null);
+        live.changed(id);
         return RegistrationView.of(r);
     }
 

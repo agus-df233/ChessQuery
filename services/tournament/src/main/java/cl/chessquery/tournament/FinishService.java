@@ -41,6 +41,7 @@ public class FinishService {
     private final TournamentQueries queries;
     private final UsersClient users;
     private final EventPublisher events;
+    private final TournamentLive live;
 
     @Transactional
     public List<StandingView> finish(UserPrincipal me, long id) {
@@ -58,6 +59,7 @@ public class FinishService {
                 "standings", table.stream().map(r -> Map.of("playerId", r.player().playerId(),
                         "position", r.position(), "points", r.points())).toList()));
         log.info("Torneo {} cerrado ({} jugadores, rating {})", id, table.size(), t.isRated());
+        live.changed(id);
         return table;
     }
 

@@ -30,7 +30,7 @@ export const StandingsCard = ({ rows }: { rows: StandingView[] }) => {
   ];
   return (
     <Card header="Clasificación" padded={false}>
-      <Table columns={columns} rows={rows} rowKey={(r) => r.player.playerId} emptyMessage="Aún no hay resultados." />
+      <Table label="Clasificación" columns={columns} rows={rows} rowKey={(r) => r.player.playerId} emptyMessage="Aún no hay resultados." />
       <p className="cq-muted" style={{ padding: '8px 16px', margin: 0 }}>
         Bu-1: Buchholz sin el peor rival · Bu: Buchholz · SB: Sonneborn-Berger · V: victorias
       </p>
@@ -49,7 +49,7 @@ export const PlayersCard = ({ players }: { players: EntryView[] }) => {
   ];
   return (
     <Card header={`Inscritos (${players.length})`} padded={false}>
-      <Table columns={columns} rows={players} rowKey={(e) => e.player.playerId} emptyMessage="Todavía no hay inscritos." />
+      <Table label="Inscritos" columns={columns} rows={players} rowKey={(e) => e.player.playerId} emptyMessage="Todavía no hay inscritos." />
     </Card>
   );
 };
@@ -66,7 +66,7 @@ export const RoundCard = ({ round, renderResult }: {
   ];
   return (
     <Card header={`Ronda ${round.number}${round.complete ? '' : ' · en juego'}`} padded={false}>
-      <Table columns={columns} rows={round.boards} rowKey={(b) => b.board} />
+      <Table label={`Mesas de la ronda ${round.number}`} columns={columns} rows={round.boards} rowKey={(b) => b.board} />
     </Card>
   );
 };

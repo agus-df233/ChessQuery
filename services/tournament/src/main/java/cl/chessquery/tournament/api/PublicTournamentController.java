@@ -6,6 +6,7 @@ import cl.chessquery.tournament.domain.FederationTournament;
 import cl.chessquery.tournament.domain.Status;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 
 import java.util.List;
 
@@ -30,6 +31,20 @@ public class PublicTournamentController {
     @GetMapping("/{id}")
     public Detail detail(@PathVariable long id) {
         return queries.detail(id);
+    }
+
+    /**
+     * En vivo para la pantalla de la sala y los apoderados: detalle, rondas y tabla con su versión. Con
+     * {@code afterVersion}, long polling: responde apenas el torneo cambie (o a los 25 s con el estado actual).
+     */
+    @GetMapping(value = "/{id}/live", params = "!afterVersion")
+    public LiveView live(@PathVariable long id) {
+        return queries.live(id);
+    }
+
+    @GetMapping(value = "/{id}/live", params = "afterVersion")
+    public DeferredResult<LiveView> watch(@PathVariable long id, @RequestParam long afterVersion) {
+        return queries.watch(id, afterVersion);
     }
 
     @GetMapping("/{id}/rounds")

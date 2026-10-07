@@ -8,7 +8,7 @@ GraphQL y datos ficticios.
 make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala-apoderado.spec.ts`, `roster-invitacion.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
@@ -45,6 +45,19 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organiz
 4. El día del torneo: **acreditación** con el código de la credencial y a mano desde la lista; uno no llega.
 5. La **ronda 1** empareja solo a los 4 acreditados; el ausente queda como **"no se presentó"**.
 6. Una jugadora se **retira**: la ronda 2 empareja a los 3 que siguen (mesa + bye) y la vista pública muestra el retiro.
+
+### La sala del torneo en vivo (`sala-apoderado.spec.ts`)
+1. El organizador genera la ronda 1; la **pantalla del monitor** (`/torneos/:id/pantalla`, sin login, 1920×1080)
+   muestra los emparejamientos en grande y un **QR** para seguir el torneo desde el celular.
+2. Un **apoderado sin cuenta**, en su celular (375 px), busca a su hijo y lo **sigue**: ve su mesa, color y rival.
+3. El organizador carga los resultados: la pantalla (con la rotación en pausa) y el celular se **actualizan solos**,
+   sin recargar (long polling por versión del torneo); el apoderado ve el resultado y su posición en la tabla.
+
+### Roster e invitación a reclamar el perfil (`roster-invitacion.spec.ts`)
+1. El organizador importa a una alumna por **CSV en el servidor** y la **inscribe en un torneo** en el mismo paso.
+2. Genera su **invitación** (enlace + QR, un solo uso, 30 días).
+3. La alumna abre el enlace **sin sesión**, entra con su cuenta (otro email) y **reclama** su perfil.
+4. El torneo pasa a su cuenta (`player.merged` → tournament reescribe la inscripción).
 
 ### Sala de juego: la clase en el colegio (`sala.spec.ts`)
 1. El profesor crea su club y abre una **sala de 2 tableros con cupo 5**; se ven el **código** y el **QR**.

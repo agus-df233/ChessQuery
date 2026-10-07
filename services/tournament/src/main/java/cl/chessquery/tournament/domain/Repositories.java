@@ -16,6 +16,13 @@ public final class Repositories {
     private Repositories() {}
 
     public interface Tournaments extends JpaRepository<Tournament, Long> {
+        @Modifying
+        @Query("update Tournament t set t.version = t.version + 1 where t.id = :id")
+        int bumpVersion(@Param("id") Long id);
+
+        @Query("select t.version from Tournament t where t.id = :id")
+        Optional<Long> findVersionById(@Param("id") Long id);
+
         List<Tournament> findByOrganizerIdOrderByStartDateDesc(Long organizerId);
         List<Tournament> findByStatusInOrderByStartDateAsc(Collection<Status> statuses);
         List<Tournament> findByIdInOrderByStartDateDesc(Collection<Long> ids);

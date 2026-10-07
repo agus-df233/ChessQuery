@@ -47,6 +47,13 @@ public class Tournament {
     /** Quien no se acredita el día del torneo no juega la ronda 1. */
     private boolean checkinRequired;
 
+    /**
+     * Versión para el tiempo real: la sube {@code TournamentLive} con un UPDATE atómico. Solo lectura para Hibernate:
+     * si la escribiera al guardar el torneo, pisaría el aumento con el valor que tenía al cargarlo.
+     */
+    @Column(insertable = false, updatable = false)
+    private long version;
+
     @Enumerated(EnumType.STRING)
     private Status status = Status.OPEN;
 

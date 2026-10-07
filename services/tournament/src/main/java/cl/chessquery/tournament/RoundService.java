@@ -38,6 +38,7 @@ public class RoundService {
     private final TournamentLoader loader;
     private final TournamentQueries queries;
     private final EventPublisher events;
+    private final TournamentLive live;
 
     @Transactional
     public RoundView generate(UserPrincipal me, long id) {
@@ -59,6 +60,7 @@ public class RoundService {
         events.publish(TournamentEvents.ROUND_GENERATED, Map.of("tournamentId", id, "round", number,
                 "pairings", saved.stream().map(RoundService::eventBoard).toList()));
         log.info("Torneo {}: ronda {} generada ({} mesas, {} no presentados)", id, number, saved.size(), noShows);
+        live.changed(id);
         return queries.round(id, number);
     }
 
@@ -141,6 +143,7 @@ public class RoundService {
             throw ApiException.badRequest("INVALID_RESULT", "El bye no lleva resultado");
         }
         p.setResult(result);
+        live.changed(id);
         return queries.round(id, number);
     }
 }

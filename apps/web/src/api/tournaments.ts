@@ -1,6 +1,6 @@
 import { http } from './client';
 import type {
-  BulkRow, CheckinResult, FederationTournament, GameResult, MyTournaments, RegistrationView, RoundView, StandingView,
+  BulkRow, CheckinResult, FederationTournament, GameResult, LiveView, MyTournaments, RegistrationView, RoundView, StandingView,
   TournamentDetail, TournamentRequest, TournamentStatus, TournamentView,
 } from './tournamentTypes';
 
@@ -46,4 +46,9 @@ export const publicTournamentsApi = {
   rounds: (id: number) => http.get<RoundView[]>(`/api/public/tournaments/${id}/rounds`).then((r) => r.data),
   standings: (id: number) => http.get<StandingView[]>(`/api/public/tournaments/${id}/standings`).then((r) => r.data),
   calendar: () => http.get<FederationTournament[]>('/api/public/tournaments/calendar').then((r) => r.data),
+  live: (id: number) => http.get<LiveView>(`/api/public/tournaments/${id}/live`).then((r) => r.data),
+  /** Long polling: vuelve apenas el torneo pasa de `version` (o a los 25 s con el estado actual). */
+  waitLive: (id: number, version: number, signal?: AbortSignal) =>
+    http.get<LiveView>(`/api/public/tournaments/${id}/live`, { params: { afterVersion: version }, timeout: 35_000, signal })
+      .then((r) => r.data),
 };

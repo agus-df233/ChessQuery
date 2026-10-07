@@ -51,6 +51,8 @@ vi.mock('./api/tournaments', () => ({
     detail: vi.fn().mockResolvedValue(fx.detail),
     rounds: vi.fn().mockResolvedValue([fx.round]),
     standings: vi.fn().mockResolvedValue(fx.standings),
+    live: vi.fn().mockResolvedValue({ version: 3, detail: fx.detail, rounds: [fx.round], standings: fx.standings }),
+    waitLive: vi.fn(() => new Promise(() => undefined)),
     calendar: vi.fn().mockResolvedValue([{ federationTournamentId: '901', title: 'Nacional Juvenil', city: 'Temuco', region: null,
       clubName: null, startDate: '2026-11-10', endDate: null, type: 'Suizo', rounds: 7, timeControl: '90+30', category: null,
       ratedNational: true, ratedFide: true }]),
@@ -80,6 +82,7 @@ import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTour
 import { OrganizerCheckin } from './pages/OrganizerCheckin';
 import { OrganizerCredentials } from './pages/OrganizerCredentials';
 import { TournamentPage } from './pages/Tournaments';
+import { TournamentScreen, panelsOf } from './pages/TournamentScreen';
 import { publicTournamentsApi } from './api/tournaments';
 
 const renderAt = (path: string, pattern: string, ui: React.ReactElement) => render(
@@ -141,6 +144,7 @@ describe('torneos: vistas', () => {
 
   it('organizador: inscripciones por estado; aprobar y rechazar con el torneo abierto', async () => {
     vi.mocked(publicTournamentsApi.detail).mockResolvedValue({ ...fx.detail, tournament: fx.openT }); // sigue abierto al recargar
+    vi.mocked(publicTournamentsApi.live).mockResolvedValue({ version: 1, detail: { ...fx.detail, tournament: fx.openT }, rounds: [], standings: [] });
     const { container } = renderAt('/club/torneos/5', '/club/torneos/:id', <OrganizerTournament />);
     expect(await screen.findByText('Esperan tu aprobación (1)')).toBeInTheDocument();
     expect(screen.getByText('Lista de espera (entran solos si se libera un cupo) (1)')).toBeInTheDocument();
@@ -154,6 +158,7 @@ describe('torneos: vistas', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Aprobar' })[0]);
     await vi.waitFor(() => expect(tournamentsApi.approve).toHaveBeenCalledWith(5, 13));
     vi.mocked(publicTournamentsApi.detail).mockResolvedValue(fx.detail);
+    vi.mocked(publicTournamentsApi.live).mockResolvedValue({ version: 3, detail: fx.detail, rounds: [fx.round], standings: fx.standings });
   });
 
   it('organizador: durante el torneo retira a un jugador', async () => {
@@ -196,6 +201,35 @@ describe('torneos: vistas', () => {
     expect(await screen.findByRole('img', { name: 'Mi QR de acreditación' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
     vi.mocked(publicTournamentsApi.detail).mockResolvedValue(fx.detail);
+  });
+
+  it('pantalla de la sala: emparejamientos en grande, QR para seguir y rotación que se puede pausar', async () => {
+    const { container } = renderAt('/torneos/5/pantalla', '/torneos/:id/pantalla', <TournamentScreen />);
+    expect(await screen.findByText('Ronda 1 · emparejamientos')).toBeInTheDocument();
+    expect(await screen.findByRole('img', { name: 'QR para seguir el torneo desde el celular' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar rotación' }));
+    expect(screen.getByRole('button', { name: 'Reanudar rotación' })).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('pantalla de la sala: un panel por cada 12 filas de mesas y de tabla', () => {
+    const live = { version: 1, detail: fx.detail, rounds: [fx.round], standings: fx.standings };
+    expect(panelsOf(live)).toEqual([{ kind: 'boards', page: 0 }, { kind: 'standings', page: 0 }]);
+    const many = { ...fx.round, boards: Array.from({ length: 13 }, (_, i) => ({ ...fx.round.boards[0], board: i + 1 })) };
+    expect(panelsOf({ ...live, rounds: [many], standings: [] })).toEqual([{ kind: 'boards', page: 0 }, { kind: 'boards', page: 1 }]);
+    expect(panelsOf({ ...live, rounds: [], standings: [] })).toEqual([]);
+  });
+
+  it('apoderado: sigue a un jugador sin cuenta y ve su mesa de la ronda en curso', async () => {
+    localStorage.clear();
+    const { container } = renderAt('/torneos/5', '/torneos/:id', <PublicTournamentDetail />);
+    fireEvent.change(await screen.findByLabelText('Busca a tu hijo, a un amigo o a cualquier jugador'), { target: { value: 'luis' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Seguir a Luis Paz' }));
+    expect(await screen.findByText(/mesa 1, con negras contra Ana Soto · en juego/)).toBeInTheDocument();
+    expect(localStorage.getItem('cq-follow-5')).toBe('12');
+    expect(await axe(container)).toHaveNoViolations();
+    fireEvent.click(screen.getByRole('button', { name: 'Dejar de seguir' }));
+    expect(localStorage.getItem('cq-follow-5')).toBeNull();
   });
 
   it('jugador: ve su mesa de la ronda en curso', () => {

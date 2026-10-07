@@ -166,7 +166,8 @@ const OrganizerActions = ({ d }: { d: TournamentDetail }) => {
       <div className="cq-actions" style={{ marginTop: 12 }}>
         <RoundButtons t={t} />
         {t.status !== 'OPEN' && <Button variant="secondary" onClick={() => void downloadTrf(t.id)}>Exportar TRF</Button>}
-        <Link to={`/torneos/${t.id}`} target="_blank">Vista pública para la sala ↗</Link>
+        <Link to={`/torneos/${t.id}/pantalla`} target="_blank">Pantalla para la sala (monitor) ↗</Link>
+        <Link to={`/torneos/${t.id}`} target="_blank">Vista pública ↗</Link>
       </div>
     </Card>
   );

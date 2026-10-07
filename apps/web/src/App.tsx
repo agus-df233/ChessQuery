@@ -17,6 +17,7 @@ import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTour
 import { OrganizerRoom, OrganizerRooms } from './pages/OrganizerRooms';
 import { RoomPage, Rooms } from './pages/Rooms';
 import { OpenChallengePage } from './pages/OpenChallengePage';
+import { TournamentScreen } from './pages/TournamentScreen';
 import { ClaimInvite } from './pages/ClaimInvite';
 import { OrganizerCheckin } from './pages/OrganizerCheckin';
 import { OrganizerCredentials } from './pages/OrganizerCredentials';
@@ -28,6 +29,7 @@ export const App = () => (
     <Route path="/ranking" element={<PublicRanking />} />
     <Route path="/torneos" element={<PublicTournaments />} />
     <Route path="/torneos/:id" element={<PublicTournamentDetail />} />
+    <Route path="/torneos/:id/pantalla" element={<TournamentScreen />} />
     <Route path="/app/*" element={<RequireAuth><Layout><Routes>
       <Route index element={<Dashboard />} />
       <Route path="perfil" element={<ProfileEdit />} />

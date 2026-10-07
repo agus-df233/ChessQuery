@@ -30,6 +30,7 @@ public class TournamentService {
     private final Repositories.Tournaments tournaments;
     private final TournamentLoader loader;
     private final TournamentQueries queries;
+    private final TournamentLive live;
     private final UsersClient users;
 
     @Transactional
@@ -56,6 +57,7 @@ public class TournamentService {
         Tournament t = owned(me, id);
         requireOpen(t);
         apply(t, req);
+        live.changed(id);
         return queries.detail(id);
     }
 

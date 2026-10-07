@@ -4,6 +4,7 @@ import { ErrorAlert, Skeleton } from '@chessquery/ui-lib';
 import { publicTournamentsApi } from '../../api/tournaments';
 import type { RoundView, TournamentDetail } from '../../api/tournamentTypes';
 import { PlayersCard, RoundCard, StandingsCard, TournamentHeader } from './TournamentViews';
+import { useLiveTournament } from './useLiveTournament';
 
 /**
  * Claves de caché de un torneo; el organizador las invalida al cambiar algo. Incluye las inscripciones: generar la
@@ -12,15 +13,17 @@ import { PlayersCard, RoundCard, StandingsCard, TournamentHeader } from './Tourn
 export const tournamentKeys = (id: number) => [['tournament', id], ['tournament-rounds', id], ['tournament-standings', id],
   ['tournament-registrations', id]];
 
-/** Datos de un torneo desde la API pública. En juego se refresca cada 20 s (la sala mira la pantalla). */
+/**
+ * Datos de un torneo desde la API pública, siempre al día: {@link useLiveTournament} escucha los cambios (long polling
+ * por versión) y actualiza estas mismas cachés, así que la sala, los apoderados y el organizador ven cada resultado sin
+ * recargar.
+ */
 export const useTournament = (id: number) => {
-  const live = (d?: TournamentDetail) => (d?.tournament.status === 'IN_PROGRESS' ? 20_000 : false);
-  const detail = useQuery({ queryKey: ['tournament', id], queryFn: () => publicTournamentsApi.detail(id), refetchInterval: (q) => live(q.state.data) });
+  useLiveTournament(id);
+  const detail = useQuery({ queryKey: ['tournament', id], queryFn: () => publicTournamentsApi.detail(id) });
   const inPlay = detail.data?.tournament.status !== 'OPEN';
-  const rounds = useQuery({ queryKey: ['tournament-rounds', id], queryFn: () => publicTournamentsApi.rounds(id), enabled: inPlay,
-    refetchInterval: live(detail.data) });
-  const standings = useQuery({ queryKey: ['tournament-standings', id], queryFn: () => publicTournamentsApi.standings(id), enabled: inPlay,
-    refetchInterval: live(detail.data) });
+  const rounds = useQuery({ queryKey: ['tournament-rounds', id], queryFn: () => publicTournamentsApi.rounds(id), enabled: inPlay });
+  const standings = useQuery({ queryKey: ['tournament-standings', id], queryFn: () => publicTournamentsApi.standings(id), enabled: inPlay });
   return { detail, rounds, standings };
 };
 

@@ -27,6 +27,9 @@ export interface StandingView {
   position: number; player: PlayerRef; points: number; buchholzCut1: number; buchholz: number;
   sonnebornBerger: number; wins: number; played: number;
 }
+/** Todo lo de la pantalla de la sala con su versión (long polling: GET …/live?afterVersion=n). */
+export interface LiveView { version: number; detail: TournamentDetail; rounds: RoundView[]; standings: StandingView[] }
+
 export interface MyTournaments { organized: TournamentView[]; registered: TournamentView[] }
 
 export interface TournamentRequest {

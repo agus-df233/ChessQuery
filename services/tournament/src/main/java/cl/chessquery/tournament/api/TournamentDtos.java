@@ -108,4 +108,7 @@ public final class TournamentDtos {
                                double sonnebornBerger, int wins, int played) {}
 
     public record Mine(List<TournamentView> organized, List<TournamentView> registered) {}
+
+    /** Todo lo que muestra la pantalla de la sala, de una vez y con su versión (long polling). */
+    public record LiveView(long version, Detail detail, List<RoundView> rounds, List<StandingView> standings) {}
 }
