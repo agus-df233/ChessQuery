@@ -15,6 +15,11 @@ export interface TableProps<T> {
   emptyMessage?: string;
   /** O6-03: fila resaltada (p.ej. mesa activa para atajos de teclado). */
   activeRowKey?: string | number;
+  /**
+   * Nombre de la tabla. El contenedor con desplazamiento horizontal (pantallas angostas) es una región enfocable con
+   * este nombre, para poder desplazarla con el teclado (WCAG 2.1.1).
+   */
+  label?: string;
 
   // Pagination (optional, server-side)
   page?: number;
@@ -28,13 +33,14 @@ export function Table<T>({
   rowKey,
   emptyMessage = 'Sin resultados',
   activeRowKey,
+  label = 'Tabla',
   page,
   totalPages,
   onPageChange,
 }: TableProps<T>) {
   return (
     <div>
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label={label}>
         <table>
           <thead>
             <tr>

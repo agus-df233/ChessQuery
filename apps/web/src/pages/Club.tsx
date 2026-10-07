@@ -207,7 +207,7 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
   ];
   return (
     <Card header={`Roster (${active.length} activos)`} padded={false}>
-      <Table columns={columns} rows={active} rowKey={(p) => p.id} emptyMessage="Tu roster está vacío." />
+      <Table label="Roster del club" columns={columns} rows={active} rowKey={(p) => p.id} emptyMessage="Tu roster está vacío." />
       {invite.data && <InviteBox invite={invite.data} />}
       <StatusMessage error={deactivate.error ?? tags.error ?? invite.error} />
     </Card>

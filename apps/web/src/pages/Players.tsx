@@ -33,7 +33,7 @@ export const PlayerSearch = () => {
       {results.error && <ErrorAlert message="No se pudo buscar" onRetry={() => void results.refetch()} />}
       {results.data && (results.data.length === 0
         ? <EmptyState title="Sin resultados" description="Prueba con otro nombre o revisa el RUT." />
-        : <Card padded={false}><Table columns={columns} rows={results.data} rowKey={(r) => r.id} /></Card>)}
+        : <Card padded={false}><Table label="Resultados de la búsqueda" columns={columns} rows={results.data} rowKey={(r) => r.id} /></Card>)}
     </div>
   );
 };

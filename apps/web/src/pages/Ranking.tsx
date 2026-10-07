@@ -48,7 +48,7 @@ export const Ranking = ({ publicView = false }: { publicView?: boolean }) => {
       </div>
       {ranking.isLoading && <Skeleton height={200} />}
       {ranking.error && <ErrorAlert message="No se pudo cargar el ranking" onRetry={() => void ranking.refetch()} />}
-      {ranking.data && <Card padded={false}><Table columns={columns} rows={ranking.data} rowKey={(r) => r.playerId} emptyMessage={`Nadie con rating ${typeInfo.label.toLowerCase()} en ese filtro.`} /></Card>}
+      {ranking.data && <Card padded={false}><Table label="Ranking" columns={columns} rows={ranking.data} rowKey={(r) => r.playerId} emptyMessage={`Nadie con rating ${typeInfo.label.toLowerCase()} en ese filtro.`} /></Card>}
     </div>
   );
 };
