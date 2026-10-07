@@ -55,6 +55,7 @@ public class GameService {
         g.setFen(ChessRules.INITIAL_FEN);
         g.setWhiteMs(g.getInitialSeconds() * 1000L);
         g.setBlackMs(g.getInitialSeconds() * 1000L);
+        g.setCreatedAt(clock.instant()); // el vencimiento del desafío (GameSweeper) se mide con este mismo reloj
         games.save(g);
         log.info("Jugador {} desafió a {} (partida {})", me.playerId(), req.opponentId(), g.getId());
         return view(g);
