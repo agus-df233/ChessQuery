@@ -71,12 +71,13 @@ test('organizador: club, roster, torneo suizo completo, TRF y vista pública', a
   expect(trf.startsWith(`012 Abierto E2E ${RUN}`)).toBe(true);
   expect(trf.split('\n').filter((l) => l.startsWith('001'))).toHaveLength(5);
 
-  // El cierre actualiza los datos del jugador: su ficha muestra el rating de plataforma (elo.updated → users)
+  // El cierre actualiza los datos del jugador: el torneo es 60+30 (clásico), así que su ficha muestra el ELO
+  // ChessQuery clásico (elo.updated con PLATFORM_CLASSICAL → users)
   await page.goto('/app/jugadores');
   await page.getByLabel('Buscar jugador').fill(`Beto Roster${RUN}`);
   await page.getByRole('button', { name: 'Buscar' }).click();
   await page.getByRole('link', { name: new RegExp(`Beto Roster${RUN}`) }).click();
-  await reloadUntil(page, 'Plataforma');
+  await reloadUntil(page, /^Clásica$/);
   await expect(page.getByRole('region', { name: 'Ratings ChessQuery' })).toContainText(/\d{3,4}/);
   await captureBoth(page, 'ficha-jugador-roster');
 

@@ -3,6 +3,8 @@ package cl.chessquery.tournament.users;
 import cl.chessquery.auth.AuthProperties;
 import cl.chessquery.auth.InternalHttp;
 import cl.chessquery.common.api.ApiException;
+import cl.chessquery.common.rating.PlatformRatings;
+import cl.chessquery.common.rating.TimeControlCategory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -23,13 +25,19 @@ public class UsersClient {
 
     /** Resumen de users ({@code PlayerDtos.Summary}); {@code publicLastName} ya abrevia a los menores. */
     public record PlayerSummary(Long id, String firstName, String lastName, String publicLastName, String currentTitle,
-                                String clubName, Integer eloNational, Integer eloFideStandard, Integer eloPlatform,
+                                String clubName, Integer eloNational, Integer eloFideStandard, PlatformRatings platform,
                                 String fideId, String federationId, Integer birthYear, String gender,
                                 boolean provisional, Long createdByOrganizerId, boolean hasAccount) {
 
-        /** Rating para sembrar: plataforma → nacional → FIDE → 1500. */
-        public int seedRating() {
-            if (eloPlatform != null) return eloPlatform;
+        /** ELO ChessQuery del ritmo, o null si nunca jugó ese ritmo por rating (entonces su K es la de provisional). */
+        public Integer platformRating(TimeControlCategory category) {
+            return platform == null ? null : platform.of(category);
+        }
+
+        /** Rating para sembrar un torneo de ese ritmo: ChessQuery del ritmo → nacional → FIDE → 1500. */
+        public int seedRating(TimeControlCategory category) {
+            Integer own = platformRating(category);
+            if (own != null) return own;
             if (eloNational != null) return eloNational;
             return eloFideStandard != null ? eloFideStandard : 1500;
         }

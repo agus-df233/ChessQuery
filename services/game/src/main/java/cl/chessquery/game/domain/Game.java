@@ -1,5 +1,6 @@
 package cl.chessquery.game.domain;
 
+import cl.chessquery.common.rating.TimeControlCategory;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -65,6 +66,11 @@ public class Game {
     private Instant createdAt = Instant.now();
     private Instant startedAt;
     private Instant finishedAt;
+
+    /** Ritmo de la partida: define qué ELO ChessQuery se usa y se actualiza. */
+    public TimeControlCategory category() {
+        return TimeControlCategory.of(initialSeconds, incrementSeconds);
+    }
 
     public static List<String> split(String moves) {
         return moves == null || moves.isBlank() ? List.of() : Arrays.asList(moves.trim().split(" "));

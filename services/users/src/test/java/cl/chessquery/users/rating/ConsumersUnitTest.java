@@ -38,7 +38,7 @@ class ConsumersUnitTest {
         c.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", 1)));
         c.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", 1, "newElo", 10, "ratingType", "NOPE")));
         when(players.findById(7L)).thenReturn(Optional.empty());
-        c.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", "7", "newElo", "10", "ratingType", "PLATFORM")));
+        c.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", "7", "newElo", "10", "ratingType", "PLATFORM_RAPID")));
         verifyNoInteractions(ratings);
     }
 

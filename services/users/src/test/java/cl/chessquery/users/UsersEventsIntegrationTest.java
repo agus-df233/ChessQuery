@@ -98,13 +98,13 @@ class UsersEventsIntegrationTest {
 
     @Test
     void eloUpdatedTravelsThroughSnsAndSqsIntoThePlayerRating() {
-        Player p = players.save(Player.builder().firstName("Tomás").lastName("Rivas").eloPlatform(1200).build());
+        Player p = players.save(Player.builder().firstName("Tomás").lastName("Rivas").eloPlatformBlitz(1200).build());
 
         events.publish(UsersEvents.ELO_UPDATED, Map.of("playerId", p.getId(), "oldElo", 1200, "newElo", 1216,
-                "delta", 16, "ratingType", "PLATFORM", "gameId", 42));
+                "delta", 16, "ratingType", "PLATFORM_BLITZ", "gameId", 42));
 
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() ->
-                assertThat(players.findById(p.getId()).orElseThrow().getEloPlatform()).isEqualTo(1216));
+                assertThat(players.findById(p.getId()).orElseThrow().getEloPlatformBlitz()).isEqualTo(1216));
         assertThat(processed.count()).isEqualTo(1);
     }
 }

@@ -27,9 +27,11 @@ public class RankingService {
 
     public static final int MAX_LIMIT = 200;
 
-    /** Tipos por los que se puede rankear: el nacional (federación) y los tres de FIDE. */
+    /** Tipos por los que se puede rankear: el nacional (federación), los tres de FIDE y el ELO ChessQuery por ritmo. */
     public static final Set<RatingType> RANKED = EnumSet.of(
-            RatingType.NATIONAL, RatingType.FIDE_STANDARD, RatingType.FIDE_RAPID, RatingType.FIDE_BLITZ);
+            RatingType.NATIONAL, RatingType.FIDE_STANDARD, RatingType.FIDE_RAPID, RatingType.FIDE_BLITZ,
+            RatingType.PLATFORM_BULLET, RatingType.PLATFORM_BLITZ, RatingType.PLATFORM_RAPID,
+            RatingType.PLATFORM_CLASSICAL);
 
     private final PlayerRepository players;
     private final PlayerTitleRepository titles;

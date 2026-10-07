@@ -1,4 +1,5 @@
 /** Contratos del servicio game (espejo de GameDtos.java). */
+import type { TimeControlCategory } from '../lib/timeControl';
 
 export type GameStatus = 'PENDING' | 'ACTIVE' | 'FINISHED' | 'DECLINED' | 'CANCELLED' | 'EXPIRED';
 export type Outcome = 'WHITE_WINS' | 'BLACK_WINS' | 'DRAW';
@@ -8,7 +9,7 @@ export interface GameSide { playerId: number; name: string; ratingBefore: number
 
 export interface GameView {
   id: number; status: GameStatus; white: GameSide; black: GameSide; challengerId: number;
-  initialSeconds: number; incrementSeconds: number; rated: boolean; fen: string; moves: string[]; san: string[];
+  initialSeconds: number; incrementSeconds: number; category: TimeControlCategory; rated: boolean; fen: string; moves: string[]; san: string[];
   ply: number; sideToMove: 'WHITE' | 'BLACK'; drawOfferBy: number | null; result: Outcome | null;
   termination: string | null; terminationLabel: string | null; version: number; createdAt: string; finishedAt: string | null;
 }

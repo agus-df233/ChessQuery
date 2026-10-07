@@ -1,5 +1,6 @@
 package cl.chessquery.tournament.api;
 
+import cl.chessquery.common.rating.TimeControlCategory;
 import cl.chessquery.tournament.domain.Format;
 import cl.chessquery.tournament.domain.Registration;
 import cl.chessquery.tournament.domain.Result;
@@ -22,7 +23,8 @@ public final class TournamentDtos {
     public record UpsertRequest(@NotBlank @Size(max = 160) String name, @Size(max = 100) String city,
                                 @Size(max = 100) String region, @NotNull LocalDate startDate, LocalDate endDate,
                                 @NotNull Format format, @Min(1) @Max(30) int rounds,
-                                @Size(max = 40) String timeControl, Boolean rated) {}
+                                @Size(max = 40) String timeControl, Boolean rated,
+                                @Min(1) @Max(300) Integer baseMinutes, @Min(0) @Max(180) Integer incrementSeconds) {}
 
     public record RegisterRequest(@NotNull Long playerId) {}
 
@@ -30,12 +32,14 @@ public final class TournamentDtos {
 
     public record TournamentView(Long id, String name, String city, String region, LocalDate startDate,
                                  LocalDate endDate, Format format, int roundsPlanned, int currentRound,
-                                 String timeControl, boolean rated, Status status, Long organizationId,
+                                 String timeControl, Integer baseMinutes, Integer incrementSeconds,
+                                 TimeControlCategory category, boolean rated, Status status, Long organizationId,
                                  int playerCount) {
 
         public static TournamentView of(Tournament t, int currentRound, int playerCount) {
             return new TournamentView(t.getId(), t.getName(), t.getCity(), t.getRegion(), t.getStartDate(),
-                    t.getEndDate(), t.getFormat(), t.getRoundsPlanned(), currentRound, t.getTimeControl(), t.isRated(),
+                    t.getEndDate(), t.getFormat(), t.getRoundsPlanned(), currentRound, t.getTimeControl(),
+                    t.getBaseMinutes(), t.getIncrementSeconds(), t.category(), t.isRated(),
                     t.getStatus(), t.getOrganizationId(), playerCount);
         }
     }

@@ -17,7 +17,7 @@ const fx = vi.hoisted(() => {
     id: 7, firstName: 'Ana', lastName: 'Soto', displayName: null, email: 'ana@x.cl', rut: '1-9', birthDate: null, gender: null,
     region: 'RM', country: { id: 1, isoCode: 'CHL', name: 'Chile', fideFederation: 'CHI' }, club: null,
     fideId: '123', federationId: null, lichessUsername: 'ana', chesscomUsername: null,
-    ratings: { national: 1500, fideStandard: null, fideRapid: null, fideBlitz: null, platform: 1420, lichessBullet: null,
+    ratings: { national: 1500, fideStandard: null, fideRapid: null, fideBlitz: null, platformBullet: null, platformBlitz: 1420, platformRapid: null, platformClassical: null, lichessBullet: null,
       lichessBlitz: 1600, lichessRapid: null, lichessClassical: null, chesscomBullet: null, chesscomBlitz: null, chesscomRapid: null, chesscomDaily: null },
     currentTitle: null, ageCategory: 'ADULTO', enrichmentSource: null, enrichedAt: null,
     provisional: false, createdByOrganizerId: null, active: true, tags: [], createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
@@ -39,7 +39,7 @@ vi.mock('./api/users', () => ({
     myRatingHistory: vi.fn().mockResolvedValue(fx.points),
     ratingHistory: vi.fn().mockResolvedValue(fx.points),
     publicProfile: vi.fn().mockResolvedValue({ ...fx.profile, email: undefined, rut: undefined }),
-    search: vi.fn().mockResolvedValue([{ id: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: 'FM', clubName: null, countryIso: 'CHL', fideId: null, eloNational: 1700, eloFideStandard: null, eloPlatform: null }]),
+    search: vi.fn().mockResolvedValue([{ id: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: 'FM', clubName: null, countryIso: 'CHL', fideId: null, eloNational: 1700, eloFideStandard: null, platform: { bullet: null, blitz: null, rapid: null, classical: null } }]),
     ranking: vi.fn().mockResolvedValue([{ position: 1, playerId: 8, firstName: 'Luis', lastName: 'Paz', currentTitle: null, region: 'RM', clubName: 'X', ratingType: 'NATIONAL', rating: 1700, eloNational: 1700, eloFideStandard: null, ageCategory: 'SUB_14' }]),
     countries: vi.fn().mockResolvedValue([]), clubs: vi.fn().mockResolvedValue([]),
     updateMyProfile: vi.fn(), syncExternalRatings: vi.fn(), linkFederation: vi.fn(), claim: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('./api/users', () => ({
     create: vi.fn(), update: vi.fn(), addToRoster: vi.fn(), updateTags: vi.fn(), deactivate: vi.fn(),
   },
   friendsApi: {
-    list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1700, eloPlatform: null, since: '2026-01-01T00:00:00Z' }]),
+    list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1700, platform: { bullet: null, blitz: null, rapid: null, classical: null }, since: '2026-01-01T00:00:00Z' }]),
     requests: vi.fn((d: string) => Promise.resolve(d === 'incoming'
       ? [{ requestId: 1, playerId: 10, firstName: 'Eva', lastName: 'Mora', eloNational: null, direction: 'INCOMING', createdAt: '2026-01-01T00:00:00Z' }]
       : [{ requestId: 2, playerId: 11, firstName: 'Ivo', lastName: 'Lara', eloNational: null, direction: 'OUTGOING', createdAt: '2026-01-01T00:00:00Z' }])),

@@ -7,6 +7,7 @@ import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.tournament.events.FederationTournamentConsumer;
 import cl.chessquery.tournament.events.PlayerMergedConsumer;
 import cl.chessquery.tournament.events.TournamentEvents;
+import cl.chessquery.common.rating.PlatformRatings;
 import cl.chessquery.tournament.users.UsersClient;
 import cl.chessquery.tournament.users.UsersClient.PlayerSummary;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -93,9 +94,13 @@ class TournamentFlowIntegrationTest {
                 .map(TournamentFlowIntegrationTest::summary).toList());
     }
 
-    /** Jugador ficticio: id 11..17, rating 2100 − 50·(id − 11); el 17 es menor (apellido abreviado). */
+    /**
+     * Jugador ficticio: id 11..17, ELO ChessQuery clásico 2100 − 50·(id − 11) (el torneo es 60+30, clásico); el 12 no
+     * tiene ELO clásico pero sí relámpago, que no debe usarse; el 17 es menor (apellido abreviado).
+     */
     static PlayerSummary summary(long id) {
-        Integer platform = id == 12 ? null : 2100 - 50 * (int) (id - 11);
+        Integer classical = id == 12 ? null : 2100 - 50 * (int) (id - 11);
+        PlatformRatings platform = new PlatformRatings(null, id == 12 ? 2500 : null, null, classical);
         return new PlayerSummary(id, "Jugador" + id, "Apellido" + id, id == 17 ? "A." : "Apellido" + id,
                 id == 11 ? "FM" : null, "Club Torre", 1600, null, platform, id == 11 ? "3400011" : null, null,
                 id == 17 ? 2014 : 1990, "M", false, null, true);
@@ -119,8 +124,21 @@ class TournamentFlowIntegrationTest {
         JsonNode created = body(mvc.perform(as(post("/api/tournaments"), ORGANIZER).contentType(MediaType.APPLICATION_JSON).content(req))
            .andExpect(status().isCreated())
            .andExpect(jsonPath("$.tournament.status").value("OPEN"))
-           .andExpect(jsonPath("$.tournament.organizationId").value(ORG_ID)));
+           .andExpect(jsonPath("$.tournament.organizationId").value(ORG_ID))
+           .andExpect(jsonPath("$.tournament.baseMinutes").value(60)) // leído de la etiqueta "60+30"
+           .andExpect(jsonPath("$.tournament.incrementSeconds").value(30))
+           .andExpect(jsonPath("$.tournament.category").value("CLASSICAL")));
         tournamentId = created.at("/tournament/id").asLong();
+        // Con los campos estructurados y sin etiqueta: la etiqueta se genera y el ritmo cambia (3+2 = relámpago)
+        String blitz = req.replace("\"timeControl\":\"60+30\"", "\"baseMinutes\":3,\"incrementSeconds\":2");
+        mvc.perform(as(put("/api/tournaments/" + tournamentId), ORGANIZER).contentType(MediaType.APPLICATION_JSON).content(blitz))
+           .andExpect(jsonPath("$.tournament.timeControl").value("3+2"))
+           .andExpect(jsonPath("$.tournament.category").value("BLITZ"));
+        mvc.perform(as(put("/api/tournaments/" + tournamentId), ORGANIZER).contentType(MediaType.APPLICATION_JSON)
+                .content(blitz.replace("\"baseMinutes\":3", "\"baseMinutes\":301")))
+           .andExpect(status().isBadRequest());
+        mvc.perform(as(put("/api/tournaments/" + tournamentId), ORGANIZER).contentType(MediaType.APPLICATION_JSON).content(req))
+           .andExpect(jsonPath("$.tournament.category").value("CLASSICAL"));
         mvc.perform(as(post("/api/tournaments"), ORGANIZER).contentType(MediaType.APPLICATION_JSON)
                 .content(req.replace("\"startDate\":\"2026-10-03\"", "\"startDate\":\"2026-10-03\",\"endDate\":\"2026-10-01\"")))
            .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("INVALID_DATES"));
@@ -143,7 +161,8 @@ class TournamentFlowIntegrationTest {
            .andExpect(jsonPath("$.players.length()").value(6));
         mvc.perform(as(delete("/api/tournaments/" + tournamentId + "/registrations/16"), 15)).andExpect(status().isForbidden());
         mvc.perform(as(put("/api/tournaments/" + tournamentId), ORGANIZER).contentType(MediaType.APPLICATION_JSON).content("""
-                {"name":"Abierto de Primavera 2026","city":"Santiago","startDate":"2026-10-03","format":"SWISS","rounds":3}"""))
+                {"name":"Abierto de Primavera 2026","city":"Santiago","startDate":"2026-10-03","format":"SWISS","rounds":3,
+                 "baseMinutes":60,"incrementSeconds":30}"""))
            .andExpect(jsonPath("$.tournament.name").value("Abierto de Primavera 2026"))
            .andExpect(jsonPath("$.tournament.rated").value(true));
         mvc.perform(as(post("/api/tournaments/" + tournamentId + "/join"), 17))
@@ -223,10 +242,10 @@ class TournamentFlowIntegrationTest {
         verify(events, atLeastOnce()).publish(eq(TournamentEvents.ELO_UPDATED), payloads.capture());
         List<Map<String, Object>> elo = payloads.getAllValues();
         assertThat(elo).hasSize(7).allSatisfy(p -> {
-            assertThat(p).containsEntry("ratingType", "PLATFORM").containsEntry("source", "TOURNAMENT");
+            assertThat(p).containsEntry("ratingType", "PLATFORM_CLASSICAL").containsEntry("source", "TOURNAMENT");
             assertThat((int) p.get("newElo") - (int) p.get("oldElo")).isEqualTo(p.get("delta"));
         });
-        // El 12 no tenía rating de plataforma: parte de su nacional (1600) con K = 40
+        // El 12 no tenía ELO clásico (su 2500 es de relámpago y no cuenta): parte de su nacional (1600) con K = 40
         assertThat(elo.stream().filter(p -> p.get("playerId").equals(12L)).findFirst().orElseThrow())
                 .containsEntry("oldElo", 1600);
         verify(events).publish(eq(TournamentEvents.FINISHED), any());

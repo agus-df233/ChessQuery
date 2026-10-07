@@ -4,6 +4,7 @@ import cl.chessquery.auth.UserPrincipal;
 import cl.chessquery.common.api.ApiException;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.common.rating.EloCalculator;
+import cl.chessquery.common.rating.TimeControlCategory;
 import cl.chessquery.tournament.api.TournamentDtos.StandingView;
 import cl.chessquery.tournament.domain.Pairing;
 import cl.chessquery.tournament.domain.Registration;
@@ -60,26 +61,31 @@ public class FinishService {
         return table;
     }
 
-    /** Rating actual de plataforma desde users; si no tiene, parte del rating con que se sembró. */
+    /**
+     * ELO ChessQuery del ritmo del torneo: parte del rating actual de ese ritmo en users (o, si no tiene, del rating
+     * con que se sembró) y publica el nuevo, uno por jugador.
+     */
     private void publishRatings(TournamentState s) {
+        TimeControlCategory category = s.tournament().category();
         Map<Long, PlayerSummary> current = users.players(s.registrationsById().keySet()).stream()
                 .collect(Collectors.toMap(PlayerSummary::id, Function.identity()));
         Map<Long, Integer> before = new HashMap<>();
-        s.registrations().forEach(r -> before.put(r.getPlayerId(), ratingBefore(r, current.get(r.getPlayerId()))));
+        s.registrations().forEach(r -> before.put(r.getPlayerId(),
+                ratingBefore(r, current.get(r.getPlayerId()), category)));
         Map<Long, List<EloCalculator.Game>> games = gamesByPlayer(s.allPairings(), before);
         games.forEach((playerId, list) -> {
             int old = before.get(playerId);
-            boolean unrated = current.get(playerId) == null || current.get(playerId).eloPlatform() == null;
+            boolean unrated = current.get(playerId) == null || current.get(playerId).platformRating(category) == null;
             int next = EloCalculator.next(old, unrated, list);
             events.publish(TournamentEvents.ELO_UPDATED, Map.of("playerId", playerId, "oldElo", old, "newElo", next,
-                    "delta", next - old, "ratingType", "PLATFORM", "source", "TOURNAMENT",
+                    "delta", next - old, "ratingType", category.ratingType(), "source", "TOURNAMENT",
                     "tournamentId", s.tournament().getId()));
         });
     }
 
-    private static int ratingBefore(Registration r, PlayerSummary now) {
-        if (now != null && now.eloPlatform() != null) return now.eloPlatform();
-        return r.getSeedRating();
+    private static int ratingBefore(Registration r, PlayerSummary now, TimeControlCategory category) {
+        Integer own = now == null ? null : now.platformRating(category);
+        return own != null ? own : r.getSeedRating();
     }
 
     /** Solo partidas jugadas en el tablero; byes y no presentaciones no cambian el rating. */

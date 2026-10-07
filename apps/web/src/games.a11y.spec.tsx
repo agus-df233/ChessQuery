@@ -11,7 +11,7 @@ expect.extend(axeMatchers);
 /** Partidas: tablero jugable, relojes, desafíos y long polling con la API simulada. */
 const fx = vi.hoisted(() => {
   const game: GameView = {
-    id: 9, status: 'ACTIVE', challengerId: 7, initialSeconds: 180, incrementSeconds: 2, rated: true,
+    id: 9, status: 'ACTIVE', challengerId: 7, initialSeconds: 180, incrementSeconds: 2, category: 'BLITZ', rated: true,
     white: { playerId: 7, name: 'Ana Soto', ratingBefore: 1500, ratingAfter: null, clockMs: 175_000 },
     black: { playerId: 8, name: 'Luis P.', ratingBefore: 1600, ratingAfter: null, clockMs: 9_500 },
     fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', moves: [], san: [], ply: 0, sideToMove: 'WHITE',
@@ -44,7 +44,7 @@ vi.mock('./api/games', () => ({
 }));
 vi.mock('./api/users', () => ({
   usersApi: { me: vi.fn().mockResolvedValue({ profile: { id: 7, firstName: 'Ana', lastName: 'Soto', displayName: null }, organizationId: null, organizer: false, roles: [] }) },
-  friendsApi: { list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1600, eloPlatform: null, since: '' }]) },
+  friendsApi: { list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1600, platform: { bullet: null, blitz: null, rapid: null, classical: null }, since: '' }]) },
 }));
 
 import { gamesApi } from './api/games';
@@ -97,7 +97,21 @@ describe('partidas', () => {
     expect(screen.getByText('Historial')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Desafiar' }));
     expect(screen.getByRole('group', { name: 'Desafiar a Luis Paz' })).toBeInTheDocument();
+    // El ritmo elegido dice qué ELO se juega: 3+2 por defecto (relámpago), 1+0 es bala
+    expect(screen.getByText('Partida relámpago: cuenta para tu ELO de ese ritmo')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '0' } });
+    expect(screen.getByText('Partida bala: cuenta para tu ELO de ese ritmo')).toBeInTheDocument();
+    // Personalizado: los valores fuera de rango se ajustan a los límites de la API (1–180 min, 0–180 s)
+    fireEvent.change(screen.getByLabelText('Ritmo'), { target: { value: '-1' } });
+    fireEvent.change(screen.getByLabelText('Minutos'), { target: { value: '999' } });
+    fireEvent.change(screen.getByLabelText('Incremento (s)'), { target: { value: '-4' } });
+    expect(screen.getByLabelText('Minutos')).toHaveValue(180);
+    expect(screen.getByLabelText('Incremento (s)')).toHaveValue(0);
+    expect(screen.getByText('Partida clásica: cuenta para tu ELO de ese ritmo')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar desafío' }));
+    await vi.waitFor(() => expect(gamesApi.challenge).toHaveBeenCalledWith(
+      { opponentId: 8, minutes: 180, incrementSeconds: 0, color: 'RANDOM', rated: true }));
   });
 
   it('utilidades: FEN, reloj y resultados', () => {

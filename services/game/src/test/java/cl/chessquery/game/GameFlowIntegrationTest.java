@@ -5,6 +5,7 @@ import cl.chessquery.auth.PlayerIdentityResolver.ResolvedIdentity;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.game.events.GameEvents;
 import cl.chessquery.game.users.UsersClient;
+import cl.chessquery.common.rating.PlatformRatings;
 import cl.chessquery.game.users.UsersClient.PlayerSummary;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -88,8 +89,10 @@ class GameFlowIntegrationTest {
                 new ResolvedIdentity(Long.parseLong(inv.getArgument(0, String.class).substring(4)), null));
         when(users.player(anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(0, Long.class);
+            // Ana tiene ELO ChessQuery solo en relámpago; Luis no tiene ninguno (empieza con su ELO nacional)
             return new PlayerSummary(id, id == ANA ? "Ana" : "Luis", id == ANA ? "Soto" : "P.", null,
-                    id == ANA ? 1500 : null, id == LUIS ? 1600 : null, null, id != SIN_CUENTA);
+                    id == ANA ? new PlatformRatings(null, 1500, null, null) : null, id == LUIS ? 1600 : null, null,
+                    id != SIN_CUENTA);
         });
     }
 
@@ -144,6 +147,7 @@ class GameFlowIntegrationTest {
         move(id, ANA, "e2e5").andExpect(status().isBadRequest()).andExpect(jsonPath("$.error").value("ILLEGAL_MOVE"));
         move(id, ANA, "e2e4").andExpect(status().isOk())
            .andExpect(jsonPath("$.white.clockMs").value(180_000 - 10_000 + 2_000))
+           .andExpect(jsonPath("$.category").value("BLITZ")) // 3+2
            .andExpect(jsonPath("$.sideToMove").value("BLACK"));
         mvc.perform(asyncDispatch(waiting)).andExpect(jsonPath("$.san[0]").value("e4"));
 
@@ -164,7 +168,7 @@ class GameFlowIntegrationTest {
         ArgumentCaptor<Map<String, Object>> elo = ArgumentCaptor.forClass(Map.class);
         verify(events, times(2)).publish(eq(GameEvents.ELO_UPDATED), elo.capture());
         assertThat(elo.getAllValues()).allSatisfy(p ->
-                assertThat(p).containsEntry("ratingType", "PLATFORM").containsEntry("source", "GAME").containsEntry("gameId", id));
+                assertThat(p).containsEntry("ratingType", "PLATFORM_BLITZ").containsEntry("source", "GAME").containsEntry("gameId", id));
         verify(events).publish(eq(GameEvents.GAME_FINISHED), org.mockito.ArgumentMatchers.any());
 
         move(id, LUIS, "a7a6").andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("NOT_ACTIVE"));

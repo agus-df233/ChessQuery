@@ -8,7 +8,12 @@ export const RATING_GROUPS: { source: string; items: { key: keyof Ratings; type:
     { key: 'fideRapid', type: 'FIDE_RAPID', label: 'FIDE Rápidas' },
     { key: 'fideBlitz', type: 'FIDE_BLITZ', label: 'FIDE Blitz' },
   ]},
-  { source: 'ChessQuery', items: [{ key: 'platform', type: 'PLATFORM', label: 'Plataforma' }] },
+  { source: 'ChessQuery', items: [
+    { key: 'platformBullet', type: 'PLATFORM_BULLET', label: 'Bala' },
+    { key: 'platformBlitz', type: 'PLATFORM_BLITZ', label: 'Relámpago' },
+    { key: 'platformRapid', type: 'PLATFORM_RAPID', label: 'Rápida' },
+    { key: 'platformClassical', type: 'PLATFORM_CLASSICAL', label: 'Clásica' },
+  ]},
   { source: 'Lichess', items: [
     { key: 'lichessBullet', type: 'LICHESS_BULLET', label: 'Bullet' },
     { key: 'lichessBlitz', type: 'LICHESS_BLITZ', label: 'Blitz' },
@@ -31,10 +36,14 @@ export const AGE_CATEGORIES = ['SUB_8', 'SUB_10', 'SUB_12', 'SUB_14', 'SUB_16', 
 
 export const categoryLabel = (c: string) => c.replace('SUB_', 'Sub ').replace('ADULTO', 'Adulto').replace('SENIOR', 'Senior');
 
-/** Opciones del selector de ranking: nacional (federación) y las tres modalidades FIDE. */
+/** Opciones del selector de ranking: nacional (federación), las tres modalidades FIDE y ChessQuery por ritmo. */
 export const RANKED_TYPES: { type: RankedType; label: string; short: string }[] = [
   { type: 'NATIONAL', label: 'Nacional', short: 'ELO Nac.' },
   { type: 'FIDE_STANDARD', label: 'FIDE clásico', short: 'FIDE' },
   { type: 'FIDE_RAPID', label: 'FIDE rápido', short: 'FIDE rápido' },
   { type: 'FIDE_BLITZ', label: 'FIDE blitz', short: 'FIDE blitz' },
+  { type: 'PLATFORM_BULLET', label: 'ChessQuery bala', short: 'CQ bala' },
+  { type: 'PLATFORM_BLITZ', label: 'ChessQuery relámpago', short: 'CQ relámpago' },
+  { type: 'PLATFORM_RAPID', label: 'ChessQuery rápida', short: 'CQ rápida' },
+  { type: 'PLATFORM_CLASSICAL', label: 'ChessQuery clásica', short: 'CQ clásica' },
 ];

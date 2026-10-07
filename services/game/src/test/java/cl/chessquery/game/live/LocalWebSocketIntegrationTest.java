@@ -4,6 +4,7 @@ import cl.chessquery.auth.PlayerIdentityResolver;
 import cl.chessquery.auth.PlayerIdentityResolver.ResolvedIdentity;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.game.users.UsersClient;
+import cl.chessquery.common.rating.PlatformRatings;
 import cl.chessquery.game.users.UsersClient.PlayerSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ class LocalWebSocketIntegrationTest {
         when(identity.resolve(anyString(), anyMap())).thenAnswer(inv ->
                 new ResolvedIdentity(Long.parseLong(inv.getArgument(0, String.class).substring(4)), null));
         when(users.player(anyLong())).thenAnswer(inv ->
-                new PlayerSummary(inv.getArgument(0, Long.class), "Jugador", "E2E", null, 1500, null, null, true));
+                new PlayerSummary(inv.getArgument(0, Long.class), "Jugador", "E2E", null, new PlatformRatings(null, null, 1500, null), null, null, true));
         when(jwtDecoder.decode(anyString())).thenAnswer(inv -> {
             String token = inv.getArgument(0);
             if (!token.startsWith("token-")) throw new BadJwtException("token inválido");

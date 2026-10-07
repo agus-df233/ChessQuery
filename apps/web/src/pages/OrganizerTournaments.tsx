@@ -9,9 +9,10 @@ import { StatusMessage } from '../components/StatusMessage';
 import { RESULT_OPTIONS } from '../components/tournament/labels';
 import { TournamentDetailView, tournamentKeys } from '../components/tournament/TournamentDetailView';
 import { TournamentList } from './PublicTournaments';
+import { timeControlLabel } from '../lib/timeControl';
 
 const today = () => new Date().toISOString().slice(0, 10);
-const EMPTY: TournamentRequest = { name: '', city: '', startDate: today(), format: 'SWISS', rounds: 5, timeControl: '60+30', rated: true };
+const EMPTY: TournamentRequest = { name: '', city: '', startDate: today(), format: 'SWISS', rounds: 5, baseMinutes: 60, incrementSeconds: 30, rated: true };
 
 const TournamentForm = ({ onCreated }: { onCreated: (id: number) => void }) => {
   const qc = useQueryClient();
@@ -37,7 +38,17 @@ const TournamentForm = ({ onCreated }: { onCreated: (id: number) => void }) => {
           <input type="number" min={1} max={30} required value={form.rounds} disabled={form.format === 'ROUND_ROBIN'}
                  onChange={(e) => set({ rounds: Number(e.target.value) })} />
         </label>
-        <label>Ritmo de juego<input maxLength={40} value={form.timeControl ?? ''} onChange={(e) => set({ timeControl: e.target.value })} placeholder="60+30" /></label>
+        <label>Minutos por jugador
+          <input type="number" min={1} max={300} required value={form.baseMinutes ?? ''}
+                 onChange={(e) => set({ baseMinutes: Number(e.target.value) })} />
+        </label>
+        <label>Incremento (segundos)
+          <input type="number" min={0} max={180} required value={form.incrementSeconds ?? ''}
+                 onChange={(e) => set({ incrementSeconds: Number(e.target.value) })} />
+        </label>
+        <p className="cq-muted" aria-live="polite">
+          {timeControlLabel(form.baseMinutes ?? 0, form.incrementSeconds ?? 0)}: actualiza el ELO ChessQuery de ese ritmo
+        </p>
         <label className="cq-check">
           <input type="checkbox" checked={form.rated} onChange={(e) => set({ rated: e.target.checked })} /> Válido para rating de ChessQuery
         </label>

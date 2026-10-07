@@ -263,9 +263,13 @@ class UsersIntegrationTest {
            .andExpect(jsonPath("$[0].source").value("LICHESS"));
         // Cierre de un torneo del club: el historial de plataforma queda con fuente TOURNAMENT
         eloConsumer.apply(ChessEvent.of(UsersEvents.ELO_UPDATED, Map.of("playerId", pedroId, "oldElo", 1500,
-                "newElo", 1520, "delta", 20, "ratingType", "PLATFORM", "source", "TOURNAMENT", "tournamentId", 5)));
-        assertThat(players.findById(pedroId).orElseThrow().getEloPlatform()).isEqualTo(1520);
-        mvc.perform(as(get("/api/users/me/rating-history").param("type", "PLATFORM"), "sub-pedro", "pedro@x.cl"))
+                "newElo", 1520, "delta", 20, "ratingType", "PLATFORM_CLASSICAL", "source", "TOURNAMENT", "tournamentId", 5)));
+        assertThat(players.findById(pedroId).orElseThrow().getEloPlatformClassical()).isEqualTo(1520);
+        // El ELO ChessQuery es por ritmo: Pedro aparece en el ranking clásico y en ningún otro de plataforma
+        mvc.perform(get("/api/public/ranking").param("type", "PLATFORM_CLASSICAL"))
+           .andExpect(jsonPath("$[0].playerId").value(pedroId)).andExpect(jsonPath("$[0].rating").value(1520));
+        mvc.perform(get("/api/public/ranking").param("type", "PLATFORM_BLITZ")).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(as(get("/api/users/me/rating-history").param("type", "PLATFORM_CLASSICAL"), "sub-pedro", "pedro@x.cl"))
            .andExpect(jsonPath("$[0].source").value("TOURNAMENT"));
         // Sync externo con APIs inalcanzables: no rompe, devuelve el perfil
         mvc.perform(as(post("/api/users/me/external-ratings/sync"), "sub-pedro", "pedro@x.cl"))

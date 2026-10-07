@@ -4,6 +4,7 @@ import cl.chessquery.auth.PlayerIdentityResolver;
 import cl.chessquery.auth.PlayerIdentityResolver.ResolvedIdentity;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.game.users.UsersClient;
+import cl.chessquery.common.rating.PlatformRatings;
 import cl.chessquery.game.users.UsersClient.PlayerSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,7 +77,7 @@ class LiveApiGatewayIntegrationTest {
                 new ResolvedIdentity(Long.parseLong(inv.getArgument(0, String.class).substring(4)), null));
         when(users.player(anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(0, Long.class);
-            return new PlayerSummary(id, id == ANA ? "Ana" : "Luis", "E2E", null, 1500, null, null, true);
+            return new PlayerSummary(id, id == ANA ? "Ana" : "Luis", "E2E", null, new PlatformRatings(null, null, 1500, null), null, null, true);
         });
         when(jwtDecoder.decode(anyString())).thenAnswer(inv -> {
             String token = inv.getArgument(0);

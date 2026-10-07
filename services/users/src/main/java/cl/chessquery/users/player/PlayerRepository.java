@@ -66,7 +66,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> searchFuzzy(@Param("q") String q, @Param("rutHash") String rutHash, @Param("limit") int limit);
 
     /**
-     * Ranking por un tipo de rating (nacional o FIDE standard/rapid/blitz), filtrable por región
+     * Ranking por un tipo de rating (nacional, FIDE standard/rapid/blitz o ChessQuery por ritmo), filtrable por región
      * y rango de año de nacimiento (categoría). El tipo llega ya validado por RankingService.
      */
     @Query(value = """
@@ -75,6 +75,10 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
                         WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
                         WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
                         WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        WHEN 'PLATFORM_BULLET'    THEN p.elo_platform_bullet
+                        WHEN 'PLATFORM_BLITZ'     THEN p.elo_platform_blitz
+                        WHEN 'PLATFORM_RAPID'     THEN p.elo_platform_rapid
+                        WHEN 'PLATFORM_CLASSICAL' THEN p.elo_platform_classical
                         ELSE p.elo_national END) IS NOT NULL
               AND (CAST(:region AS text) IS NULL OR lower(p.region) = lower(CAST(:region AS text)))
               AND (CAST(:minYear AS integer) IS NULL OR p.birth_year >= CAST(:minYear AS integer))
@@ -83,6 +87,10 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
                         WHEN 'FIDE_STANDARD' THEN p.elo_fide_standard
                         WHEN 'FIDE_RAPID'    THEN p.elo_fide_rapid
                         WHEN 'FIDE_BLITZ'    THEN p.elo_fide_blitz
+                        WHEN 'PLATFORM_BULLET'    THEN p.elo_platform_bullet
+                        WHEN 'PLATFORM_BLITZ'     THEN p.elo_platform_blitz
+                        WHEN 'PLATFORM_RAPID'     THEN p.elo_platform_rapid
+                        WHEN 'PLATFORM_CLASSICAL' THEN p.elo_platform_classical
                         ELSE p.elo_national END) DESC, p.last_name ASC
             """, nativeQuery = true)
     List<Player> findRanking(@Param("type") String type,

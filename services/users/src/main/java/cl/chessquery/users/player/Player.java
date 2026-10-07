@@ -104,7 +104,10 @@ public class Player {
     @Column(name = "elo_fide_standard")     private Integer eloFideStandard;
     @Column(name = "elo_fide_rapid")        private Integer eloFideRapid;
     @Column(name = "elo_fide_blitz")        private Integer eloFideBlitz;
-    @Column(name = "elo_platform")          private Integer eloPlatform;
+    @Column(name = "elo_platform_bullet")   private Integer eloPlatformBullet;
+    @Column(name = "elo_platform_blitz")    private Integer eloPlatformBlitz;
+    @Column(name = "elo_platform_rapid")    private Integer eloPlatformRapid;
+    @Column(name = "elo_platform_classical") private Integer eloPlatformClassical;
     @Column(name = "elo_lichess_bullet")    private Integer eloLichessBullet;
     @Column(name = "elo_lichess_blitz")     private Integer eloLichessBlitz;
     @Column(name = "elo_lichess_rapid")     private Integer eloLichessRapid;

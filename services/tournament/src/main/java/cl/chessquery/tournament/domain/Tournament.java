@@ -1,5 +1,6 @@
 package cl.chessquery.tournament.domain;
 
+import cl.chessquery.common.rating.TimeControlCategory;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,7 +32,10 @@ public class Tournament {
     private Format format;
 
     private int roundsPlanned;
+    /** Etiqueta libre del ritmo (p. ej. "90+30"); el ritmo que cuenta es {@link #category()}. */
     private String timeControl;
+    private Integer baseMinutes;
+    private Integer incrementSeconds;
     private boolean rated;
 
     @Enumerated(EnumType.STRING)
@@ -44,6 +48,15 @@ public class Tournament {
     @PreUpdate
     void touch() {
         updatedAt = Instant.now();
+    }
+
+    /**
+     * Ritmo del torneo: define qué ELO ChessQuery se siembra y se actualiza al cerrar. Sin ritmo estructurado (torneos
+     * antiguos con una etiqueta que no se pudo leer) cuenta como rápido, el ritmo habitual de los torneos de club.
+     */
+    public TimeControlCategory category() {
+        if (baseMinutes == null) return TimeControlCategory.RAPID;
+        return TimeControlCategory.of(baseMinutes * 60, incrementSeconds == null ? 0 : incrementSeconds);
     }
 
     public boolean isOwnedBy(long playerId) {

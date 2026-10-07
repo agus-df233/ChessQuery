@@ -1,5 +1,6 @@
 package cl.chessquery.users.player;
 
+import cl.chessquery.common.rating.PlatformRatings;
 import cl.chessquery.users.catalog.Club;
 import cl.chessquery.users.catalog.Country;
 import cl.chessquery.users.privacy.PublicNames;
@@ -31,16 +32,24 @@ public final class PlayerDtos {
     static final String USERNAME_MSG = "Username inválido: 2 a 30 letras, números, '_' o '-'";
 
     public record Ratings(
-            Integer national, Integer fideStandard, Integer fideRapid, Integer fideBlitz, Integer platform,
+            Integer national, Integer fideStandard, Integer fideRapid, Integer fideBlitz,
+            Integer platformBullet, Integer platformBlitz, Integer platformRapid, Integer platformClassical,
             Integer lichessBullet, Integer lichessBlitz, Integer lichessRapid, Integer lichessClassical,
             Integer chesscomBullet, Integer chesscomBlitz, Integer chesscomRapid, Integer chesscomDaily) {
 
         static Ratings of(Player p) {
             return new Ratings(p.getEloNational(), p.getEloFideStandard(), p.getEloFideRapid(), p.getEloFideBlitz(),
-                    p.getEloPlatform(), p.getEloLichessBullet(), p.getEloLichessBlitz(), p.getEloLichessRapid(),
+                    p.getEloPlatformBullet(), p.getEloPlatformBlitz(), p.getEloPlatformRapid(),
+                    p.getEloPlatformClassical(), p.getEloLichessBullet(), p.getEloLichessBlitz(), p.getEloLichessRapid(),
                     p.getEloLichessClassical(), p.getEloChesscomBullet(), p.getEloChesscomBlitz(),
                     p.getEloChesscomRapid(), p.getEloChesscomDaily());
         }
+    }
+
+    /** ELO ChessQuery por ritmo del jugador (contrato compartido con game y tournament). */
+    public static PlatformRatings platformOf(Player p) {
+        return new PlatformRatings(p.getEloPlatformBullet(), p.getEloPlatformBlitz(), p.getEloPlatformRapid(),
+                p.getEloPlatformClassical());
     }
 
     public record Profile(
@@ -84,14 +93,14 @@ public final class PlayerDtos {
      * es el que se muestra a terceros; {@code lastName} completo queda para el organizador (p. ej. el TRF).
      */
     public record Summary(Long id, String firstName, String lastName, String publicLastName, String currentTitle,
-                          String clubName, Integer eloNational, Integer eloFideStandard, Integer eloPlatform,
+                          String clubName, Integer eloNational, Integer eloFideStandard, PlatformRatings platform,
                           String fideId, String federationId, Integer birthYear, String gender,
                           boolean provisional, Long createdByOrganizerId, boolean hasAccount) {
 
         public static Summary of(Player p, String title) {
             return new Summary(p.getId(), p.getFirstName(), p.getLastName(), PublicNames.lastName(p), title,
                     p.getClub() != null ? p.getClub().getName() : null,
-                    p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform(),
+                    p.getEloNational(), p.getEloFideStandard(), platformOf(p),
                     p.getFideId(), p.getFederationId(), p.getBirthYear(), p.getGender(),
                     p.isProvisional(), p.getCreatedByOrganizerId(), p.hasAccount());
         }
@@ -99,13 +108,13 @@ public final class PlayerDtos {
 
     public record SearchResult(Long id, String firstName, String lastName, String currentTitle, String clubName,
                                String countryIso, String fideId, Integer eloNational, Integer eloFideStandard,
-                               Integer eloPlatform) {
+                               PlatformRatings platform) {
 
         public static SearchResult of(Player p, String title) {
             return new SearchResult(p.getId(), p.getFirstName(), PublicNames.lastName(p), title,
                     p.getClub() != null ? p.getClub().getName() : null,
                     p.getCountry() != null ? p.getCountry().getIsoCode() : null,
-                    p.getFideId(), p.getEloNational(), p.getEloFideStandard(), p.getEloPlatform());
+                    p.getFideId(), p.getEloNational(), p.getEloFideStandard(), platformOf(p));
         }
     }
 

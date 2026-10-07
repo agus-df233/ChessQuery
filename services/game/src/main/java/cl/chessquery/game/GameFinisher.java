@@ -65,7 +65,7 @@ public class GameFinisher {
 
     private void publishElo(Game g, long playerId, int before, int after) {
         events.publish(GameEvents.ELO_UPDATED, Map.of("playerId", playerId, "oldElo", before, "newElo", after,
-                "delta", after - before, "ratingType", "PLATFORM", "source", "GAME", "gameId", g.getId()));
+                "delta", after - before, "ratingType", g.category().ratingType(), "source", "GAME", "gameId", g.getId()));
     }
 
     private static Map<PGNTag, String> pgnTags(Game g, Instant now) {

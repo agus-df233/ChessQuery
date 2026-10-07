@@ -1,5 +1,6 @@
 package cl.chessquery.game.api;
 
+import cl.chessquery.common.rating.TimeControlCategory;
 import cl.chessquery.game.domain.Game;
 import cl.chessquery.game.domain.GameStatus;
 import cl.chessquery.game.domain.Outcome;
@@ -27,7 +28,7 @@ public final class GameDtos {
     public record Side(Long playerId, String name, Integer ratingBefore, Integer ratingAfter, long clockMs) {}
 
     public record GameView(Long id, GameStatus status, Side white, Side black, Long challengerId, int initialSeconds,
-                           int incrementSeconds, boolean rated, String fen, List<String> moves, List<String> san,
+                           int incrementSeconds, TimeControlCategory category, boolean rated, String fen, List<String> moves, List<String> san,
                            int ply, String sideToMove, Long drawOfferBy, Outcome result, Termination termination,
                            String terminationLabel, long version, Instant createdAt, Instant finishedAt) {
 
@@ -37,7 +38,7 @@ public final class GameDtos {
                             g.remainingMs(true, now)),
                     new Side(g.getBlackPlayerId(), g.getBlackName(), g.getBlackRatingBefore(), g.getBlackRatingAfter(),
                             g.remainingMs(false, now)),
-                    g.getChallengerId(), g.getInitialSeconds(), g.getIncrementSeconds(), g.isRated(), g.getFen(),
+                    g.getChallengerId(), g.getInitialSeconds(), g.getIncrementSeconds(), g.category(), g.isRated(), g.getFen(),
                     g.uciMoves(), g.sanMoves(), g.ply(), g.whiteToMove() ? "WHITE" : "BLACK", g.getDrawOfferBy(),
                     g.getResult(), g.getTermination(), g.getTermination() == null ? null : g.getTermination().label(),
                     g.getVersion(), g.getCreatedAt(), g.getFinishedAt());

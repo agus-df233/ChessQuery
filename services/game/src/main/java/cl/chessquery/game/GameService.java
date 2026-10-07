@@ -2,6 +2,7 @@ package cl.chessquery.game;
 
 import cl.chessquery.auth.UserPrincipal;
 import cl.chessquery.common.api.ApiException;
+import cl.chessquery.common.rating.TimeControlCategory;
 import cl.chessquery.game.api.GameDtos.ChallengeRequest;
 import cl.chessquery.game.api.GameDtos.ColorChoice;
 import cl.chessquery.game.api.GameDtos.GameView;
@@ -48,9 +49,9 @@ public class GameService {
         boolean challengerWhite = challengerIsWhite(req.color());
         Game g = new Game();
         g.setChallengerId(me.playerId());
-        assign(g, challengerWhite ? challenger : opponent, challengerWhite ? opponent : challenger);
         g.setInitialSeconds(req.minutes() * 60);
         g.setIncrementSeconds(req.incrementSeconds());
+        assign(g, challengerWhite ? challenger : opponent, challengerWhite ? opponent : challenger); // ya con el ritmo
         g.setRated(req.rated() == null || req.rated());
         g.setFen(ChessRules.INITIAL_FEN);
         g.setWhiteMs(g.getInitialSeconds() * 1000L);
@@ -70,10 +71,10 @@ public class GameService {
     private static void assign(Game g, PlayerSummary white, PlayerSummary black) {
         g.setWhitePlayerId(white.id());
         g.setWhiteName(white.publicName());
-        g.setWhiteRatingBefore(white.startingRating());
+        g.setWhiteRatingBefore(white.startingRating(g.category()));
         g.setBlackPlayerId(black.id());
         g.setBlackName(black.publicName());
-        g.setBlackRatingBefore(black.startingRating());
+        g.setBlackRatingBefore(black.startingRating(g.category()));
     }
 
     /** El desafiado acepta: empieza la partida y corre el reloj de blancas. */
@@ -88,14 +89,15 @@ public class GameService {
         return changed(g);
     }
 
-    /** Ratings al momento de empezar (pudieron cambiar desde el desafío). */
+    /** Ratings del ritmo de la partida al momento de empezar (pudieron cambiar desde el desafío). */
     private void refreshRatings(Game g) {
+        TimeControlCategory category = g.category();
         PlayerSummary white = users.player(g.getWhitePlayerId());
         PlayerSummary black = users.player(g.getBlackPlayerId());
-        g.setWhiteRatingBefore(white.startingRating());
-        g.setWhiteUnrated(white.eloPlatform() == null);
-        g.setBlackRatingBefore(black.startingRating());
-        g.setBlackUnrated(black.eloPlatform() == null);
+        g.setWhiteRatingBefore(white.startingRating(category));
+        g.setWhiteUnrated(white.platformRating(category) == null);
+        g.setBlackRatingBefore(black.startingRating(category));
+        g.setBlackUnrated(black.platformRating(category) == null);
     }
 
     @Transactional

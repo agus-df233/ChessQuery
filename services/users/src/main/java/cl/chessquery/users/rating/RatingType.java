@@ -15,7 +15,11 @@ public enum RatingType {
     FIDE_STANDARD(Player::getEloFideStandard, Player::setEloFideStandard),
     FIDE_RAPID(Player::getEloFideRapid, Player::setEloFideRapid),
     FIDE_BLITZ(Player::getEloFideBlitz, Player::setEloFideBlitz),
-    PLATFORM(Player::getEloPlatform, Player::setEloPlatform),
+    // ELO ChessQuery, uno por ritmo (TimeControlCategory): lo actualizan game y tournament con elo.updated
+    PLATFORM_BULLET(Player::getEloPlatformBullet, Player::setEloPlatformBullet),
+    PLATFORM_BLITZ(Player::getEloPlatformBlitz, Player::setEloPlatformBlitz),
+    PLATFORM_RAPID(Player::getEloPlatformRapid, Player::setEloPlatformRapid),
+    PLATFORM_CLASSICAL(Player::getEloPlatformClassical, Player::setEloPlatformClassical),
     LICHESS_BULLET(Player::getEloLichessBullet, Player::setEloLichessBullet),
     LICHESS_BLITZ(Player::getEloLichessBlitz, Player::setEloLichessBlitz),
     LICHESS_RAPID(Player::getEloLichessRapid, Player::setEloLichessRapid),

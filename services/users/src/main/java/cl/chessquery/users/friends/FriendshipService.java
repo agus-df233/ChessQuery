@@ -4,6 +4,8 @@ import cl.chessquery.common.api.ApiException;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.Player;
+import cl.chessquery.common.rating.PlatformRatings;
+import cl.chessquery.users.player.PlayerDtos;
 import cl.chessquery.users.player.PlayerRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +35,7 @@ public class FriendshipService {
 
     /** Proyección liviana a propósito: ser amigo no da acceso a la PII del otro. */
     public record Friend(Long playerId, String firstName, String lastName, String clubName,
-                         Integer eloNational, Integer eloPlatform, Instant since) {}
+                         Integer eloNational, PlatformRatings platform, Instant since) {}
 
     public record Request(Long requestId, Long playerId, String firstName, String lastName,
                           Integer eloNational, String direction, Instant createdAt) {}
@@ -52,7 +54,7 @@ public class FriendshipService {
         return rows.stream().map(f -> {
             Player o = others.get(f.otherSide(playerId));
             return o == null ? null : new Friend(o.getId(), o.getFirstName(), o.getLastName(),
-                    o.getClub() != null ? o.getClub().getName() : null, o.getEloNational(), o.getEloPlatform(),
+                    o.getClub() != null ? o.getClub().getName() : null, o.getEloNational(), PlayerDtos.platformOf(o),
                     f.getRespondedAt() != null ? f.getRespondedAt() : f.getCreatedAt());
         }).filter(java.util.Objects::nonNull).toList();
     }

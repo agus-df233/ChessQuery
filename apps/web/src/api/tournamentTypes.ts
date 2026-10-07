@@ -1,4 +1,5 @@
 /** Contratos del servicio tournament (espejo de TournamentDtos.java). */
+import type { TimeControlCategory } from '../lib/timeControl';
 
 export type TournamentFormat = 'SWISS' | 'ROUND_ROBIN';
 export type TournamentStatus = 'OPEN' | 'IN_PROGRESS' | 'FINISHED';
@@ -6,7 +7,8 @@ export type GameResult = 'WHITE_WINS' | 'BLACK_WINS' | 'DRAW' | 'WHITE_FORFEIT_W
 
 export interface TournamentView {
   id: number; name: string; city: string | null; region: string | null; startDate: string; endDate: string | null;
-  format: TournamentFormat; roundsPlanned: number; currentRound: number; timeControl: string | null; rated: boolean;
+  format: TournamentFormat; roundsPlanned: number; currentRound: number; timeControl: string | null;
+  baseMinutes: number | null; incrementSeconds: number | null; category: TimeControlCategory; rated: boolean;
   status: TournamentStatus; organizationId: number; playerCount: number;
 }
 
@@ -24,6 +26,8 @@ export interface MyTournaments { organized: TournamentView[]; registered: Tourna
 export interface TournamentRequest {
   name: string; city?: string; region?: string; startDate: string; endDate?: string;
   format: TournamentFormat; rounds: number; timeControl?: string; rated: boolean;
+  /** Ritmo estructurado: define qué ELO ChessQuery actualiza el torneo. */
+  baseMinutes?: number; incrementSeconds?: number;
 }
 
 export interface FederationTournament {

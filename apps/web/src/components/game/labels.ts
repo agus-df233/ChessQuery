@@ -1,11 +1,8 @@
 import type { GameView, Outcome } from '../../api/gameTypes';
+import { CATEGORY_LABEL } from '../../lib/timeControl';
 
-/** Ritmos ofrecidos al desafiar: [minutos, incremento en segundos, nombre]. */
-export const TIME_CONTROLS: [number, number, string][] = [
-  [3, 2, 'Blitz 3+2'], [5, 0, 'Blitz 5+0'], [10, 0, 'Rápida 10+0'], [15, 10, 'Rápida 15+10'], [30, 0, 'Clásica 30+0'],
-];
-
-export const timeControl = (g: GameView) => `${g.initialSeconds / 60}+${g.incrementSeconds}`;
+/** "Relámpago 3+2": el ritmo define qué ELO ChessQuery cuenta (ver lib/timeControl). */
+export const timeControl = (g: GameView) => `${CATEGORY_LABEL[g.category]} ${g.initialSeconds / 60}+${g.incrementSeconds}`;
 
 /** Resultado desde mi punto de vista ("Ganaste", "Perdiste", "Tablas") o neutro si no juego. */
 export const resultFor = (result: Outcome | null, myId?: number, g?: GameView) => {

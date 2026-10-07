@@ -72,8 +72,22 @@ public class TournamentService {
         t.setEndDate(req.endDate());
         t.setFormat(req.format());
         t.setRoundsPlanned(req.rounds());
-        t.setTimeControl(req.timeControl());
+        applyTimeControl(t, req);
         t.setRated(req.rated() == null || req.rated());
+    }
+
+    /**
+     * Ritmo estructurado: el de los campos {@code baseMinutes}/{@code incrementSeconds} o, si no vienen (clientes
+     * antiguos), el que se lea de la etiqueta "90+30". Sin etiqueta, se genera desde los campos.
+     */
+    private static void applyTimeControl(Tournament t, UpsertRequest req) {
+        int[] parsed = req.baseMinutes() != null
+                ? new int[] {req.baseMinutes(), req.incrementSeconds() == null ? 0 : req.incrementSeconds()}
+                : TimeControlLabel.parse(req.timeControl());
+        t.setBaseMinutes(parsed == null ? null : parsed[0]);
+        t.setIncrementSeconds(parsed == null ? null : parsed[1]);
+        boolean blank = req.timeControl() == null || req.timeControl().isBlank();
+        t.setTimeControl(blank && parsed != null ? parsed[0] + "+" + parsed[1] : req.timeControl());
     }
 
     /** El organizador inscribe a un jugador (de su roster o registrado). */
@@ -114,8 +128,8 @@ public class TournamentService {
         r.setLastName(p.publicLastName() == null ? "" : p.publicLastName());
         r.setTitle(p.currentTitle());
         r.setClubName(p.clubName());
-        r.setSeedRating(p.seedRating());
-        r.setPlatformRating(p.eloPlatform());
+        r.setSeedRating(p.seedRating(t.category()));
+        r.setPlatformRating(p.platformRating(t.category()));
         registrations.save(r);
     }
 

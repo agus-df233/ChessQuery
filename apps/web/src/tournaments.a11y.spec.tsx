@@ -12,7 +12,7 @@ expect.extend(axeMatchers);
 const fx = vi.hoisted(() => {
   const t: TournamentView = {
     id: 5, name: 'Abierto de Primavera', city: 'Santiago', region: 'RM', startDate: '2026-10-03', endDate: null,
-    format: 'SWISS', roundsPlanned: 3, currentRound: 1, timeControl: '60+30', rated: true, status: 'IN_PROGRESS',
+    format: 'SWISS', roundsPlanned: 3, currentRound: 1, timeControl: '60+30', baseMinutes: 60, incrementSeconds: 30, category: 'CLASSICAL', rated: true, status: 'IN_PROGRESS',
     organizationId: 3, playerCount: 3,
   };
   const ref = (id: number, name: string, title: string | null = null) => ({ playerId: id, name, title, rating: 2000 - id });
@@ -103,9 +103,15 @@ describe('torneos: vistas', () => {
   it('organizador: formulario de nuevo torneo', async () => {
     const { container } = renderAt('/club/torneos', '/club/torneos', <OrganizerTournaments />);
     fireEvent.change(screen.getByLabelText('Nombre del torneo'), { target: { value: 'Blitz' } });
+    // El ritmo estructurado define qué ELO actualiza el torneo: 60+30 por defecto (clásica), 3+2 relámpago
+    expect(screen.getByText('Clásica 60+30: actualiza el ELO ChessQuery de ese ritmo')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Minutos por jugador'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('Incremento (segundos)'), { target: { value: '2' } });
+    expect(screen.getByText('Relámpago 3+2: actualiza el ELO ChessQuery de ese ritmo')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
     fireEvent.click(screen.getByRole('button', { name: 'Crear torneo' }));
     await vi.waitFor(() => expect(tournamentsApi.create).toHaveBeenCalled());
-    expect(await axe(container)).toHaveNoViolations();
+    expect(vi.mocked(tournamentsApi.create).mock.calls[0][0]).toMatchObject({ name: 'Blitz', baseMinutes: 3, incrementSeconds: 2 });
   });
 
   it('jugador: ve su mesa de la ronda en curso', () => {
