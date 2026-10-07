@@ -125,3 +125,16 @@ Se elimina la cola `etl-federation-lookup` (y su DLQ). La Lambda `federation-loo
    módulo `etl-jobs` (suscripción `lambda` + permiso para SNS) y, en local, `etl/chessquery_etl/local_bus.py`: un
    receptor HTTP que se suscribe al tópico de LocalStack y llama al **mismo handler** que la Lambda.
 4. La futura Lambda de ratings externos (Lichess y Chess.com) usa el mismo mecanismo.
+
+## Enmienda — 07-10-2026: WebSocket de las partidas en la nube y apagado nocturno
+
+1. **Partidas en vivo por API Gateway WebSocket** (módulo `realtime-ws`), tras la prueba del 30-09. El navegador se
+   conecta a `wss://…/live?token=<access token>`. API Gateway llama por HTTP al ALB en `/internal/ws/{connect,message,
+   disconnect}`, que va a `game`, agregando la cabecera de origen, el token interno, el id de la conexión y, al
+   conectar, el token del jugador. `game` valida ese token igual que un Bearer (401 = conexión rechazada) y empuja cada
+   jugada con `postToConnection` usando el `LabRole`. El long polling queda como respaldo automático en la web.
+   Plan B si la integración HTTP directa diera problemas: una Lambda proxy (`AWS_PROXY`, la variante ya probada).
+2. **Apagado nocturno automático** (módulo `apagado-nocturno`): una Lambda con el `LabRole`, disparada por una regla
+   de EventBridge a las 23:00 de Chile, deja ECS en 0 y detiene RDS. Cuida el crédito del lab nuevo (US$50) ante un
+   olvido; `make academy-up` lo vuelve a encender. Reemplaza el apagado con EventBridge Scheduler de la decisión
+   original, que necesita un rol propio que el lab no deja crear.

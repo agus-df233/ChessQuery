@@ -2,7 +2,7 @@
 # Restricciones del Lab que definen este entorno (ver ADR-0002, enmienda 2026-09-28):
 #   - No se pueden crear roles IAM → las tasks usan el `LabRole` existente.
 #   - CloudFront, AppSync y Cloud Map bloqueados → HTTPS con API Gateway (HTTP API) delante del ALB y
-#     de la SPA en S3; partidas en vivo por long polling (ADR-0002, enmienda 2026-09-29); tournament y game
+#     de la SPA en S3; partidas en vivo por API Gateway WebSocket, con long polling de respaldo; tournament y game
 #     llaman a users por el ALB (/internal/*), con X-Internal-Token y la cabecera de origen.
 #   - Fargate en x86 (ARM64 no verificado en el lab).
 #   - Credenciales que rotan cada ~4 h → todo se recrea con `terraform apply`.
@@ -39,8 +39,9 @@ locals {
   # users tiene el comodín /api/public/*. /internal/* es servicio→servicio (API Gateway no lo publica).
   services = {
     game = {
-      port  = 8083
-      paths = ["/api/games", "/api/games/*", "/api/public/games", "/api/public/games/*"]
+      port = 8083
+      # /internal/ws/* lo llama API Gateway WebSocket (va antes que el /internal/* de users)
+      paths = ["/api/games", "/api/games/*", "/api/public/games", "/api/public/games/*", "/internal/ws/*"]
       pri   = 3
     }
     tournament = {
@@ -158,6 +159,15 @@ module "edge" {
   bucket_via_cli = true
 }
 
+# Partidas en vivo: WebSocket de API Gateway → ALB → game (/internal/ws/*)
+module "realtime" {
+  source         = "../../modules/realtime-ws"
+  name           = local.name
+  alb_dns_name   = module.alb.dns_name
+  origin_secret  = random_password.origin_secret.result
+  internal_token = module.data.internal_token
+}
+
 # ── Servicios ─────────────────────────────────────────────────────────────────
 module "users" {
   source             = "../../modules/ecs-service"
@@ -202,8 +212,9 @@ module "tournament" {
   secrets = merge(local.service_secrets, { ORIGIN_VERIFY = aws_ssm_parameter.origin_secret.arn })
 }
 
-# game: 1 réplica y sin Spot. El aviso a los long polls vive en memoria (ADR-0002, enmienda 2026-09-29) y una
-# interrupción de Spot cortaría partidas en curso (el reloj sigue en la base de datos, pero se vería un corte).
+# game: 1 réplica y sin Spot. El aviso a los long polls de respaldo vive en memoria (ADR-0002, enmienda 2026-09-29)
+# y una interrupción de Spot cortaría partidas en curso (el reloj sigue en la base de datos, pero se vería un corte).
+# Las jugadas salen por el WebSocket de API Gateway (LIVE_MODE=apigateway).
 module "game" {
   source             = "../../modules/ecs-service"
   name               = "game"
@@ -219,8 +230,20 @@ module "game" {
   desired_count      = 1
   cpu_architecture   = "X86_64"
 
-  environment = local.service_env
-  secrets     = merge(local.service_secrets, { ORIGIN_VERIFY = aws_ssm_parameter.origin_secret.arn })
+  environment = merge(local.service_env, {
+    LIVE_MODE                = "apigateway"
+    LIVE_MANAGEMENT_ENDPOINT = module.realtime.management_endpoint
+  })
+  secrets = merge(local.service_secrets, { ORIGIN_VERIFY = aws_ssm_parameter.origin_secret.arn })
+}
+
+# Apagado nocturno automático: si nadie corrió `make academy-down`, a las 23:00 (Chile) servicios en 0 y RDS detenida
+module "apagado" {
+  source        = "../../modules/apagado-nocturno"
+  name          = local.name
+  role_arn      = data.aws_iam_role.lab.arn
+  cluster_name  = aws_ecs_cluster.this.name
+  db_identifier = module.data.db_identifier
 }
 
 # ── ETL: bucket de datos y Lambdas (FIDE mensual, torneos federados diario, fichas pedidas por jugadores) ────

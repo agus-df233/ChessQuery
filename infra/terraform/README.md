@@ -5,7 +5,7 @@ código con dos entornos:
 
 | Entorno | Cuenta | Entrada (HTTPS) | IAM | Estado |
 |---|---|---|---|---|
-| `envs/academy` | AWS Academy Learner Lab | API Gateway HTTP API → ALB (`/api`) y S3 (web) | `LabRole` existente | `plan` contra el lab OK (30-09-2026: 107 recursos, 0 cambios, 0 borrados); falta `apply` |
+| `envs/academy` | AWS Academy Learner Lab | API Gateway HTTP API → ALB (`/api`) y S3 (web) | `LabRole` existente | Desplegado en el lab anterior (30-09-2026); se rehace en el lab nuevo (10-2026) |
 | `envs/aws` | Cuenta propia | CloudFront → ALB y S3 privado | Roles propios + GitHub OIDC | pendiente |
 
 ```
@@ -16,9 +16,12 @@ modules/ecs-service     microservicio Fargate genérico (ARM64 | X86_64, Spot/on
 modules/alb             ALB por path; exige la cabecera X-Origin-Verify que agrega el borde
 modules/edge            borde cuenta propia: CloudFront + S3 privado (OAC)
 modules/edge-apigw      borde Academy: HTTP API + S3 sitio estático (el lab bloquea CloudFront)
-modules/messaging       SNS chess-events → SQS por consumidor (filter policy, raw, DLQ + alarma)
+modules/messaging       SNS chess-events → SQS por consumidor de los servicios Java (filter policy, raw, DLQ + alarma)
 modules/observability   alarmas 5xx / targets no sanos / espacio RDS → SNS email
-modules/etl-jobs        bucket del ETL + Lambdas fide-import (mensual), federation-tournaments (diaria), federation-lookup (SQS)
+modules/etl-jobs        bucket del ETL + Lambdas fide-import (mensual), federation-tournaments (diaria),
+                        federation-lookup (SNS directo, sin cola) + alarma de errores por Lambda
+modules/realtime-ws     WebSocket de API Gateway para las partidas en vivo → ALB /internal/ws/* → game
+modules/apagado-nocturno Lambda + regla de EventBridge: a las 23:00 (Chile) ECS en 0 y RDS detenida
 ```
 
 ## Qué bloquea el Learner Lab (verificado el 28-09-2026)
@@ -48,6 +51,9 @@ make academy-web                 # build de la web y publicación en S3; imprime
 (`deployment_circuit_breaker`). Si se crean sin imagen en ECR, el primer despliegue queda fallido y hay que
 forzar uno nuevo. Usar el mismo commit (mismo `IMAGE_TAG`) en todos los pasos.
 
+`make academy-web` toma la URL del WebSocket de la salida `ws_url` de Terraform (`VITE_WS_URL`); el resto de la
+configuración de la web sale de `apps/web/.env`.
+
 Luego, en Entra External ID, agregar `<app_url>/app` como redirect URI de la SPA. Sin Entra, la web pública
 (`/ranking`, `/torneos`) y la API pública funcionan igual; el login no. Para cargar datos reales, invocar las
 Lambdas del ETL (`chessquery-academy-fide-import` y `chessquery-academy-federation-tournaments`).
@@ -56,8 +62,13 @@ Lambdas del ETL (`chessquery-academy-fide-import` y `chessquery-academy-federati
 
 ```bash
 make academy-down                # ECS en 0 y RDS detenida (no borra nada)
+make academy-up                  # lo inverso: enciende RDS, espera que esté disponible y deja los servicios en 1
 make academy-destroy             # borra todo lo de este entorno
 ```
+
+**Apagado automático:** aunque nadie corra `academy-down`, la Lambda `chessquery-academy-apagado-nocturno` lo hace todas
+las noches a las 23:00 (Chile). Con todo encendido el lab gasta del orden de US$2,5–3,5 al día; apagado, cerca de US$1
+(quedan el ALB, sus IP públicas, el disco de RDS y el secreto). Al día siguiente: `make academy-up`.
 
 El día de una demo usar `use_spot = false` en `academy.tfvars` (Fargate on-demand) y encender RDS con al
 menos 15 minutos de anticipación.

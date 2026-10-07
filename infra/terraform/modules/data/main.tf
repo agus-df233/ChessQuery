@@ -110,5 +110,11 @@ output "db_identifier" { value = aws_db_instance.this.identifier }
 output "db_master_secret_arn" { value = aws_db_instance.this.master_user_secret[0].secret_arn }
 output "files_bucket" { value = module.files_bucket.id }
 output "internal_token_param_arn" { value = aws_ssm_parameter.internal_token.arn }
+
+# Lo necesita la integración de API Gateway WebSocket, que llama a /internal/ws/* de game
+output "internal_token" {
+  value     = random_password.internal_token.result
+  sensitive = true
+}
 output "privacy_pepper_param_arn" { value = aws_ssm_parameter.privacy_pepper.arn }
 output "privacy_pepper_param_name" { value = aws_ssm_parameter.privacy_pepper.name }

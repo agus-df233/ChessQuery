@@ -121,7 +121,7 @@ SERVICES := users tournament game
 # Mismo tag para los tres servicios (se construyen juntos desde el mismo commit).
 TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",game="$(IMAGE_TAG)"}'
 
-.PHONY: academy-bootstrap academy-init academy-plan academy-ecr academy-apply academy-image academy-web academy-down academy-destroy
+.PHONY: academy-bootstrap academy-init academy-plan academy-ecr academy-apply academy-image academy-web academy-down academy-up academy-destroy
 
 academy-bootstrap:
 	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap init -input=false
@@ -152,8 +152,9 @@ academy-image:
 	  mvn -B -ntp -q -pl services/$$svc jib:build -Djib.from.platforms=linux/amd64 -Dimage="$$repo:$(IMAGE_TAG)" || exit 1; \
 	done
 
+# La URL del WebSocket sale de Terraform; el resto de la configuración de la web, de apps/web/.env
 academy-web:
-	npm run build -w web
+	VITE_WS_URL="$$($(ACADEMY_TF) output -raw ws_url)" npm run build -w web
 	AWS_PROFILE=$(ACADEMY_PROFILE) aws s3 sync apps/web/dist "s3://$$($(ACADEMY_TF) output -raw web_bucket)" --delete
 	@echo "Web publicada en $$($(ACADEMY_TF) output -raw app_url)"
 
@@ -163,6 +164,15 @@ academy-down:
 	done
 	AWS_PROFILE=$(ACADEMY_PROFILE) aws rds stop-db-instance --db-instance-identifier chessquery-academy >/dev/null
 	@echo "Servicios en 0 y RDS detenida (sin borrar nada)."
+
+# Inverso de academy-down (y del apagado nocturno): primero la base, después los servicios
+academy-up:
+	-AWS_PROFILE=$(ACADEMY_PROFILE) aws rds start-db-instance --db-instance-identifier chessquery-academy >/dev/null
+	AWS_PROFILE=$(ACADEMY_PROFILE) aws rds wait db-instance-available --db-instance-identifier chessquery-academy
+	for svc in $(SERVICES); do \
+	  AWS_PROFILE=$(ACADEMY_PROFILE) aws ecs update-service --cluster chessquery-academy --service $$svc --desired-count 1 >/dev/null; \
+	done
+	@echo "RDS disponible y servicios en 1. La web: $$($(ACADEMY_TF) output -raw app_url)"
 
 academy-destroy:
 	$(ACADEMY_TF) destroy -var-file=academy.tfvars $(TAGS_VAR)
