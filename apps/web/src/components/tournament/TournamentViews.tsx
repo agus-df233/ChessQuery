@@ -1,6 +1,6 @@
 import { Badge, Card, Table, type TableColumn } from '@chessquery/ui-lib';
 import type { EntryView, RoundView, StandingView, TournamentView } from '../../api/tournamentTypes';
-import { STATUS_BADGE, STATUS_LABEL, summary } from './labels';
+import { STATUS_BADGE, STATUS_LABEL, registrationSummary, summary } from './labels';
 
 const name = (p: { name: string; title: string | null }) => (p.title ? `${p.title} ${p.name}` : p.name);
 
@@ -13,6 +13,7 @@ export const TournamentHeader = ({ t }: { t: TournamentView }) => (
       {t.rated && <Badge variant="gold">Válido para rating</Badge>}
     </div>
     <p className="cq-muted">{summary(t)}</p>
+    {t.status === 'OPEN' && registrationSummary(t) && <p className="cq-muted">Inscripción: {registrationSummary(t)}</p>}
   </div>
 );
 
@@ -40,7 +41,9 @@ export const StandingsCard = ({ rows }: { rows: StandingView[] }) => {
 export const PlayersCard = ({ players }: { players: EntryView[] }) => {
   const columns: TableColumn<EntryView>[] = [
     { key: 'n', header: 'N°', width: 44, render: (e) => e.startRank },
-    { key: 'name', header: 'Jugador', render: (e) => name(e.player) },
+    { key: 'name', header: 'Jugador', render: (e) => (e.withdrawnFromRound
+      ? <>{name(e.player)} <span className="cq-muted">· retirado desde la ronda {e.withdrawnFromRound}</span></>
+      : name(e.player)) },
     { key: 'club', header: 'Club', render: (e) => e.clubName ?? '—' },
     { key: 'elo', header: 'Rating', align: 'right', render: (e) => e.player.rating ?? '—' },
   ];

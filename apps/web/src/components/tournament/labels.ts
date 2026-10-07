@@ -20,3 +20,13 @@ export const formatDate = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleD
 export const summary = (t: TournamentView) =>
   [formatDate(t.startDate), t.city, FORMAT_LABEL[t.format], `${t.roundsPlanned} rondas`, t.timeControl, `${t.playerCount} jugadores`]
     .filter(Boolean).join(' · ');
+
+/** Reglas de inscripción en una línea ("Cupo 16 · cierra el 31 oct, 18:00 · con aprobación · rating 1500–2100"). */
+export const registrationSummary = (t: TournamentView) => {
+  const range = t.minRating != null || t.maxRating != null ? `rating ${t.minRating ?? 0}–${t.maxRating ?? '∞'}` : null;
+  const closes = t.registrationClosesAt
+    ? `cierra el ${new Date(t.registrationClosesAt).toLocaleString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+    : null;
+  return [t.maxPlayers ? `Cupo ${t.maxPlayers}` : null, closes, t.requiresApproval ? 'con aprobación del organizador' : null,
+    range, t.checkinRequired ? 'acreditación con QR' : null].filter(Boolean).join(' · ');
+};

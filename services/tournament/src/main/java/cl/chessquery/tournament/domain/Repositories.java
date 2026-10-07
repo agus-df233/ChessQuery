@@ -26,6 +26,7 @@ public final class Repositories {
         List<Registration> findByTournamentIdOrderBySeedRatingDescIdAsc(Long tournamentId);
         Optional<Registration> findByTournamentIdAndPlayerId(Long tournamentId, Long playerId);
         List<Registration> findByPlayerId(Long playerId);
+        Optional<Registration> findByCheckinCode(String checkinCode);
         long countByTournamentId(Long tournamentId);
     }
 

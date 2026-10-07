@@ -38,6 +38,15 @@ public class Tournament {
     private Integer incrementSeconds;
     private boolean rated;
 
+    // Reglas de inscripción (null = sin límite)
+    private Instant registrationClosesAt;
+    private Integer maxPlayers;
+    private boolean requiresApproval;
+    private Integer minRating;
+    private Integer maxRating;
+    /** Quien no se acredita el día del torneo no juega la ronda 1. */
+    private boolean checkinRequired;
+
     @Enumerated(EnumType.STRING)
     private Status status = Status.OPEN;
 

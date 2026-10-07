@@ -37,7 +37,7 @@ public class TournamentQueries {
         List<EntryView> players = new ArrayList<>();
         for (int i = 0; i < s.registrations().size(); i++) {
             Registration r = s.registrations().get(i);
-            players.add(new EntryView(i + 1, PlayerRef.of(r), r.getClubName()));
+            players.add(new EntryView(i + 1, PlayerRef.of(r), r.getClubName(), r.getWithdrawnFromRound()));
         }
         return new Detail(view(s), players);
     }
@@ -94,10 +94,11 @@ public class TournamentQueries {
 
     private TournamentView view(Tournament t) {
         return TournamentView.of(t, rounds.findByTournamentIdOrderByNumberAsc(t.getId()).size(),
-                (int) registrations.countByTournamentId(t.getId()));
+                registrations.findByTournamentIdOrderBySeedRatingDescIdAsc(t.getId()));
     }
 
     private TournamentView view(TournamentState s) {
-        return TournamentView.of(s.tournament(), s.currentRound(), s.registrations().size());
+        return TournamentView.of(s.tournament(), s.currentRound(),
+                registrations.findByTournamentIdOrderBySeedRatingDescIdAsc(s.tournament().getId()));
     }
 }

@@ -34,6 +34,7 @@ public class RoundService {
     private final Repositories.Rounds rounds;
     private final Repositories.Pairings pairings;
     private final TournamentService lifecycle;
+    private final RegistrationService registrationsService;
     private final TournamentLoader loader;
     private final TournamentQueries queries;
     private final EventPublisher events;
@@ -41,6 +42,7 @@ public class RoundService {
     @Transactional
     public RoundView generate(UserPrincipal me, long id) {
         Tournament t = lifecycle.owned(me, id);
+        int noShows = registrationsService.markNoShows(t); // acreditación obligatoria: quien no llegó no juega
         TournamentState state = loader.state(t);
         validateNextRound(state);
         if (t.getStatus() == Status.OPEN && t.getFormat() == Format.ROUND_ROBIN) {
@@ -52,19 +54,20 @@ public class RoundService {
         round.setTournamentId(id);
         round.setNumber(number);
         rounds.save(round);
-        List<Pairing> saved = savePairings(round, pairs);
+        List<Pairing> saved = savePairings(round, pairs, state.registrationsById());
         t.setStatus(Status.IN_PROGRESS);
         events.publish(TournamentEvents.ROUND_GENERATED, Map.of("tournamentId", id, "round", number,
                 "pairings", saved.stream().map(RoundService::eventBoard).toList()));
-        log.info("Torneo {}: ronda {} generada ({} mesas)", id, number, saved.size());
+        log.info("Torneo {}: ronda {} generada ({} mesas, {} no presentados)", id, number, saved.size(), noShows);
         return queries.round(id, number);
     }
 
     private static void validateNextRound(TournamentState s) {
         Tournament t = s.tournament();
         if (t.getStatus() == Status.FINISHED) throw ApiException.conflict("TOURNAMENT_FINISHED", "El torneo ya terminó");
-        if (s.registrations().size() < 2) {
-            throw ApiException.conflict("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores inscritos");
+        int next = s.currentRound() + 1;
+        if (s.registrations().stream().filter(r -> r.playsRound(next)).count() < 2) {
+            throw ApiException.conflict("NOT_ENOUGH_PLAYERS", "Se necesitan al menos 2 jugadores en juego");
         }
         if (!s.lastRoundComplete()) {
             throw ApiException.conflict("ROUND_INCOMPLETE", "Faltan resultados de la ronda " + s.currentRound());
@@ -75,18 +78,24 @@ public class RoundService {
         }
     }
 
+    /**
+     * Suizo: solo quienes siguen en juego (un retirado deja de emparejarse). Todos contra todos: el calendario es fijo
+     * desde la ronda 1, así que las partidas de un retirado quedan como no presentación (ver {@link #savePairings}).
+     */
     private static List<Pair> pairsFor(TournamentState s, int number) {
         if (s.tournament().getFormat() == Format.ROUND_ROBIN) {
             return RoundRobin.round(s.registrations().stream().map(Registration::getPlayerId).toList(), number);
         }
+        Map<Long, Registration> regs = s.registrationsById();
         try {
-            return SwissPairing.pair(s.competitors(), number);
+            return SwissPairing.pair(s.competitors().stream().filter(c -> regs.get(c.id()).playsRound(number)).toList(),
+                    number);
         } catch (IllegalStateException e) {
             throw ApiException.conflict("NO_PAIRING_POSSIBLE", "No hay pareo sin repetir rivales: cierra el torneo");
         }
     }
 
-    private List<Pairing> savePairings(Round round, List<Pair> pairs) {
+    private List<Pairing> savePairings(Round round, List<Pair> pairs, Map<Long, Registration> regs) {
         List<Pairing> saved = new ArrayList<>();
         for (int i = 0; i < pairs.size(); i++) {
             Pairing p = new Pairing();
@@ -94,10 +103,19 @@ public class RoundService {
             p.setBoard(i + 1);
             p.setWhitePlayerId(pairs.get(i).white());
             p.setBlackPlayerId(pairs.get(i).black());
-            p.setResult(pairs.get(i).isBye() ? Result.BYE : null);
+            p.setResult(pairs.get(i).isBye() ? Result.BYE : forfeitFor(pairs.get(i), regs, round.getNumber()));
             saved.add(pairings.save(p));
         }
         return saved;
+    }
+
+    /** Mesa de todos contra todos con un retirado: gana por no presentación el que sigue (o nadie, si ambos se fueron). */
+    static Result forfeitFor(Pair pair, Map<Long, Registration> regs, int round) {
+        boolean whitePlays = regs.get(pair.white()).playsRound(round);
+        boolean blackPlays = regs.get(pair.black()).playsRound(round);
+        if (whitePlays && blackPlays) return null;
+        if (whitePlays) return Result.WHITE_FORFEIT_WIN;
+        return blackPlays ? Result.BLACK_FORFEIT_WIN : Result.DOUBLE_FORFEIT;
     }
 
     private static Map<String, Object> eventBoard(Pairing p) {

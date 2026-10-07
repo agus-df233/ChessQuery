@@ -3,6 +3,7 @@ package cl.chessquery.tournament.api;
 import cl.chessquery.auth.CurrentUser;
 import cl.chessquery.auth.UserPrincipal;
 import cl.chessquery.tournament.FinishService;
+import cl.chessquery.tournament.RegistrationService;
 import cl.chessquery.tournament.RoundService;
 import cl.chessquery.tournament.TournamentQueries;
 import cl.chessquery.tournament.TournamentService;
@@ -25,6 +26,7 @@ import java.util.List;
 public class TournamentController {
 
     private final TournamentService lifecycle;
+    private final RegistrationService registrations;
     private final RoundService roundService;
     private final FinishService finishService;
     private final TrfService trf;
@@ -48,22 +50,66 @@ public class TournamentController {
 
     @PostMapping("/{id}/registrations")
     public Detail register(@CurrentUser UserPrincipal me, @PathVariable long id, @Valid @RequestBody RegisterRequest req) {
-        return lifecycle.register(me, id, req.playerId());
+        return registrations.register(me, id, req.playerId());
     }
 
     @DeleteMapping("/{id}/registrations/{playerId}")
     public Detail unregister(@CurrentUser UserPrincipal me, @PathVariable long id, @PathVariable long playerId) {
-        return lifecycle.unregister(me, id, playerId);
+        return registrations.unregister(me, id, playerId);
     }
 
     @PostMapping("/{id}/join")
     public Detail join(@CurrentUser UserPrincipal me, @PathVariable long id) {
-        return lifecycle.join(me, id);
+        return registrations.join(me, id);
     }
 
     @DeleteMapping("/{id}/join")
     public Detail leave(@CurrentUser UserPrincipal me, @PathVariable long id) {
-        return lifecycle.unregister(me, id, me.playerId());
+        return registrations.unregister(me, id, me.playerId());
+    }
+
+    /** Todas las inscripciones con estado y código de acreditación (solo el organizador). */
+    @GetMapping("/{id}/registrations")
+    public List<RegistrationView> registrations(@CurrentUser UserPrincipal me, @PathVariable long id) {
+        return registrations.list(me, id);
+    }
+
+    @PostMapping("/{id}/registrations/bulk")
+    public List<BulkRow> registerAll(@CurrentUser UserPrincipal me, @PathVariable long id, @Valid @RequestBody BulkRegisterRequest req) {
+        return registrations.registerAll(me, id, req.playerIds());
+    }
+
+    @PostMapping("/{id}/registrations/{playerId}/approve")
+    public Detail approve(@CurrentUser UserPrincipal me, @PathVariable long id, @PathVariable long playerId) {
+        return registrations.approve(me, id, playerId);
+    }
+
+    /** Durante el torneo: deja de emparejarse desde la ronda siguiente. */
+    @PostMapping("/{id}/registrations/{playerId}/withdraw")
+    public Detail withdraw(@CurrentUser UserPrincipal me, @PathVariable long id, @PathVariable long playerId) {
+        return registrations.withdraw(me, id, playerId);
+    }
+
+    /** Acreditación con el QR del jugador. */
+    @PostMapping("/{id}/checkin")
+    public CheckinResult checkin(@CurrentUser UserPrincipal me, @PathVariable long id, @Valid @RequestBody CheckinRequest req) {
+        return registrations.checkinByCode(me, id, req.code());
+    }
+
+    @PostMapping("/{id}/registrations/{playerId}/checkin")
+    public CheckinResult checkinManually(@CurrentUser UserPrincipal me, @PathVariable long id, @PathVariable long playerId) {
+        return registrations.checkinManually(me, id, playerId);
+    }
+
+    @DeleteMapping("/{id}/registrations/{playerId}/checkin")
+    public RegistrationView undoCheckin(@CurrentUser UserPrincipal me, @PathVariable long id, @PathVariable long playerId) {
+        return registrations.undoCheckin(me, id, playerId);
+    }
+
+    /** Mi inscripción: estado y código de mi QR de acreditación. */
+    @GetMapping("/{id}/my-registration")
+    public RegistrationView myRegistration(@CurrentUser UserPrincipal me, @PathVariable long id) {
+        return registrations.mine(me, id);
     }
 
     @PostMapping("/{id}/rounds")

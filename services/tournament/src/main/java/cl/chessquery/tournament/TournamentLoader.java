@@ -2,6 +2,7 @@ package cl.chessquery.tournament;
 
 import cl.chessquery.common.api.ApiException;
 import cl.chessquery.tournament.domain.Pairing;
+import cl.chessquery.tournament.domain.Registration;
 import cl.chessquery.tournament.domain.Repositories;
 import cl.chessquery.tournament.domain.Round;
 import cl.chessquery.tournament.domain.Tournament;
@@ -36,6 +37,10 @@ public class TournamentLoader {
         Map<Long, List<Pairing>> byRound = rs.isEmpty() ? Map.of()
                 : pairings.findByRoundIdInOrderByBoardAsc(rs.stream().map(Round::getId).toList()).stream()
                         .collect(Collectors.groupingBy(Pairing::getRoundId));
-        return new TournamentState(t, registrations.findByTournamentIdOrderBySeedRatingDescIdAsc(t.getId()), rs, byRound);
+        // Solo quienes participan (confirmados y retirados que alcanzaron a jugar): pendientes, lista de espera y no
+        // presentados no entran en pareos, tabla, TRF ni ELO
+        List<Registration> participants = registrations.findByTournamentIdOrderBySeedRatingDescIdAsc(t.getId()).stream()
+                .filter(Registration::participates).toList();
+        return new TournamentState(t, participants, rs, byRound);
     }
 }

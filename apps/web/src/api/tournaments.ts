@@ -1,7 +1,7 @@
 import { http } from './client';
 import type {
-  FederationTournament, GameResult, MyTournaments, RoundView, StandingView, TournamentDetail, TournamentRequest,
-  TournamentStatus, TournamentView,
+  BulkRow, CheckinResult, FederationTournament, GameResult, MyTournaments, RegistrationView, RoundView, StandingView,
+  TournamentDetail, TournamentRequest, TournamentStatus, TournamentView,
 } from './tournamentTypes';
 
 const base = (id: number) => `/api/tournaments/${id}`;
@@ -22,6 +22,20 @@ export const tournamentsApi = {
     http.put<RoundView>(`${base(id)}/rounds/${round}/boards/${board}`, { result }).then((r) => r.data),
   finish: (id: number) => http.post<StandingView[]>(`${base(id)}/finish`).then((r) => r.data),
   trf: (id: number) => http.get<string>(`${base(id)}/trf`, { responseType: 'text' }).then((r) => r.data),
+  // Inscripciones y acreditación
+  registrations: (id: number) => http.get<RegistrationView[]>(`${base(id)}/registrations`).then((r) => r.data),
+  registerAll: (id: number, playerIds: number[]) =>
+    http.post<BulkRow[]>(`${base(id)}/registrations/bulk`, { playerIds }).then((r) => r.data),
+  approve: (id: number, playerId: number) =>
+    http.post<TournamentDetail>(`${base(id)}/registrations/${playerId}/approve`).then((r) => r.data),
+  withdraw: (id: number, playerId: number) =>
+    http.post<TournamentDetail>(`${base(id)}/registrations/${playerId}/withdraw`).then((r) => r.data),
+  checkin: (id: number, code: string) => http.post<CheckinResult>(`${base(id)}/checkin`, { code }).then((r) => r.data),
+  checkinManually: (id: number, playerId: number) =>
+    http.post<CheckinResult>(`${base(id)}/registrations/${playerId}/checkin`).then((r) => r.data),
+  undoCheckin: (id: number, playerId: number) =>
+    http.delete<RegistrationView>(`${base(id)}/registrations/${playerId}/checkin`).then((r) => r.data),
+  myRegistration: (id: number) => http.get<RegistrationView>(`${base(id)}/my-registration`).then((r) => r.data),
 };
 
 /** Vista pública (sin login): se comparte por QR en la sala de juego. */

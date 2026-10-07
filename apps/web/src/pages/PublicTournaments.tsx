@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Card, EmptyState, Skeleton } from '@chessquery/ui-lib';
 import { publicTournamentsApi } from '../api/tournaments';
+import { QrCode } from '../components/QrCode';
 import type { FederationTournament, TournamentView } from '../api/tournamentTypes';
 import { STATUS_BADGE, STATUS_LABEL, formatDate, summary } from '../components/tournament/labels';
 import { TournamentDetailView } from '../components/tournament/TournamentDetailView';
@@ -71,7 +72,15 @@ export const PublicTournamentDetail = () => {
   return (
     <main className="cq-public">
       <p style={{ padding: '0 16px' }}><Link to="/torneos">← Torneos</Link></p>
-      <TournamentDetailView id={Number(id)} />
+      <TournamentDetailView id={Number(id)} actions={(d) => d.tournament.status === 'OPEN' && (
+        <div className="cq-room-code">
+          <div>
+            <p>¿Quieres jugarlo? Inscríbete con tu cuenta de ChessQuery.</p>
+            <Link to={`/app/torneos/${d.tournament.id}`}>Inscribirme en este torneo</Link>
+          </div>
+          <QrCode value={`${window.location.origin}/app/torneos/${d.tournament.id}`} label="QR para inscribirse en el torneo" size={120} />
+        </div>
+      )} />
     </main>
   );
 };

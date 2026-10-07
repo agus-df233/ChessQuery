@@ -5,8 +5,12 @@ import { publicTournamentsApi } from '../../api/tournaments';
 import type { RoundView, TournamentDetail } from '../../api/tournamentTypes';
 import { PlayersCard, RoundCard, StandingsCard, TournamentHeader } from './TournamentViews';
 
-/** Claves de caché de un torneo; el organizador las invalida al cambiar algo. */
-export const tournamentKeys = (id: number) => [['tournament', id], ['tournament-rounds', id], ['tournament-standings', id]];
+/**
+ * Claves de caché de un torneo; el organizador las invalida al cambiar algo. Incluye las inscripciones: generar la
+ * ronda 1 deja como "no se presentó" a quien no se acreditó, y la lista tiene que mostrarlo.
+ */
+export const tournamentKeys = (id: number) => [['tournament', id], ['tournament-rounds', id], ['tournament-standings', id],
+  ['tournament-registrations', id]];
 
 /** Datos de un torneo desde la API pública. En juego se refresca cada 20 s (la sala mira la pantalla). */
 export const useTournament = (id: number) => {

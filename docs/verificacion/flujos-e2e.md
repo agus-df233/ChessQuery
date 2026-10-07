@@ -8,7 +8,7 @@ GraphQL y datos ficticios.
 make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
@@ -36,6 +36,15 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organiz
 4. **Cierra el torneo** (ratings enviados) y **exporta el TRF** (5 líneas `001`, cabecera con el nombre).
 5. La **vista pública** del torneo (sin login) muestra la clasificación; `/torneos` lista el torneo y el
    calendario de la Federación.
+
+### Torneo con reglas reales (`torneo-completo.spec.ts`)
+1. Roster por CSV y torneo con **cupo 8, aprobación del organizador y acreditación con QR**.
+2. El roster se inscribe **en bloque**; una jugadora con cuenta se inscribe sola y queda **pendiente** hasta que el
+   organizador la **aprueba**; ella ve su **QR de acreditación**.
+3. **Credenciales para imprimir** con el código de cada jugador.
+4. El día del torneo: **acreditación** con el código de la credencial y a mano desde la lista; uno no llega.
+5. La **ronda 1** empareja solo a los 4 acreditados; el ausente queda como **"no se presentó"**.
+6. Una jugadora se **retira**: la ronda 2 empareja a los 3 que siguen (mesa + bye) y la vista pública muestra el retiro.
 
 ### Sala de juego: la clase en el colegio (`sala.spec.ts`)
 1. El profesor crea su club y abre una **sala de 2 tableros con cupo 5**; se ven el **código** y el **QR**.

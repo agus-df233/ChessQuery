@@ -83,3 +83,12 @@
 .cq-room-code { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
 .cq-room-code-value { font-size: clamp(32px, 6vw, 56px); font-weight: 700; letter-spacing: 0.2em; font-family: ui-monospace, monospace; }
 .cq-room-fullscreen { position: fixed; inset: 0; z-index: 50; overflow: auto; padding: 16px; background: var(--bg, #0d1117); }
+
+/* Acreditación con QR y credenciales para imprimir */
+.cq-qr-video { width: 100%; max-width: 420px; aspect-ratio: 4 / 3; background: #000; border-radius: 8px; object-fit: cover; }
+.cq-credentials { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.cq-credential { border: 1px dashed var(--border-hi); border-radius: 8px; padding: 12px; display: grid; gap: 6px; justify-items: center; text-align: center; break-inside: avoid; }
+@media print {
+  .cq-no-print { display: none !important; }
+  .cq-credential { border-color: #000; color: #000; }
+}

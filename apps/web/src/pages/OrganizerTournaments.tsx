@@ -10,6 +10,8 @@ import { RESULT_OPTIONS } from '../components/tournament/labels';
 import { TournamentDetailView, tournamentKeys } from '../components/tournament/TournamentDetailView';
 import { TournamentList } from './PublicTournaments';
 import { timeControlLabel } from '../lib/timeControl';
+import { RegistrationRules } from '../components/tournament/RegistrationRules';
+import { RegistrationsCard } from '../components/tournament/RegistrationsCard';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const EMPTY: TournamentRequest = { name: '', city: '', startDate: today(), format: 'SWISS', rounds: 5, baseMinutes: 60, incrementSeconds: 30, rated: true };
@@ -53,6 +55,7 @@ const TournamentForm = ({ onCreated }: { onCreated: (id: number) => void }) => {
           <input type="checkbox" checked={form.rated} onChange={(e) => set({ rated: e.target.checked })} /> Válido para rating de ChessQuery
         </label>
       </div>
+      <RegistrationRules form={form} set={set} />
       <div className="cq-actions" style={{ marginTop: 12 }}>
         <Button type="submit" loading={create.isPending}>Crear torneo</Button>
         <StatusMessage error={create.error} />
@@ -77,7 +80,7 @@ export const OrganizerTournaments = () => {
   );
 };
 
-const useTournamentMutation = <T,>(id: number, fn: (arg: T) => Promise<unknown>) => {
+const useTournamentMutation = <T, R = unknown>(id: number, fn: (arg: T) => Promise<R>) => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -88,6 +91,20 @@ const useTournamentMutation = <T,>(id: number, fn: (arg: T) => Promise<unknown>)
   });
 };
 
+/** Inscripción en bloque, en una sola llamada: el servidor responde por jugador en vez de cortar en el primer error. */
+const useRegisterAll = (id: number) => {
+  const [message, setMessage] = useState<string | null>(null);
+  const all = useTournamentMutation(id, (ids: number[]) => tournamentsApi.registerAll(id, ids));
+  const run = (ids: number[]) => all.mutate(ids, {
+    onSuccess: (report) => {
+      const ok = report.filter((r) => r.outcome === 'REGISTERED').length;
+      const failed = report.filter((r) => r.outcome === 'ERROR').length;
+      setMessage(`Inscritos ${ok}` + (failed ? `, fallaron ${failed}` : ''));
+    },
+  });
+  return { run, message, pending: all.isPending, error: all.error };
+};
+
 /** Inscribir jugadores del roster del club (con o sin cuenta). */
 const RegisterFromRoster = ({ d }: { d: TournamentDetail }) => {
   const roster = useQuery({ queryKey: ['roster'], queryFn: organizationsApi.roster });
@@ -95,13 +112,7 @@ const RegisterFromRoster = ({ d }: { d: TournamentDetail }) => {
   const inTournament = new Set(d.players.map((p) => p.player.playerId));
   const available = (roster.data ?? []).filter((p) => p.active && !inTournament.has(p.id));
   const [picked, setPicked] = useState('');
-  const [bulk, setBulk] = useState<string | null>(null);
-  /** Uno por uno (el servidor valida cada inscripción); informa cuántas fallaron en vez de cortar en la primera. */
-  const registerAll = async () => {
-    const results = await Promise.allSettled(available.map((p) => register.mutateAsync(p.id)));
-    const failed = results.filter((r) => r.status === 'rejected').length;
-    setBulk(`Inscritos ${results.length - failed}` + (failed ? `, fallaron ${failed}` : ''));
-  };
+  const bulk = useRegisterAll(d.tournament.id);
   return (
     <div className="cq-actions">
       <label>Inscribir del roster
@@ -112,9 +123,9 @@ const RegisterFromRoster = ({ d }: { d: TournamentDetail }) => {
       </label>
       <Button size="sm" disabled={!picked} loading={register.isPending}
               onClick={() => register.mutate(Number(picked), { onSuccess: () => setPicked('') })}>Inscribir</Button>
-      <Button size="sm" variant="secondary" disabled={available.length === 0} loading={register.isPending}
-              onClick={() => void registerAll()}>Inscribir a todo el roster</Button>
-      <StatusMessage error={register.error} success={bulk} />
+      <Button size="sm" variant="secondary" disabled={available.length === 0} loading={bulk.pending}
+              onClick={() => bulk.run(available.map((p) => p.id))}>Inscribir a todo el roster</Button>
+      <StatusMessage error={register.error ?? bulk.error} success={bulk.message} />
     </div>
   );
 };
@@ -161,6 +172,14 @@ const OrganizerActions = ({ d }: { d: TournamentDetail }) => {
   );
 };
 
+/** Lo del organizador sobre la vista del torneo: dirección (rondas, TRF) e inscripciones. */
+const OrganizerPanel = ({ d }: { d: TournamentDetail }) => (
+  <>
+    <OrganizerActions d={d} />
+    <RegistrationsCard t={d.tournament} />
+  </>
+);
+
 /** Selector de resultado de una mesa de la ronda en curso. */
 const ResultSelect = ({ id, round, board }: { id: number; round: number; board: RoundView['boards'][number] }) => {
   const save = useTournamentMutation(id, (result: GameResult) => tournamentsApi.setResult(id, round, board.board, result));
@@ -179,7 +198,7 @@ export const OrganizerTournament = () => {
   return (
     <>
       <p style={{ padding: '0 16px' }}><Link to="/club/torneos">← Torneos del club</Link></p>
-      <TournamentDetailView id={id} actions={(d) => <OrganizerActions d={d} />}
+      <TournamentDetailView id={id} actions={(d) => <OrganizerPanel d={d} />}
         renderResult={(round) => (b) => <ResultSelect id={id} round={round.number} board={b} />} />
     </>
   );

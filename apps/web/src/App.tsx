@@ -17,6 +17,8 @@ import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTour
 import { OrganizerRoom, OrganizerRooms } from './pages/OrganizerRooms';
 import { RoomPage, Rooms } from './pages/Rooms';
 import { OpenChallengePage } from './pages/OpenChallengePage';
+import { OrganizerCheckin } from './pages/OrganizerCheckin';
+import { OrganizerCredentials } from './pages/OrganizerCredentials';
 
 /** Rutas: `/`, `/ranking` y `/torneos` públicas; `/app/**` jugador; `/club/**` organizador (o su creación). */
 export const App = () => (
@@ -44,6 +46,8 @@ export const App = () => (
     <Route path="/club" element={<RequireAuth><Layout><Club /></Layout></RequireAuth>} />
     <Route path="/club/torneos" element={<RequireAuth><Layout><OrganizerTournaments /></Layout></RequireAuth>} />
     <Route path="/club/torneos/:id" element={<RequireAuth><Layout><OrganizerTournament /></Layout></RequireAuth>} />
+    <Route path="/club/torneos/:id/acreditacion" element={<RequireAuth><Layout><OrganizerCheckin /></Layout></RequireAuth>} />
+    <Route path="/club/torneos/:id/credenciales" element={<RequireAuth><Layout><OrganizerCredentials /></Layout></RequireAuth>} />
     <Route path="/club/salas" element={<RequireAuth><Layout><OrganizerRooms /></Layout></RequireAuth>} />
     <Route path="/club/salas/:id" element={<RequireAuth><Layout><OrganizerRoom /></Layout></RequireAuth>} />
     <Route path="*" element={<Navigate to="/" replace />} />

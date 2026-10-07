@@ -9,7 +9,6 @@ import cl.chessquery.tournament.domain.Repositories;
 import cl.chessquery.tournament.domain.Status;
 import cl.chessquery.tournament.domain.Tournament;
 import cl.chessquery.tournament.users.UsersClient;
-import cl.chessquery.tournament.users.UsersClient.PlayerSummary;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +28,6 @@ public class TournamentService {
     private static final List<Status> ACTIVE = List.of(Status.OPEN, Status.IN_PROGRESS);
 
     private final Repositories.Tournaments tournaments;
-    private final Repositories.Registrations registrations;
     private final TournamentLoader loader;
     private final TournamentQueries queries;
     private final UsersClient users;
@@ -74,6 +72,20 @@ public class TournamentService {
         t.setRoundsPlanned(req.rounds());
         applyTimeControl(t, req);
         t.setRated(req.rated() == null || req.rated());
+        applyRegistrationRules(t, req);
+    }
+
+    /** Reglas de inscripción: cupo, cierre, aprobación, rango de rating y acreditación obligatoria. */
+    private static void applyRegistrationRules(Tournament t, UpsertRequest req) {
+        if (req.minRating() != null && req.maxRating() != null && req.minRating() > req.maxRating()) {
+            throw ApiException.badRequest("INVALID_RATING_RANGE", "El rating mínimo es mayor que el máximo");
+        }
+        t.setRegistrationClosesAt(req.registrationClosesAt());
+        t.setMaxPlayers(req.maxPlayers());
+        t.setRequiresApproval(Boolean.TRUE.equals(req.requiresApproval()));
+        t.setMinRating(req.minRating());
+        t.setMaxRating(req.maxRating());
+        t.setCheckinRequired(Boolean.TRUE.equals(req.checkinRequired()));
     }
 
     /**
@@ -88,49 +100,6 @@ public class TournamentService {
         t.setIncrementSeconds(parsed == null ? null : parsed[1]);
         boolean blank = req.timeControl() == null || req.timeControl().isBlank();
         t.setTimeControl(blank && parsed != null ? parsed[0] + "+" + parsed[1] : req.timeControl());
-    }
-
-    /** El organizador inscribe a un jugador (de su roster o registrado). */
-    @Transactional
-    public Detail register(UserPrincipal me, long id, long playerId) {
-        Tournament t = owned(me, id);
-        enroll(t, users.player(playerId));
-        return queries.detail(id);
-    }
-
-    /** El jugador se inscribe a sí mismo en un torneo abierto. */
-    @Transactional
-    public Detail join(UserPrincipal me, long id) {
-        enroll(loader.tournament(id), users.player(me.playerId()));
-        return queries.detail(id);
-    }
-
-    @Transactional
-    public Detail unregister(UserPrincipal me, long id, long playerId) {
-        Tournament t = loader.tournament(id);
-        if (!t.isOwnedBy(me.playerId()) && me.playerId() != playerId) {
-            throw ApiException.forbidden("NOT_ALLOWED", "Solo el organizador o el propio jugador pueden retirar la inscripción");
-        }
-        requireOpen(t);
-        registrations.findByTournamentIdAndPlayerId(id, playerId).ifPresent(registrations::delete);
-        return queries.detail(id);
-    }
-
-    private void enroll(Tournament t, PlayerSummary p) {
-        requireOpen(t);
-        if (registrations.findByTournamentIdAndPlayerId(t.getId(), p.id()).isPresent()) {
-            throw ApiException.conflict("ALREADY_REGISTERED", "Ese jugador ya está inscrito");
-        }
-        Registration r = new Registration();
-        r.setTournamentId(t.getId());
-        r.setPlayerId(p.id());
-        r.setFirstName(p.firstName());
-        r.setLastName(p.publicLastName() == null ? "" : p.publicLastName());
-        r.setTitle(p.currentTitle());
-        r.setClubName(p.clubName());
-        r.setSeedRating(p.seedRating(t.category()));
-        r.setPlatformRating(p.platformRating(t.category()));
-        registrations.save(r);
     }
 
     Tournament owned(UserPrincipal me, long id) {
