@@ -67,14 +67,16 @@ class LiveApiGatewayIntegrationTest {
     @Autowired WsConnectionRepository connections;
     @Autowired LiveConnections live;
 
-    static final long ANA = 1, LUIS = 2;
+    static final long ANA = 1, LUIS = 2, TERCERO = 3, PROFE = 9;
 
     @BeforeEach
     void mocks() {
         clearInvocations(channel);
         when(channel.send(anyString(), anyString())).thenReturn(true);
-        when(identity.resolve(anyString(), anyMap())).thenAnswer(inv ->
-                new ResolvedIdentity(Long.parseLong(inv.getArgument(0, String.class).substring(4)), null));
+        when(identity.resolve(anyString(), anyMap())).thenAnswer(inv -> {
+            long id = Long.parseLong(inv.getArgument(0, String.class).substring(4));
+            return new ResolvedIdentity(id, id == PROFE ? Long.valueOf(5) : null); // PROFE organiza el club 5
+        });
         when(users.player(anyLong())).thenAnswer(inv -> {
             long id = inv.getArgument(0, Long.class);
             return new PlayerSummary(id, id == ANA ? "Ana" : "Luis", "E2E", null, new PlatformRatings(null, null, 1500, null), null, null, true);
@@ -153,6 +155,57 @@ class LiveApiGatewayIntegrationTest {
         mvc.perform(gateway("connect", "olvidada").header("X-Ws-Token", "token-2")).andExpect(status().isOk());
         assertThat(live.purgeSeenBefore(Instant.now().plusSeconds(60))).isGreaterThanOrEqualTo(1);
         assertThat(connections.findById("olvidada")).isEmpty();
+    }
+
+    private String api(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder b, long player, String body)
+            throws Exception {
+        return mvc.perform(b.with(jwt().jwt(j -> j.subject("sub-" + player))).contentType(MediaType.APPLICATION_JSON)
+                .content(body)).andExpect(status().is2xxSuccessful()).andReturn().getResponse().getContentAsString();
+    }
+
+    /** La cuadrícula de una sala por WebSocket: solo su organizador y sus miembros, con cada jugada de sus tableros. */
+    @Test
+    void salaPorWebSocketSoloParaSuOrganizadorYMiembros() throws Exception {
+        var room = json.readTree(api(post("/api/rooms"), PROFE,
+                "{\"name\":\"Clase\",\"boards\":1,\"maxPlayers\":3,\"minutes\":5,\"incrementSeconds\":0}"));
+        long roomId = room.get("id").asLong();
+        String join = "{\"code\":\"" + room.get("code").asText() + "\"}";
+        for (long p : new long[] {ANA, LUIS, TERCERO}) api(post("/api/rooms/join"), p, join);
+        api(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/rooms/" + roomId + "/boards/1"),
+                PROFE, "{\"whitePlayerId\":1,\"blackPlayerId\":2}");
+        long gameId = json.readTree(api(post("/api/rooms/" + roomId + "/boards/1/start"), PROFE, ""))
+                .at("/boards/0/game/id").asLong();
+
+        mvc.perform(gateway("connect", "profe").header("X-Ws-Token", "token-9")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "profe").content("{\"action\":\"subscribe\",\"roomId\":" + roomId + "}"))
+           .andExpect(status().isOk());
+        verify(channel).send(eq("profe"), argThat(m -> m.contains("\"type\":\"room\"") && m.contains("\"organizer\":true")));
+        mvc.perform(gateway("message", "profe").content("{\"action\":\"subscribe\",\"roomId\":0}")).andExpect(status().isOk());
+        verify(channel).send(eq("profe"), argThat(m -> m.contains("MISSING_ROOM")));
+        mvc.perform(gateway("message", "profe").content("{\"action\":\"subscribe\",\"roomId\":" + roomId + "}"))
+           .andExpect(status().isOk());
+
+        // Alguien que no entró a la sala no la recibe
+        mvc.perform(gateway("connect", "intruso").header("X-Ws-Token", "token-7")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "intruso").content("{\"action\":\"subscribe\",\"roomId\":" + roomId + "}"))
+           .andExpect(status().isOk());
+        verify(channel).send(eq("intruso"), argThat(m -> m.contains("NOT_IN_ROOM")));
+        assertThat(connections.findById("intruso")).get().extracting(WsConnection::getRoomId).isNull();
+
+        // Una jugada en el tablero llega a la cuadrícula del organizador (después del commit, en otro hilo)
+        clearInvocations(channel);
+        mvc.perform(post("/api/games/" + gameId + "/moves").with(jwt().jwt(j -> j.subject("sub-" + ANA)))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"uci\":\"e2e4\"}")).andExpect(status().isOk());
+        verify(channel, timeout(5000).atLeastOnce())
+                .send(eq("profe"), argThat(m -> m.contains("\"type\":\"room\"") && m.contains("\"e2e4\"")));
+
+        // Un espectador que se va deja de recibir la sala
+        mvc.perform(gateway("connect", "tercero").header("X-Ws-Token", "token-3")).andExpect(status().isOk());
+        mvc.perform(gateway("message", "tercero").content("{\"action\":\"subscribe\",\"roomId\":" + roomId + "}"))
+           .andExpect(status().isOk());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/rooms/" + roomId + "/members/3")
+                .with(jwt().jwt(j -> j.subject("sub-3")))).andExpect(status().isNoContent());
+        verify(channel, timeout(5000)).send(eq("tercero"), argThat(m -> m.contains("NOT_IN_ROOM")));
     }
 
     /** Regresión (E2E del 30-09): el ganador cierra su socket al ver el mate y el envío a él falla. */

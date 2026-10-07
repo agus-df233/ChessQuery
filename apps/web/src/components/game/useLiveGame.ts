@@ -11,11 +11,12 @@ const MAX_BACKOFF_MS = 30_000;
 type OnGame = (game: GameView) => void;
 
 /**
- * Abre el WebSocket de la partida (`<VITE_WS_URL>?token=…`), se suscribe y entrega cada estado nuevo. Si la conexión
- * cae, reintenta con espera creciente (1 s, 2 s, 4 s… máx. 30 s). `onUp` avisa si el socket está arriba, para apagar
- * o encender el long polling de respaldo. Devuelve la función que cierra todo.
+ * Canal en vivo genérico (`<VITE_WS_URL>?token=…`): al abrir envía `subscribe` (una partida o una sala) y entrega cada
+ * mensaje. Si la conexión cae, reintenta con espera creciente (1 s, 2 s, 4 s… máx. 30 s). `onUp` avisa si el socket
+ * está arriba, para apagar o encender el long polling de respaldo. Devuelve la función que cierra todo.
  */
-export function openLiveSocket(url: string, gameId: number, onGame: OnGame, onUp: (up: boolean) => void): () => void {
+export function openLiveChannel(url: string, subscribe: Record<string, unknown>,
+                                onMessage: (msg: Record<string, unknown>) => void, onUp: (up: boolean) => void): () => void {
   let socket: WebSocket | undefined;
   let retry: ReturnType<typeof setTimeout> | undefined;
   let ping: ReturnType<typeof setInterval> | undefined;
@@ -29,13 +30,10 @@ export function openLiveSocket(url: string, gameId: number, onGame: OnGame, onUp
     socket.onopen = () => {
       attempt = 0;
       onUp(true);
-      socket?.send(JSON.stringify({ action: 'subscribe', gameId }));
+      socket?.send(JSON.stringify({ action: 'subscribe', ...subscribe }));
       ping = setInterval(() => socket?.send(JSON.stringify({ action: 'ping' })), PING_EVERY_MS);
     };
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(String(event.data)) as { type?: string; game?: GameView };
-      if (msg.type === 'game' && msg.game?.id === gameId) onGame(msg.game);
-    };
+    socket.onmessage = (event) => onMessage(JSON.parse(String(event.data)) as Record<string, unknown>);
     socket.onclose = () => {
       onUp(false);
       clearInterval(ping);
@@ -50,6 +48,14 @@ export function openLiveSocket(url: string, gameId: number, onGame: OnGame, onUp
     clearInterval(ping);
     socket?.close();
   };
+}
+
+/** Socket de una partida: solo entrega los estados de esa partida. */
+export function openLiveSocket(url: string, gameId: number, onGame: OnGame, onUp: (up: boolean) => void): () => void {
+  return openLiveChannel(url, { gameId }, (msg) => {
+    const game = msg.game as GameView | undefined;
+    if (msg.type === 'game' && game?.id === gameId) onGame(game);
+  }, onUp);
 }
 
 /**

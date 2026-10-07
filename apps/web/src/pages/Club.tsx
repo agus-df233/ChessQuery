@@ -166,6 +166,7 @@ export const ClubPanel = () => {
         <Badge variant={o.plan === 'PRO' ? 'gold' : 'neutral'}>Plan {o.plan}</Badge>
         <span className="cq-muted">Roster {o.rosterCount}/{o.maxRosterPlayers} · Torneos activos máx. {o.maxActiveTournaments}</span>
         <Link to="/club/torneos"><Button size="sm">Torneos del club</Button></Link>
+        <Link to="/club/salas"><Button size="sm" variant="secondary">Salas de juego</Button></Link>
       </div>
       <Card header="Datos del club"><ClubForm initial={o} onSubmit={(b) => update.mutate(b)} pending={update.isPending} error={update.error} submitLabel="Guardar" /></Card>
       <AddPlayerCard onAdded={refresh} />

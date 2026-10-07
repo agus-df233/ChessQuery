@@ -12,6 +12,8 @@ export interface GameView {
   initialSeconds: number; incrementSeconds: number; category: TimeControlCategory; rated: boolean; fen: string; moves: string[]; san: string[];
   ply: number; sideToMove: 'WHITE' | 'BLACK'; drawOfferBy: number | null; result: Outcome | null;
   termination: string | null; terminationLabel: string | null; version: number; createdAt: string; finishedAt: string | null;
+  /** Partida de una sala de juego (null = desafío entre jugadores). */
+  roomId?: number | null; boardNo?: number | null;
 }
 
 export interface MyGames { incoming: GameView[]; outgoing: GameView[]; active: GameView[]; finished: GameView[] }

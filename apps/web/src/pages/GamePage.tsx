@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Card, ErrorAlert, Skeleton } from '@chessquery/ui-lib';
 import { useMe } from '../api/hooks';
@@ -137,6 +137,7 @@ export const GamePage = () => {
         <h1 style={{ margin: 0 }}>{g.white.name} vs {g.black.name}</h1>
         <Badge>{timeControl(g)}</Badge>
         {g.rated && <Badge variant="gold">Por rating</Badge>}
+        {g.roomId && <Link to={`/app/salas/${g.roomId}`}>Sala · tablero {g.boardNo}</Link>}
       </div>
       <div className="cq-game">
         <BoardArea g={g} myColor={myColor} />

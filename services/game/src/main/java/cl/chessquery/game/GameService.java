@@ -47,19 +47,49 @@ public class GameService {
             throw ApiException.conflict("OPPONENT_WITHOUT_ACCOUNT", "Ese jugador aún no tiene cuenta en ChessQuery");
         }
         boolean challengerWhite = challengerIsWhite(req.color());
-        Game g = new Game();
-        g.setChallengerId(me.playerId());
-        g.setInitialSeconds(req.minutes() * 60);
-        g.setIncrementSeconds(req.incrementSeconds());
-        assign(g, challengerWhite ? challenger : opponent, challengerWhite ? opponent : challenger); // ya con el ritmo
+        Game g = newGame(me.playerId(), req.minutes() * 60, req.incrementSeconds(),
+                challengerWhite ? challenger : opponent, challengerWhite ? opponent : challenger);
         g.setRated(req.rated() == null || req.rated());
-        g.setFen(ChessRules.INITIAL_FEN);
-        g.setWhiteMs(g.getInitialSeconds() * 1000L);
-        g.setBlackMs(g.getInitialSeconds() * 1000L);
-        g.setCreatedAt(clock.instant()); // el vencimiento del desafío (GameSweeper) se mide con este mismo reloj
         games.save(g);
         log.info("Jugador {} desafió a {} (partida {})", me.playerId(), req.opponentId(), g.getId());
         return view(g);
+    }
+
+    /**
+     * Partida de una sala de juego: la inicia el organizador con los dos jugadores que asignó al tablero, así que
+     * empieza ya en juego (sin desafío pendiente) y nunca cuenta para el ELO. Se llama dentro de la transacción de la
+     * sala; jugadas, abandono y tablas siguen por los endpoints de siempre.
+     */
+    @Transactional
+    public Game startRoomGame(long organizerId, long roomId, int boardNo, int initialSeconds, int incrementSeconds,
+                              long whitePlayerId, long blackPlayerId) {
+        Game g = newGame(organizerId, initialSeconds, incrementSeconds,
+                users.player(whitePlayerId), users.player(blackPlayerId));
+        g.setRated(false);
+        g.setRoomId(roomId);
+        g.setBoardNo(boardNo);
+        Instant now = clock.instant();
+        g.setStatus(GameStatus.ACTIVE);
+        g.setStartedAt(now);
+        g.setTurnStartedAt(now);
+        games.save(g);
+        notifier.changedAfterCommit(g.getId());
+        log.info("Sala {}: tablero {} empieza (partida {})", roomId, boardNo, g.getId());
+        return g;
+    }
+
+    /** Lo común a toda partida nueva: ritmo, jugadores (con su rating del ritmo), posición inicial y relojes. */
+    private Game newGame(long createdBy, int initialSeconds, int incrementSeconds, PlayerSummary white, PlayerSummary black) {
+        Game g = new Game();
+        g.setChallengerId(createdBy);
+        g.setInitialSeconds(initialSeconds);
+        g.setIncrementSeconds(incrementSeconds);
+        assign(g, white, black); // ya con el ritmo
+        g.setFen(ChessRules.INITIAL_FEN);
+        g.setWhiteMs(initialSeconds * 1000L);
+        g.setBlackMs(initialSeconds * 1000L);
+        g.setCreatedAt(clock.instant()); // el vencimiento del desafío (GameSweeper) se mide con este mismo reloj
+        return g;
     }
 
     private static boolean challengerIsWhite(ColorChoice color) {

@@ -1,4 +1,4 @@
-# Verificación de punta a punta — jugador y organizador
+# Verificación de punta a punta — jugador, organizador y sala de juego
 
 Recorridos reales en el navegador (Chromium, Playwright) contra el stack local completo. No se usa ningún servicio
 externo real: el IdP simulado hace de Entra External ID y una Federación falsa responde con el mismo contrato
@@ -8,7 +8,7 @@ GraphQL y datos ficticios.
 make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
@@ -17,11 +17,11 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `vistas.spec
 1. Login desde la portada ("Entrar con mi correo") con los claims que entrega Entra (email, nombre, apellido).
 2. **Vincular mi ficha federativa** → `users` publica `federation.lookup.requested` → el ETL (la Lambda; en local, su receptor SNS) consulta la
    Federación (falsa) → `rating.updated` → la tarjeta muestra el **ELO nacional** traído de la ficha.
-3. Buscar a otro jugador por nombre, **Desafiar** (Blitz 3+2, con blancas).
+3. Buscar a otro jugador por nombre, **Desafiar** (relámpago 3+2, con blancas; el ritmo define qué ELO ChessQuery se juega).
 4. El rival ve el desafío en **Mis partidas** y lo acepta; quien desafió se entera solo (long polling).
 5. **Partida en vivo** entre dos navegadores, jugada a jugada, hasta el mate (1.e4 e5 2.Ac4 Cc6 3.Dh5 Cf6 4.Dxf7#).
 6. Ambos ven el resultado ("Ganaste/Perdiste · jaque mate"), el cambio de rating y el PGN descargable.
-7. El **rating de plataforma** del inicio se actualiza (`elo.updated` → cola → `users`).
+7. El **ELO ChessQuery relámpago** del inicio se actualiza (`elo.updated` con `PLATFORM_BLITZ` → cola → `users`).
 
 ### Organizador (`organizador.spec.ts`)
 1. Crea su club y carga el roster por **CSV** (5 jugadores, vista previa y confirmación).
@@ -30,6 +30,15 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `vistas.spec
 4. **Cierra el torneo** (ratings enviados) y **exporta el TRF** (5 líneas `001`, cabecera con el nombre).
 5. La **vista pública** del torneo (sin login) muestra la clasificación; `/torneos` lista el torneo y el
    calendario de la Federación.
+
+### Sala de juego: la clase en el colegio (`sala.spec.ts`)
+1. El profesor crea su club y abre una **sala de 2 tableros con cupo 5**; se ven el **código** y el **QR**.
+2. Entran **5 alumnos** con el enlace del QR (el código en la URL, en minúsculas); todos quedan como espectadores.
+3. El profesor **asigna** los tableros 1 y 2 (el quinto alumno sigue mirando) e **inicia todos**.
+4. Cada alumno asignado **pasa solo a su partida**; el de blancas del tablero 1 juega e4.
+5. La jugada aparece **sola** en la cuadrícula del profesor y en la del espectador (4 tableros por pantalla, en vivo).
+6. El profesor **sube a 3 tableros** y le da puesto al espectador, que se entera en su antesala.
+Las partidas de sala no cuentan para el ELO (lo verifica `RoomFlowIntegrationTest`).
 
 ### Todas las vistas (`vistas.spec.ts`)
 Inicio, Mi perfil, Jugadores, Ranking, Mis partidas, Amigos, Torneos, Crear mi club, portada y ranking público:

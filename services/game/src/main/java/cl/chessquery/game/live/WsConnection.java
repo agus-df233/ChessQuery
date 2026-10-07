@@ -9,7 +9,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 
-/** Una conexión en vivo: quién la abrió y qué partida sigue (null hasta que se suscribe). */
+/** Una conexión en vivo: quién la abrió y qué sigue, una partida o una sala completa (null hasta que se suscribe). */
 @Entity
 @Table(name = "ws_connection")
 @Getter
@@ -22,6 +22,7 @@ public class WsConnection {
 
     private Long playerId;
     private Long gameId;
+    private Long roomId;
     private Instant connectedAt;
     private Instant lastSeenAt;
 

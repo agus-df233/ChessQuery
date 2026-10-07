@@ -71,3 +71,15 @@
 .cq-clock-running { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .cq-clock-low.cq-clock-running { background: #b42318; border-color: #b42318; color: #fff; }
 .cq-moves { columns: 2; margin: 0; padding-left: 24px; font-variant-numeric: tabular-nums; }
+
+/* Salas de juego: cuadrícula de 2×2 tableros (4 por pantalla) para proyector o TV */
+.cq-room-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .cq-room-grid { grid-template-columns: 1fr; } }
+.cq-room-board { border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--surface, transparent); }
+.cq-room-board-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.cq-mini-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; max-width: 360px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--border-hi); border-radius: 4px; overflow: hidden; }
+.cq-mini-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(14px, 3.2vw, 30px); line-height: 1; }
+.cq-mini-side { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cq-room-code { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.cq-room-code-value { font-size: clamp(32px, 6vw, 56px); font-weight: 700; letter-spacing: 0.2em; font-family: ui-monospace, monospace; }
+.cq-room-fullscreen { position: fixed; inset: 0; z-index: 50; overflow: auto; padding: 16px; background: var(--bg, #0d1117); }

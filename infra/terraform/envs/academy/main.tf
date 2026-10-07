@@ -40,9 +40,10 @@ locals {
   services = {
     game = {
       port = 8083
-      # /internal/ws/* lo llama API Gateway WebSocket (va antes que el /internal/* de users)
-      paths = ["/api/games", "/api/games/*", "/api/public/games", "/api/public/games/*", "/internal/ws/*"]
-      pri   = 3
+      # /api/rooms: salas de juego. /internal/ws/* lo llama API Gateway WebSocket (va antes que el /internal/* de users)
+      paths = ["/api/games", "/api/games/*", "/api/rooms", "/api/rooms/*", "/api/public/games", "/api/public/games/*",
+      "/internal/ws/*"]
+      pri = 3
     }
     tournament = {
       port  = 8082

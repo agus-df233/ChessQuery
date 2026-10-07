@@ -4,6 +4,9 @@ import cl.chessquery.auth.PlayerIdentityResolver;
 import cl.chessquery.common.api.ApiException;
 import cl.chessquery.game.GameQueries;
 import cl.chessquery.game.api.GameDtos.GameView;
+import cl.chessquery.game.room.RoomChanged;
+import cl.chessquery.game.room.RoomDtos.RoomView;
+import cl.chessquery.game.room.RoomQueries;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,7 +30,9 @@ import java.util.Map;
  * Partidas en vivo por WebSocket. El mismo protocolo en local ({@code /ws}) y en la nube (API Gateway WebSocket):
  * <ol>
  *   <li><b>Conectar</b> con {@code ?token=<access token>}: se valida igual que un Bearer (mismo {@link JwtDecoder}).</li>
- *   <li><b>Suscribirse</b> con {@code {"action":"subscribe","gameId":N}}: se responde con el estado actual.</li>
+ *   <li><b>Suscribirse</b> con {@code {"action":"subscribe","gameId":N}}: se responde con el estado actual. O a una
+ *       sala de juego completa con {@code {"action":"subscribe","roomId":N}} (solo su organizador y sus miembros):
+ *       llega {@code {"type":"room","room":<RoomView>}} con cada cambio de la sala o de sus tableros.</li>
  *   <li>Cada cambio de la partida ({@link GameChanged}, tras el commit) se envía a todas sus conexiones, desde cualquier
  *       instancia: las conexiones viven en la base de datos.</li>
  *   <li>{@code {"action":"ping"}} mantiene viva la conexión (API Gateway corta a los 10 min sin tráfico).</li>
@@ -43,6 +48,7 @@ public class LiveConnections {
     private final WsConnectionRepository connections;
     private final LiveChannel channel;
     private final GameQueries games;
+    private final RoomQueries rooms;
     private final JwtDecoder jwtDecoder;
     private final PlayerIdentityResolver identity;
     private final ObjectMapper json;
@@ -81,7 +87,10 @@ public class LiveConnections {
         c.setLastSeenAt(clock.instant());
         JsonNode msg = parse(body);
         switch (msg.path("action").asText()) {
-            case "subscribe" -> subscribe(c, msg.path("gameId").asLong(0));
+            case "subscribe" -> {
+                if (msg.has("roomId")) subscribeRoom(c, msg.path("roomId").asLong(0));
+                else subscribe(c, msg.path("gameId").asLong(0));
+            }
             case "ping" -> { /* solo actualiza last_seen_at */ }
             default -> sendError(connectionId, "UNKNOWN_ACTION");
         }
@@ -95,7 +104,19 @@ public class LiveConnections {
         }
         GameView view = games.view(gameId); // 404 si no existe; mirar una partida es público
         c.setGameId(gameId);
+        c.setRoomId(null);
         channel.send(c.getConnectionId(), gameMessage(view));
+    }
+
+    /** Una sala la ven solo su organizador y sus miembros: a otro se le responde con un error, sin suscribirlo. */
+    private void subscribeRoom(WsConnection c, long roomId) {
+        if (roomId <= 0 || !rooms.canView(c.getPlayerId(), roomId)) {
+            sendError(c.getConnectionId(), roomId <= 0 ? "MISSING_ROOM" : "NOT_IN_ROOM");
+            return;
+        }
+        c.setRoomId(roomId);
+        c.setGameId(null);
+        channel.send(c.getConnectionId(), roomMessage(rooms.view(c.getPlayerId(), roomId)));
     }
 
     @Transactional
@@ -116,6 +137,27 @@ public class LiveConnections {
         if (subscribers.isEmpty()) return;
         String payload = gameMessage(games.view(gameId));
         for (WsConnection c : subscribers) {
+            if (!sendSafely(c.getConnectionId(), payload)) connections.deleteById(c.getConnectionId());
+        }
+    }
+
+    /** Envía la sala a cada conexión que la sigue, con la vista de su jugador (su tablero, si es el organizador). */
+    @Async("liveExecutor")
+    @EventListener
+    public void onRoomChanged(RoomChanged event) {
+        broadcastRoom(event.roomId());
+    }
+
+    @Transactional
+    public void broadcastRoom(long roomId) {
+        for (WsConnection c : connections.findByRoomId(roomId)) {
+            if (!rooms.canView(c.getPlayerId(), roomId)) { // lo sacaron de la sala: deja de recibirla
+                c.setRoomId(null);
+                connections.save(c);
+                sendSafely(c.getConnectionId(), write(Map.of("type", "error", "error", "NOT_IN_ROOM")));
+                continue;
+            }
+            String payload = roomMessage(rooms.view(c.getPlayerId(), roomId));
             if (!sendSafely(c.getConnectionId(), payload)) connections.deleteById(c.getConnectionId());
         }
     }
@@ -151,6 +193,13 @@ public class LiveConnections {
         Map<String, Object> msg = new LinkedHashMap<>();
         msg.put("type", "game");
         msg.put("game", view);
+        return write(msg);
+    }
+
+    private String roomMessage(RoomView view) {
+        Map<String, Object> msg = new LinkedHashMap<>();
+        msg.put("type", "room");
+        msg.put("room", view);
         return write(msg);
     }
 

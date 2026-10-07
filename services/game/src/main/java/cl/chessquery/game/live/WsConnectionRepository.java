@@ -12,6 +12,8 @@ public interface WsConnectionRepository extends JpaRepository<WsConnection, Stri
 
     List<WsConnection> findByGameId(Long gameId);
 
+    List<WsConnection> findByRoomId(Long roomId);
+
     @Modifying
     @Query("delete from WsConnection c where c.lastSeenAt < :before")
     int deleteSeenBefore(@Param("before") Instant before);

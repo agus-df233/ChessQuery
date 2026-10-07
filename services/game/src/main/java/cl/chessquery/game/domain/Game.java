@@ -38,6 +38,10 @@ public class Game {
     private int initialSeconds;
     private int incrementSeconds;
     private boolean rated;
+
+    /** Sala de juego a la que pertenece (null = desafío entre jugadores) y su número de tablero. */
+    private Long roomId;
+    private Integer boardNo;
     private String movesUci = "";
     private String movesSan = "";
     private String fen;

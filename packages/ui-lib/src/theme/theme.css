@@ -281,7 +281,8 @@ a:hover { color: var(--accent-hi); }
 }
 
 .btn-danger {
-  background: var(--red);
+  /* Más oscuro que --red: el texto blanco necesita contraste AA (≥ 4,5:1); --red queda para textos sobre fondo oscuro */
+  background: oklch(50% 0.19 25);
   color: white;
 }
 
