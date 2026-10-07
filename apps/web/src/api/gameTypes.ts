@@ -18,4 +18,12 @@ export interface GameView {
 
 export interface MyGames { incoming: GameView[]; outgoing: GameView[]; active: GameView[]; finished: GameView[] }
 
+/** Desafío abierto: un enlace (o QR) que acepta el primero que entre. EXPIRED = venció sin respuesta. */
+export interface OpenChallengeView {
+  token: string; challengerId: number; challengerName: string; minutes: number; incrementSeconds: number;
+  category: TimeControlCategory; color: ColorChoice; rated: boolean;
+  status: 'OPEN' | 'ACCEPTED' | 'CANCELLED' | 'EXPIRED'; gameId: number | null; expiresAt: string; mine: boolean;
+}
+export interface OpenChallengeRequest { minutes: number; incrementSeconds: number; color: ColorChoice; rated: boolean }
+
 export interface ChallengeRequest { opponentId: number; minutes: number; incrementSeconds: number; color: ColorChoice; rated: boolean }

@@ -41,13 +41,24 @@ vi.mock('./api/games', () => ({
     challenge: vi.fn(),
   },
   pgnUrl: (id: number) => `/api/public/games/${id}/pgn`,
+  openChallengesApi: {
+    mine: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockResolvedValue({ token: 'tok123', challengerId: 7, challengerName: 'Ana Soto', minutes: 3, incrementSeconds: 2,
+      category: 'BLITZ', color: 'RANDOM', rated: true, status: 'OPEN', gameId: null, expiresAt: '', mine: true }),
+    get: vi.fn().mockResolvedValue({ token: 'tok123', challengerId: 8, challengerName: 'Luis Paz', minutes: 10, incrementSeconds: 5,
+      category: 'RAPID', color: 'WHITE', rated: true, status: 'OPEN', gameId: null, expiresAt: '', mine: false }),
+    accept: vi.fn().mockResolvedValue({ id: 77 }),
+    cancel: vi.fn().mockResolvedValue(undefined),
+  },
+  openChallengeUrl: (token: string) => `http://localhost/app/desafio/${token}`,
 }));
 vi.mock('./api/users', () => ({
   usersApi: { me: vi.fn().mockResolvedValue({ profile: { id: 7, firstName: 'Ana', lastName: 'Soto', displayName: null }, organizationId: null, organizer: false, roles: [] }) },
   friendsApi: { list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1600, platform: { bullet: null, blitz: null, rapid: null, classical: null }, since: '' }]) },
 }));
 
-import { gamesApi } from './api/games';
+import { gamesApi, openChallengesApi } from './api/games';
+import { OpenChallengePage } from './pages/OpenChallengePage';
 import { GamePage } from './pages/GamePage';
 import { Games } from './pages/Games';
 import { formatClock } from './components/game/ChessClock';
@@ -56,7 +67,9 @@ import { ratingDelta, resultFor } from './components/game/labels';
 
 const renderAt = (path: string, pattern: string, ui: React.ReactElement) => render(
   <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <MemoryRouter initialEntries={[path]}><Routes><Route path={pattern} element={ui} /></Routes></MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
+      <Routes><Route path={pattern} element={ui} /><Route path="/app/partidas/:id" element={<p>Partida abierta</p>} /></Routes>
+    </MemoryRouter>
   </QueryClientProvider>,
 );
 
@@ -112,6 +125,29 @@ describe('partidas', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar desafío' }));
     await vi.waitFor(() => expect(gamesApi.challenge).toHaveBeenCalledWith(
       { opponentId: 8, minutes: 180, incrementSeconds: 0, color: 'RANDOM', rated: true }));
+  });
+
+  it('desafío abierto: crear el enlace con su QR y quedar esperando rival', async () => {
+    vi.mocked(openChallengesApi.mine).mockResolvedValueOnce([]).mockResolvedValue([
+      { token: 'tok123', challengerId: 7, challengerName: 'Ana Soto', minutes: 3, incrementSeconds: 2, category: 'BLITZ',
+        color: 'RANDOM', rated: true, status: 'OPEN', gameId: null, expiresAt: '', mine: true }]);
+    const { container } = renderAt('/app/partidas', '/app/partidas', <Games />);
+    fireEvent.change(await screen.findByLabelText('Ritmo del desafío abierto'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear enlace' }));
+    await vi.waitFor(() => expect(openChallengesApi.create).toHaveBeenCalledWith(
+      { minutes: 1, incrementSeconds: 0, color: 'RANDOM', rated: true }));
+    expect(await screen.findByLabelText('Enlace del desafío')).toHaveValue('http://localhost/app/desafio/tok123');
+    expect(screen.getByText(/Esperando rival: Relámpago 3\+2, por rating/)).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('desafío abierto: quien abre el enlace ve las condiciones y acepta', async () => {
+    const { container } = renderAt('/app/desafio/tok123', '/app/desafio/:token', <OpenChallengePage />);
+    expect(await screen.findByText(/Luis Paz te desafía a una partida rápida 10\+5, jugarías con negras y cuenta para tu ELO/)).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+    fireEvent.click(screen.getByRole('button', { name: 'Aceptar y jugar' }));
+    expect(await screen.findByText('Partida abierta')).toBeInTheDocument();
+    expect(openChallengesApi.accept).toHaveBeenCalledWith('tok123');
   });
 
   it('utilidades: FEN, reloj y resultados', () => {

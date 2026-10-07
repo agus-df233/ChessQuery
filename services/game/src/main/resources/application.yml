@@ -45,6 +45,8 @@ chessquery:
   games:
     # Un desafío sin respuesta vence a los 10 minutos; el barrido revisa relojes y desafíos cada segundo.
     challenge-ttl: 10m
+    # Un desafío abierto (enlace o QR) espera más: alguien tiene que escanearlo y entrar con su cuenta.
+    open-challenge-ttl: 30m
     # Long polling: cuánto espera GET /api/games/{id}?afterVersion=n antes de responder sin cambios.
     long-poll-timeout: 25s
   live:

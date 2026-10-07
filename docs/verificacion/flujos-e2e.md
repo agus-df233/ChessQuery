@@ -8,7 +8,7 @@ GraphQL y datos ficticios.
 make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
@@ -22,6 +22,12 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `sala.spec.t
 5. **Partida en vivo** entre dos navegadores, jugada a jugada, hasta el mate (1.e4 e5 2.Ac4 Cc6 3.Dh5 Cf6 4.Dxf7#).
 6. Ambos ven el resultado ("Ganaste/Perdiste · jaque mate"), el cambio de rating y el PGN descargable.
 7. El **ELO ChessQuery relámpago** del inicio se actualiza (`elo.updated` con `PLATFORM_BLITZ` → cola → `users`).
+
+### Desafío abierto: integrarse jugando (`desafio-abierto.spec.ts`)
+1. Ana publica un **desafío abierto** (relámpago 3+2, con blancas): obtiene un enlace con token aleatorio y su **QR**.
+2. Bruno, que no es su amigo y **no tiene sesión**, abre el enlace: entra con su cuenta y **vuelve al desafío** (el
+   login conserva la página pedida).
+3. Bruno ve las condiciones y **acepta**; los dos quedan en la misma partida (Ana se entera sola) y juegan.
 
 ### Organizador (`organizador.spec.ts`)
 1. Crea su club y carga el roster por **CSV** (5 jugadores, vista previa y confirmación).

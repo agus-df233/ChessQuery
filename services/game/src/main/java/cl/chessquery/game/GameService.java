@@ -68,14 +68,37 @@ public class GameService {
         g.setRated(false);
         g.setRoomId(roomId);
         g.setBoardNo(boardNo);
+        startNow(g);
+        log.info("Sala {}: tablero {} empieza (partida {})", roomId, boardNo, g.getId());
+        return g;
+    }
+
+    /**
+     * Partida de un desafío abierto: la acepta quien entró con el enlace y empieza ya en juego, con el color que eligió
+     * quien desafió. Si es por rating, cuenta para el ELO del ritmo como cualquier desafío.
+     */
+    @Transactional
+    public Game startOpenChallenge(long challengerId, long accepterId, ColorChoice color, int minutes, int incrementSeconds,
+                                   boolean rated) {
+        PlayerSummary challenger = users.player(challengerId);
+        PlayerSummary accepter = users.player(accepterId);
+        boolean challengerWhite = challengerIsWhite(color);
+        Game g = newGame(challengerId, minutes * 60, incrementSeconds,
+                challengerWhite ? challenger : accepter, challengerWhite ? accepter : challenger);
+        g.setRated(rated);
+        startNow(g);
+        log.info("Desafío abierto de {} aceptado por {} (partida {})", challengerId, accepterId, g.getId());
+        return g;
+    }
+
+    /** Empieza ya en juego (sin desafío pendiente): corre el reloj de blancas. */
+    private void startNow(Game g) {
         Instant now = clock.instant();
         g.setStatus(GameStatus.ACTIVE);
         g.setStartedAt(now);
         g.setTurnStartedAt(now);
         games.save(g);
         notifier.changedAfterCommit(g.getId());
-        log.info("Sala {}: tablero {} empieza (partida {})", roomId, boardNo, g.getId());
-        return g;
     }
 
     /** Lo común a toda partida nueva: ritmo, jugadores (con su rating del ritmo), posición inicial y relojes. */
@@ -102,9 +125,11 @@ public class GameService {
         g.setWhitePlayerId(white.id());
         g.setWhiteName(white.publicName());
         g.setWhiteRatingBefore(white.startingRating(g.category()));
+        g.setWhiteUnrated(white.platformRating(g.category()) == null);
         g.setBlackPlayerId(black.id());
         g.setBlackName(black.publicName());
         g.setBlackRatingBefore(black.startingRating(g.category()));
+        g.setBlackUnrated(black.platformRating(g.category()) == null);
     }
 
     /** El desafiado acepta: empieza la partida y corre el reloj de blancas. */

@@ -16,6 +16,7 @@ import { GamePage } from './pages/GamePage';
 import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTournaments';
 import { OrganizerRoom, OrganizerRooms } from './pages/OrganizerRooms';
 import { RoomPage, Rooms } from './pages/Rooms';
+import { OpenChallengePage } from './pages/OpenChallengePage';
 
 /** Rutas: `/`, `/ranking` y `/torneos` públicas; `/app/**` jugador; `/club/**` organizador (o su creación). */
 export const App = () => (
@@ -33,6 +34,7 @@ export const App = () => (
       <Route path="amigos" element={<Friends />} />
       <Route path="partidas" element={<Games />} />
       <Route path="partidas/:id" element={<GamePage />} />
+      <Route path="desafio/:token" element={<OpenChallengePage />} />
       <Route path="torneos" element={<Tournaments />} />
       <Route path="torneos/:id" element={<TournamentPage />} />
       <Route path="salas" element={<Rooms />} />

@@ -7,6 +7,7 @@ import type { GameView } from '../api/gameTypes';
 import { friendsApi } from '../api/users';
 import { StatusMessage } from '../components/StatusMessage';
 import { ChallengeButton } from '../components/game/ChallengeButton';
+import { OpenChallengeCard } from '../components/game/OpenChallenge';
 import { opponentOf, ratingDelta, resultFor, timeControl } from '../components/game/labels';
 
 const GameRow = ({ g, me, children }: { g: GameView; me: number; children?: React.ReactNode }) => {
@@ -88,6 +89,7 @@ export const Games = () => {
         <Button size="sm" variant="secondary" onClick={() => respond.mutate({ id: g.id, action: 'cancel' })}>Cancelar</Button>
       )} />
       <ChallengeFriends />
+      <OpenChallengeCard />
       <Section title="Historial" games={m.finished} me={myId} empty="Aún no terminas partidas." />
     </div>
   );
