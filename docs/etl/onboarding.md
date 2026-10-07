@@ -67,7 +67,7 @@ definida en el módulo Terraform `infra/terraform/modules/etl-jobs`:
 |---|---|---|
 | `fide-import` | día 2 de cada mes (regla de EventBridge) | lista FIDE (CHI) → `rating.updated` |
 | `federation-tournaments` | todos los días | torneos de la Federación → `federation.tournament.published` |
-| `federation-lookup` | cuando llega un mensaje a la cola `etl-federation-lookup` | ficha de un jugador que la vinculó → `rating.updated` |
+| `federation-lookup` | cuando SNS le entrega `federation.lookup.requested` (sin cola) | ficha de un jugador que la vinculó → `rating.updated` |
 
 El código se empaqueta tal cual desde `etl/chessquery_etl` (solo usa `boto3`, que ya viene en el runtime de Lambda).
 El pepper para el hash del RUT se lee de SSM (`PRIVACY_PEPPER_PARAM`), nunca de una variable en texto plano. Se usan

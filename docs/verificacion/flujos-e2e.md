@@ -5,7 +5,7 @@ externo real: el IdP simulado hace de Entra External ID y una Federación falsa 
 GraphQL y datos ficticios.
 
 ```bash
-make e2e     # levanta infra + users/tournament/game + worker del ETL + Federación falsa + web, prueba y apaga
+make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
 ```
 
 Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
@@ -15,7 +15,7 @@ Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `organizador.spec.ts`, `vistas.spec
 
 ### Jugador (`jugador.spec.ts`)
 1. Login desde la portada ("Entrar con mi correo") con los claims que entrega Entra (email, nombre, apellido).
-2. **Vincular mi ficha federativa** → `users` publica `federation.lookup.requested` → el worker del ETL consulta la
+2. **Vincular mi ficha federativa** → `users` publica `federation.lookup.requested` → el ETL (la Lambda; en local, su receptor SNS) consulta la
    Federación (falsa) → `rating.updated` → la tarjeta muestra el **ELO nacional** traído de la ficha.
 3. Buscar a otro jugador por nombre, **Desafiar** (Blitz 3+2, con blancas).
 4. El rival ve el desafío en **Mis partidas** y lo acepta; quien desafió se entera solo (long polling).

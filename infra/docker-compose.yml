@@ -26,6 +26,8 @@ services:
       SERVICES: sns,sqs,s3
       AWS_DEFAULT_REGION: us-east-1
     ports: ["127.0.0.1:4566:4566"]
+    # El receptor SNS local del ETL corre en el host: LocalStack le entrega los eventos por HTTP
+    extra_hosts: ["host.docker.internal:host-gateway"]
     volumes:
       - ./localstack/init/ready.d:/etc/localstack/init/ready.d:ro
       - ./events:/etc/chessquery/events:ro

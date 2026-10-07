@@ -2,14 +2,32 @@
 # siguiente) y tres Lambdas empaquetadas desde etl/chessquery_etl (sin dependencias extra: boto3 viene en el runtime).
 #   - fide-import            mensual (día 2): lista FIDE (CHI) → rating.updated
 #   - federation-tournaments diaria: torneos de la Federación → federation.tournament.published
-#   - federation-lookup      por cola SQS: ficha de un jugador que la vinculó (consentimiento) → rating.updated
+#   - federation-lookup      por evento (SNS directo, sin cola): ficha de un jugador que la vinculó → rating.updated
 # Los horarios usan reglas de EventBridge (no Scheduler): no necesitan un rol propio, que el Learner Lab no deja crear.
+# Las Lambdas que reaccionan a eventos se suscriben al tópico chess-events con filtro por eventType (sección
+# "lambdas" de infra/events/topology.json). Si una invocación falla, Lambda la reintenta 2 veces y la alarma avisa.
 
 variable "name" { type = string }
 variable "role_arn" { type = string }
 variable "source_dir" { type = string }
 variable "topic_arn" { type = string }
-variable "lookup_queue_arn" { type = string }
+
+variable "subscriptions" {
+  description = "Lambda → eventTypes que SNS le entrega directo (sección lambdas de topology.json)"
+  type        = map(list(string))
+}
+
+variable "alarm_topic_arn" {
+  description = "Tópico SNS de alertas al que avisan las alarmas de errores"
+  type        = string
+  default     = null
+}
+
+variable "error_alarms" {
+  description = "Crear una alarma de errores por Lambda (valor fijo: el ARN del tópico de alertas se conoce al aplicar)"
+  type        = bool
+  default     = true
+}
 variable "privacy_pepper_param_name" { type = string }
 
 variable "bucket_via_cli" {
@@ -148,12 +166,45 @@ resource "aws_lambda_permission" "schedule" {
   source_arn    = aws_cloudwatch_event_rule.schedule[each.key].arn
 }
 
-# Pedidos de consulta puntual: los que fallan vuelven a la cola (batchItemFailures) y, tras 5 intentos, a la DLQ.
-resource "aws_lambda_event_source_mapping" "lookup" {
-  event_source_arn        = var.lookup_queue_arn
-  function_name           = aws_lambda_function.fn["federation-lookup"].arn
-  batch_size              = 5
-  function_response_types = ["ReportBatchItemFailures"]
+# Eventos del bus: SNS invoca la Lambda en forma asíncrona. Un pedido que falla se reintenta 2 veces (lo hace
+# Lambda) y, si sigue fallando, queda registrado en el log y la alarma de errores avisa.
+resource "aws_sns_topic_subscription" "fn" {
+  for_each      = var.subscriptions
+  topic_arn     = var.topic_arn
+  protocol      = "lambda"
+  endpoint      = aws_lambda_function.fn[each.key].arn
+  filter_policy = jsonencode({ eventType = each.value })
+}
+
+resource "aws_lambda_permission" "sns" {
+  for_each      = var.subscriptions
+  statement_id  = "AllowChessEvents"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.fn[each.key].function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = var.topic_arn
+}
+
+resource "aws_lambda_function_event_invoke_config" "sns" {
+  for_each                     = var.subscriptions
+  function_name                = aws_lambda_function.fn[each.key].function_name
+  maximum_retry_attempts       = 2
+  maximum_event_age_in_seconds = 3600 # un pedido de ficha de hace más de 1 h ya no le sirve al jugador
+}
+
+resource "aws_cloudwatch_metric_alarm" "errors" {
+  for_each            = var.error_alarms ? local.functions : {}
+  alarm_name          = "${var.name}-${each.key}-errores"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = aws_lambda_function.fn[each.key].function_name }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = compact([var.alarm_topic_arn])
 }
 
 output "bucket" { value = module.etl_bucket.id }

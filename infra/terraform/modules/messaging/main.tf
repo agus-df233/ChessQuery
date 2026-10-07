@@ -98,4 +98,3 @@ resource "aws_cloudwatch_metric_alarm" "dlq" {
 output "topic_arn" { value = aws_sns_topic.events.arn }
 output "queue_names" { value = { for k, q in aws_sqs_queue.queue : k => q.name } }
 output "queue_arns" { value = [for q in aws_sqs_queue.queue : q.arn] }
-output "queue_arn_by_name" { value = { for k, q in aws_sqs_queue.queue : k => q.arn } }

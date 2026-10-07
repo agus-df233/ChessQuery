@@ -20,7 +20,7 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await captureBoth(a, 'inicio-jugador');
   await expectAccessible(a);
 
-  // Vincular la ficha: users publica federation.lookup.requested; el worker consulta la Federación (falsa)
+  // Vincular la ficha: users publica federation.lookup.requested; el ETL consulta la Federación (falsa)
   const fichaId = `7${Date.now().toString().slice(-6)}`; // los ids 7xx existen en la Federación falsa
   await a.getByLabel('Mi id federativo').fill(fichaId);
   await a.getByRole('button', { name: 'Vincular mi ficha' }).click();

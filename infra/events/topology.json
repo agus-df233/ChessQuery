@@ -1,10 +1,12 @@
 {
-  "_comentario": "Topología única del bus (ADR-0002): cola SQS → eventTypes que recibe desde el tópico chess-events. La leen infra/localstack (local) y el módulo messaging de Terraform (nube). Para agregar un consumidor: documentar el evento en docs/events.md y sumar una línea acá.",
+  "_comentario": "Topología única del bus (ADR-0002). consumers: cola SQS → eventTypes que recibe desde el tópico chess-events (servicios Java). lambdas: Lambda del ETL → eventTypes que SNS le entrega directo, sin cola (Lambda reintenta sola). La leen infra/localstack y etl/chessquery_etl/local_bus.py (local) y Terraform (nube). Para agregar un consumidor: documentar el evento en docs/events.md y sumar una línea acá.",
   "consumers": {
     "users-elo": ["elo.updated"],
     "users-rating": ["rating.updated"],
     "tournament-federation": ["federation.tournament.published"],
-    "tournament-players": ["player.merged"],
-    "etl-federation-lookup": ["federation.lookup.requested"]
+    "tournament-players": ["player.merged"]
+  },
+  "lambdas": {
+    "federation-lookup": ["federation.lookup.requested"]
   }
 }

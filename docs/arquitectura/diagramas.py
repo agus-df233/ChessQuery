@@ -105,11 +105,11 @@ def arquitectura() -> None:
     s.box(35, 685, 400, 55, "datos", "S3 · bucket del ETL", ["raw/ (se borra a los 30 días) · staged/ · rejected/ · manifests/"])
 
     s.box(495, 520, 175, 70, "eventos", "SNS chess-events", ["sobre ChessEvent", "+ atributo eventType"])
-    s.group(715, 490, 470, 265, "eventos", "SQS · una cola por consumidor (con DLQ y alarma)")
+    s.group(715, 490, 470, 265, "eventos", "Consumidores: cola SQS con DLQ, o Lambda directa")
     queues = [("users-elo", "elo.updated → users"), ("users-rating", "rating.updated → users"),
               ("tournament-federation", "federation.tournament.published → tournament"),
               ("tournament-players", "player.merged → tournament"),
-              ("etl-federation-lookup", "federation.lookup.requested → Lambda")]
+              ("Lambda federation-lookup (sin cola)", "federation.lookup.requested → SNS directo")]
     for i, (q, what) in enumerate(queues):
         y = 512 + i * 48
         s.box(730, y, 440, 42, "eventos", q, [what], title_size=11.5)
@@ -244,7 +244,7 @@ def etl_lambda() -> None:
     s.group(20, 20, 250, 430, "etl", "Disparadores")
     s.box(35, 55, 220, 70, "etl", "EventBridge · día 2, 09:00 UTC", ["→ fide-import"], title_size=11.5)
     s.box(35, 145, 220, 70, "etl", "EventBridge · diario, 10:00 UTC", ["→ federation-tournaments"], title_size=11.5)
-    s.box(35, 235, 220, 85, "eventos", "SQS etl-federation-lookup", ["lotes de 5 · reintenta solo", "los que fallan · DLQ tras 5"], title_size=11.5)
+    s.box(35, 235, 220, 85, "eventos", "SNS chess-events (directo)", ["federation.lookup.requested", "2 reintentos · alarma de errores"], title_size=11.5)
     s.box(35, 340, 220, 95, "nota", "Manual (prueba)", ["aws lambda invoke", "--invocation-type Event"], title_size=12)
 
     steps = [("1 · Obtener", "descarga FIDE o consulta la Federación", "(ritmo máx. 5/s, reintentos, corte)"),

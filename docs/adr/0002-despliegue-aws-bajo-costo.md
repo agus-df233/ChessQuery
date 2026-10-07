@@ -109,3 +109,19 @@ Venían en el esqueleto del proyecto sin una decisión escrita; se revisan y que
 conectarse por `wss://` y empujar mensajes desde el `LabRole`); evidencia en
 `docs/verificacion/2026-09-30-websocket-learner-lab.md`. El long polling sigue como mecanismo actual y como respaldo;
 el WebSocket por API Gateway queda como el camino para el tiempo real también en el lab.
+
+## Enmienda — 07-10-2026: las Lambdas del ETL reciben los eventos directo de SNS
+
+Se elimina la cola `etl-federation-lookup` (y su DLQ). La Lambda `federation-lookup` queda **suscrita al tópico
+`chess-events`** con el mismo filtro por `eventType`, sin SQS de por medio:
+
+1. **Por qué:** una Lambda ya trae lo que la cola aportaba (reintentos y registro de fallas), así que la cola solo
+   sumaba piezas que mantener y que limpiar a mano en cada lab. Las colas de los servicios Java se mantienen: ahí
+   SQS sí aporta el desacople y la DLQ, porque un servicio puede estar apagado (`academy-down`) y no debe perder eventos.
+2. **Fallas:** la invocación es asíncrona; si falla, Lambda la reintenta 2 veces (hasta 1 h después del pedido) y la
+   alarma `<lambda>-errores` avisa al tópico de alertas. Un pedido de ficha perdido no rompe nada: el jugador puede
+   volver a pedirlo.
+3. **Topología:** `infra/events/topology.json` tiene una sección nueva, `lambdas` (Lambda → eventTypes). La leen el
+   módulo `etl-jobs` (suscripción `lambda` + permiso para SNS) y, en local, `etl/chessquery_etl/local_bus.py`: un
+   receptor HTTP que se suscribe al tópico de LocalStack y llama al **mismo handler** que la Lambda.
+4. La futura Lambda de ratings externos (Lichess y Chess.com) usa el mismo mecanismo.

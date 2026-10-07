@@ -1,4 +1,4 @@
-# Catálogo de eventos — tópico SNS `chess-events` + una cola SQS por consumidor
+# Catálogo de eventos — tópico SNS `chess-events` + una cola SQS por consumidor (o Lambda directa)
 
 Fuente de verdad. Todo evento nuevo se documenta aquí **antes** de codificar productor y consumidor.
 Decisión de transporte: `docs/adr/0002-despliegue-aws-bajo-costo.md` (reemplaza al exchange RabbitMQ).
@@ -17,6 +17,10 @@ Reglas:
   suscrita al tópico con **filter policy** `{"eventType": [...]}` y **raw message delivery** (la cola
   recibe el envelope tal cual). Nunca compartir colas.
 - Cada cola tiene su **DLQ** `<cola>-dlq` con `maxReceiveCount = 5`; un mensaje en una DLQ dispara alarma.
+- **Excepción, Lambdas del ETL:** SNS les entrega el evento **directo**, sin cola (suscripción `lambda` con el mismo
+  filter policy). Lambda reintenta 2 veces una invocación que falla y la alarma `<lambda>-errores` avisa. Van en la
+  sección `lambdas` de la topología; en local las atiende el receptor `etl/chessquery_etl/local_bus.py` (ADR-0002,
+  enmienda 2026-10-07).
 - La topología (qué cola recibe qué eventos) vive en **un solo archivo**, `infra/events/topology.json`,
   que leen tanto `infra/localstack/init/ready.d/10-chess-events.sh` (local) como el módulo Terraform
   `messaging` (nube). Los servicios solo publican (`EventPublisher`) y consumen
@@ -39,7 +43,7 @@ CREATE TABLE processed_event (
 | `player.provisional.created` | users | notifications | `{ playerId, organizerId, email }` | ✅ |
 | `player.updated` | users | — | `{ playerId, fields: [...] }` | ✅ |
 | `player.merged` | users | tournament (`tournament-players`) | `{ fromPlayerId, intoPlayerId }` — el titular reclamó una ficha federada sin dueño tras verificar su identidad (RUT o año + nombre): ids federativos, ratings, historial y títulos pasan a su cuenta y `fromPlayerId` queda inactivo; cada servicio reasigna sus referencias | ✅ productor |
-| `federation.lookup.requested` | users | etl (`etl-federation-lookup`) | `{ playerId, federationId }` — el jugador vinculó su id federativo (consentimiento): el ETL consulta **solo esa ficha** y responde con `rating.updated` (source `FEDERACION`) | ✅ |
+| `federation.lookup.requested` | users | etl (Lambda `federation-lookup`, SNS directo) | `{ playerId, federationId }` — el jugador vinculó su id federativo (consentimiento): el ETL consulta **solo esa ficha** y responde con `rating.updated` (source `FEDERACION`) | ✅ |
 | `player.deleted` | users | tournament, game, notifications | `{ playerId }` — el titular ejerció supresión: la fila quedó anonimizada (el id se conserva por integridad); cada servicio borra o anonimiza lo suyo | ✅ productor |
 | `subscription.changed` | users | notifications | `{ organizationId, ownerId, oldPlan, newPlan, status, gateway, reason }` | paso 6 |
 | `rating.updated` | etl | users (`users-rating`) | `{ source: FIDE\|FEDERACION\|LICHESS\|CHESSCOM, period?, players: [ { firstName, lastName, federationId?, fideId?, title?, rutHash?, birthYear?, clubName?, sourceUrl?, period?, eloNational?, eloFideStandard?, eloFideRapid?, eloFideBlitz? } \| { lichessUsername, eloLichess* } \| { chesscomUsername, eloChesscom* } ] }` — el RUT viaja **solo como `rutHash`** (HMAC con el pepper compartido); de la fecha de nacimiento, solo el año | ✅ (FIDE y Federación) |

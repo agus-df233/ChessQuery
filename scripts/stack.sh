@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Stack local completo, compartido por `make dev` (scripts/dev.sh) y `make e2e` (scripts/e2e.sh):
-#   Postgres + LocalStack + IdP simulado (hace de Entra) · users/tournament/game · worker del ETL ·
+#   Postgres + LocalStack + IdP simulado (hace de Entra) · users/tournament/game · receptor SNS del ETL ·
 #   Federación falsa (datos ficticios, sin tocar el sitio real) · web (Vite en :5173).
 # Se usa con `source`: define start_stack y un trap que apaga todo lo que se levantó (incluida la infra).
 
@@ -38,12 +38,12 @@ start_stack() {
     PIDS+=($!)
   done
 
-  echo "== Federación falsa y worker del ETL"
+  echo "== Federación falsa y receptor SNS del ETL (hace de suscripción SNS → Lambda)"
   python3 "$ROOT/apps/web/e2e/support/federation_stub.py" > "$LOGS/federacion.log" 2>&1 &
   PIDS+=($!)
   make -C "$ROOT" etl-setup >/dev/null
   (cd "$ROOT/etl" && FEDERATION_BASE_URL=http://localhost:8099 PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud \
-    PYTHONUNBUFFERED=1 exec .venv/bin/python -m chessquery_etl.federation.cli worker) > "$LOGS/worker.log" 2>&1 &
+    PYTHONUNBUFFERED=1 exec .venv/bin/python -m chessquery_etl.local_bus) > "$LOGS/etl-bus.log" 2>&1 &
   PIDS+=($!)
 
   echo "== Web"

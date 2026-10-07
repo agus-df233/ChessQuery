@@ -230,7 +230,8 @@ module "etl" {
   role_arn                  = data.aws_iam_role.lab.arn
   source_dir                = "${path.root}/../../../../etl/chessquery_etl"
   topic_arn                 = module.messaging.topic_arn
-  lookup_queue_arn          = module.messaging.queue_arn_by_name["etl-federation-lookup"]
+  subscriptions             = jsondecode(file("${path.root}/../../../events/topology.json")).lambdas
+  alarm_topic_arn           = module.observability.alerts_topic_arn
   privacy_pepper_param_name = module.data.privacy_pepper_param_name
   bucket_via_cli            = true
 }

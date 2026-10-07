@@ -1,11 +1,12 @@
 """Consultas puntuales pedidas por los jugadores (evento ``federation.lookup.requested``).
 
-Cuando un jugador vincula su id federativo en ChessQuery, ``users`` publica ese evento y la cola
-``etl-federation-lookup`` lo recibe. Acá se lee la cola y, por cada pedido, se corre el modo ``lookup``
-(que termina publicando ``rating.updated`` con la ficha del jugador).
+Cuando un jugador vincula su id federativo en ChessQuery, ``users`` publica ese evento en el tópico ``chess-events``
+y SNS se lo entrega **directo** a la Lambda ``federation-lookup`` (suscripción con filtro por ``eventType``, sin cola
+SQS de por medio). Acá se interpreta cada entrega y se corre el modo ``lookup``, que termina publicando
+``rating.updated`` con la ficha del jugador.
 
-- En la nube: la cola dispara la Lambda (``lambda_handler`` de ``cli.py`` recibe ``Records`` de SQS).
-- En local: ``python -m chessquery_etl.federation.cli worker`` hace *long polling* sobre la cola de LocalStack.
+- En la nube: ``lambda_handler`` de ``cli.py`` recibe ``Records`` con formato SNS.
+- En local: el receptor ``chessquery_etl.local_bus`` se suscribe al tópico de LocalStack y arma el mismo evento.
 """
 from __future__ import annotations
 
@@ -14,7 +15,6 @@ import logging
 from typing import Callable, Iterable
 
 EVENT_LOOKUP_REQUESTED = "federation.lookup.requested"
-DEFAULT_QUEUE = "etl-federation-lookup"
 
 log = logging.getLogger(__name__)
 
@@ -33,36 +33,22 @@ def federation_id_of(body: str) -> str | None:
     return fid if fid.isdigit() else None
 
 
+def message_of(record: dict) -> str:
+    """Cuerpo del ChessEvent dentro de un registro SNS (formato del evento de Lambda)."""
+    return (record.get("Sns") or {}).get("Message", "")
+
+
 def handle_records(records: Iterable[dict], lookup: Lookup) -> dict:
-    """Procesa mensajes SQS (formato Lambda). Los que fallan se devuelven en ``batchItemFailures`` para
-    reintento (y luego DLQ); los inválidos se descartan con un log, porque reintentarlos no los arregla."""
-    failures, done = [], 0
+    """Procesa las entregas de SNS. Si una consulta falla, la excepción sube: Lambda reintenta la invocación
+    (2 veces) y la alarma de errores avisa. Los mensajes inválidos se descartan con un log, porque reintentarlos
+    no los arregla."""
+    done = 0
     for record in records:
-        fid = federation_id_of(record.get("body", ""))
+        fid = federation_id_of(message_of(record))
         if fid is None:
-            log.warning("Mensaje descartado (no es un pedido de consulta válido): %s", record.get("messageId"))
+            log.warning("Mensaje descartado (no es un pedido de consulta válido): %s",
+                        (record.get("Sns") or {}).get("MessageId"))
             continue
-        try:
-            lookup(fid)
-            done += 1
-        except Exception:  # noqa: BLE001 — cualquier error se reintenta vía SQS
-            log.exception("Falló la consulta puntual de la ficha %s", fid)
-            failures.append({"itemIdentifier": record.get("messageId")})
-    return {"lookups": done, "batchItemFailures": failures}
-
-
-def poll(sqs, queue_url: str, lookup: Lookup, *, once: bool = False) -> int:
-    """Long polling local: procesa y borra los mensajes exitosos. Con ``once`` hace una sola vuelta (tests)."""
-    total = 0
-    while True:
-        resp = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10, WaitTimeSeconds=20)
-        records = [{"messageId": m["MessageId"], "body": m["Body"], "receipt": m["ReceiptHandle"]}
-                   for m in resp.get("Messages", [])]
-        result = handle_records(records, lookup)
-        failed = {f["itemIdentifier"] for f in result["batchItemFailures"]}
-        for r in records:
-            if r["messageId"] not in failed:
-                sqs.delete_message(QueueUrl=queue_url, ReceiptHandle=r["receipt"])
-        total += result["lookups"]
-        if once:
-            return total
+        lookup(fid)
+        done += 1
+    return {"lookups": done}

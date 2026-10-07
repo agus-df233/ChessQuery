@@ -30,8 +30,9 @@ make tf-check          # terraform fmt + validate de todos los entornos
   abreviados vía `PublicNames`; de terceros solo `birth_year` y `rut_hash` (`IdentifierHasher`). Match con
   fuentes externas solo por identificadores, nunca por nombre. Respetar `data_suppression`.
 - **Eventos:** envelope `ChessEvent` en el tópico SNS `chess-events`, una cola SQS por consumidor con filter
-  policy por `eventType` y DLQ; consumidores idempotentes (`IdempotentConsumer`). Todo evento nuevo se
-  documenta primero en `docs/events.md`. La topología es infra (`infra/localstack`, módulo `messaging`).
+  policy por `eventType` y DLQ; consumidores idempotentes (`IdempotentConsumer`). Las Lambdas del ETL reciben
+  directo de SNS, sin cola (sección `lambdas` de la topología). Todo evento nuevo se documenta primero en
+  `docs/events.md`. La topología es infra (`infra/events/topology.json`, módulos `messaging` y `etl-jobs`).
 - **Persistencia:** un schema PostgreSQL por servicio, sin FKs entre schemas; Flyway es dueño del esquema,
   Hibernate solo valida.
 - **Errores REST:** `{ status, error, message, timestamp }`; JSON camelCase, columnas snake_case.

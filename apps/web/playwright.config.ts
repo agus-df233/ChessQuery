@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * E2E contra el stack local completo (ver scripts/e2e.sh): web en :5173, users/tournament/game, LocalStack,
- * IdP simulado en :8090, Federación falsa en :8099 y el worker del ETL. Nada apunta a servicios reales.
+ * IdP simulado en :8090, Federación falsa en :8099 y el receptor SNS del ETL. Nada apunta a servicios reales.
  */
 export default defineConfig({
   testDir: './e2e',

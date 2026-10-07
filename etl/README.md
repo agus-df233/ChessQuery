@@ -10,7 +10,7 @@ Empieza por **`docs/etl/onboarding.md`**. Guía en PDF: `docs/etl/ChessQuery-ETL
 |---|---|---|---|
 | FIDE (lista oficial mensual, federación CHI) | `fide.py` + `handler.py` | `rating.updated` (source `FIDE`) | ✅ probado con la lista real: 9.271 leídos, 4.192 con rating |
 | Federación Chilena de Ajedrez — torneos | `federation/` | `federation.tournament.published` | ✅ en vivo |
-| Federación — jugador puntual (lo pide el jugador al vincular su ficha) | `federation/worker.py` | `rating.updated` (source `FEDERACION`, con `rutHash`) | ✅ |
+| Federación — jugador puntual (lo pide el jugador al vincular su ficha) | `federation/worker.py` (SNS → Lambda) | `rating.updated` (source `FEDERACION`, con `rutHash`) | ✅ |
 | Federación — jugadores masivo | `federation/` | `rating.updated` | ⛔ apagado hasta convenio |
 
 ```bash
@@ -19,7 +19,7 @@ make test-etl                      # pytest (cobertura ≥ 90 %)
 make etl-fide-local                # FIDE real → LocalStack
 make federation-contract           # verifica el esquema de la Federación
 make federation-tournaments-local  # torneos de la Federación → LocalStack
-make federation-worker             # atiende las fichas que piden los jugadores (cola etl-federation-lookup)
+make etl-bus-local                 # receptor SNS local: atiende las fichas que piden los jugadores, como la Lambda
 ```
 
 En la nube cada fuente es una Lambda (módulo Terraform `etl-jobs`); ver `docs/etl/onboarding.md` §6.

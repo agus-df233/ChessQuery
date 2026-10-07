@@ -76,10 +76,10 @@ LocalStack (local) y Terraform (nube).
 | `users-rating` | `rating.updated` | ETL → users (ratings FIDE y de la Federación) |
 | `tournament-federation` | `federation.tournament.published` | ETL → tournament (calendario federativo) |
 | `tournament-players` | `player.merged` | users → tournament (un jugador reclamó una ficha federada) |
-| `etl-federation-lookup` | `federation.lookup.requested` | users → Lambda (el jugador vinculó su ficha) |
 
 Cada cola tiene su DLQ (tras 5 intentos) con alarma; los consumidores son idempotentes (un mensaje repetido no
-duplica nada).
+duplica nada). Las Lambdas del ETL no usan cola: SNS les entrega el evento directo (`federation.lookup.requested` →
+`federation-lookup`, cuando el jugador vincula su ficha), Lambda reintenta 2 veces y una alarma avisa si falla.
 
 ## 5. Terraform: la infraestructura como código
 
@@ -132,7 +132,7 @@ públicas 200; `/api/users/me` sin sesión 401; el ALB directo sin la cabecera 4
 |---|---|---|---|
 | `fide-import` | EventBridge, día 2 de cada mes 09:00 UTC | Lista FIDE (CHI) → `rating.updated` | 900 s · 1024 MB |
 | `federation-tournaments` | EventBridge, todos los días 10:00 UTC | Torneos de la Federación → `federation.tournament.published` | 300 s · 256 MB |
-| `federation-lookup` | Cola SQS `etl-federation-lookup` (lotes de 5) | La ficha que pidió un jugador → `rating.updated` | 60 s · 256 MB |
+| `federation-lookup` | SNS directo: `federation.lookup.requested` (sin cola, 2 reintentos) | La ficha que pidió un jugador → `rating.updated` | 60 s · 256 MB |
 
 **Cómo se implementa, paso a paso:**
 

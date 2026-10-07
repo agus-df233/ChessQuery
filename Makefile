@@ -7,7 +7,7 @@
 #   make web              web en http://localhost:5173 (proxy /api → users)
 #   make etl-fide-local   importa la lista FIDE real (CHI) y la publica en LocalStack
 #   make federation-contract / federation-tournaments-local   Federación: esquema y torneos en vivo
-#   make federation-worker   atiende los pedidos de ficha de los jugadores (cola etl-federation-lookup)
+#   make etl-bus-local       receptor SNS local: los eventos del bus llegan a las Lambdas del ETL como en la nube
 #   make etl-docs         regenera el PDF de la guía del ETL desde docs/etl/*.md
 #   make arquitectura-docs  regenera diagramas y PDF de docs/arquitectura/ (arquitectura, Terraform, ETL con Lambda)
 #   make test             Java + ETL + web
@@ -23,7 +23,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: dev local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local federation-worker etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
+.PHONY: dev local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-bus-local etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
 
 # Stack completo con IdP simulado y Federación falsa (no necesita tenant de Entra). Ver scripts/dev.sh.
 dev:
@@ -67,8 +67,8 @@ federation-tournaments-local: etl/.venv
 	$(LOCAL_AWS) PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud etl/.venv/bin/python -m chessquery_etl.federation.cli tournaments
 
 # Cuando un jugador vincula su id federativo, users publica federation.lookup.requested; esto consulta su ficha.
-federation-worker: etl/.venv
-	$(LOCAL_AWS) PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud etl/.venv/bin/python -m chessquery_etl.federation.cli worker
+etl-bus-local: etl/.venv
+	$(LOCAL_AWS) PRIVACY_PEPPER=dev-only-pepper-no-usar-en-cloud etl/.venv/bin/python -m chessquery_etl.local_bus
 
 # PDF de la guía del ETL generado desde los Markdown (fuente única, también la leen los agentes).
 etl-docs:
@@ -89,7 +89,7 @@ test-etl: etl/.venv
 test-web:
 	npm run test -w web
 
-# Levanta todo lo necesario (infra, servicios, worker del ETL, Federación falsa, web), corre Playwright y apaga.
+# Levanta todo lo necesario (infra, servicios, receptor SNS del ETL, Federación falsa, web), corre Playwright y apaga.
 e2e:
 	bash scripts/e2e.sh
 

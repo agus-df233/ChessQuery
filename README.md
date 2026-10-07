@@ -18,7 +18,7 @@ make dev          # la app completa en http://localhost:5173 · Ctrl+C apaga tod
 ```
 
 `make dev` levanta Postgres, LocalStack (SNS/SQS/S3), un IdP simulado que hace de Entra, los servicios `users`,
-`tournament` y `game`, el worker del ETL, una Federación falsa con datos ficticios y la web. Para entrar: **"Entrar
+`tournament` y `game`, el receptor SNS del ETL, una Federación falsa con datos ficticios y la web. Para entrar: **"Entrar
 con mi correo"**, cualquier usuario y los claims que imprime la consola. No necesita tenant de Entra ni acceso a
 AWS. Los logs quedan en `.logs/`.
 
