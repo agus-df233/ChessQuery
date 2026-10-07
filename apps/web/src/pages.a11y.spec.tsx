@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -52,7 +52,17 @@ vi.mock('./api/users', () => ({
     mine: vi.fn().mockResolvedValue(fx.org),
     roster: vi.fn().mockResolvedValue([{ ...fx.profile, id: 9, firstName: 'Pedro', lastName: 'Rojas', provisional: true, tags: ['sub12'] }]),
     create: vi.fn(), update: vi.fn(), addToRoster: vi.fn(), updateTags: vi.fn(), deactivate: vi.fn(),
+    importRoster: vi.fn().mockResolvedValue({ created: 2, duplicates: 1, errors: 0, rows: [
+      { row: 1, outcome: 'CREATED', playerId: 101, error: null, message: null },
+      { row: 2, outcome: 'CREATED', playerId: 102, error: null, message: null },
+      { row: 3, outcome: 'DUPLICATE', playerId: null, error: 'EMAIL_TAKEN', message: 'Ya existe' }] }),
+    invite: vi.fn().mockResolvedValue({ playerId: 9, token: 'tokPedro', expiresAt: '2026-11-07T12:00:00Z' }),
   },
+  claimApi: {
+    preview: vi.fn().mockResolvedValue({ firstName: 'Pedro', lastName: 'R.', organizationName: 'Club Torre' }),
+    claim: vi.fn().mockResolvedValue({}),
+  },
+  claimUrl: (token: string) => `http://localhost/app/reclamar/${token}`,
   friendsApi: {
     list: vi.fn().mockResolvedValue([{ playerId: 8, firstName: 'Luis', lastName: 'Paz', clubName: null, eloNational: 1700, platform: { bullet: null, blitz: null, rapid: null, classical: null }, since: '2026-01-01T00:00:00Z' }]),
     requests: vi.fn((d: string) => Promise.resolve(d === 'incoming'
@@ -60,6 +70,13 @@ vi.mock('./api/users', () => ({
       : [{ requestId: 2, playerId: 11, firstName: 'Ivo', lastName: 'Lara', eloNational: null, direction: 'OUTGOING', createdAt: '2026-01-01T00:00:00Z' }])),
     status: vi.fn().mockResolvedValue({ status: 'NONE', requestId: null }),
     request: vi.fn(), accept: vi.fn(), decline: vi.fn(), remove: vi.fn(),
+  },
+}));
+
+vi.mock('./api/tournaments', () => ({
+  tournamentsApi: {
+    mine: vi.fn().mockResolvedValue({ organized: [{ id: 7, name: 'Copa Torre', status: 'OPEN' }], registered: [] }),
+    registerAll: vi.fn().mockResolvedValue([{ playerId: 101, outcome: 'REGISTERED', message: null }, { playerId: 102, outcome: 'REGISTERED', message: null }]),
   },
 }));
 
@@ -71,6 +88,9 @@ import { Ranking } from './pages/Ranking';
 import { PublicRanking } from './pages/PublicRanking';
 import { Friends } from './pages/Friends';
 import { Club } from './pages/Club';
+import { ClaimInvite } from './pages/ClaimInvite';
+import { claimApi, organizationsApi } from './api/users';
+import { tournamentsApi } from './api/tournaments';
 import { Layout } from './components/Layout';
 
 const renderPage = (ui: React.ReactElement, path = '/app') => {
@@ -133,6 +153,38 @@ describe('páginas: render y accesibilidad', () => {
     const { container, findByText } = renderPage(<Club />, '/club');
     await findByText('Pedro Rojas');
     await findByText(/Plan FREE/);
+    expect(screen.getByRole('link', { name: 'Descargar plantilla' })).toHaveAttribute('download', 'plantilla-roster.csv');
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Club: carga masiva en el servidor e inscripción de los importados en un torneo abierto', async () => {
+    renderPage(<Club />, '/club');
+    await screen.findByText('Pedro Rojas');
+    const csv = 'nombre,apellido,email,rut,elo\nBeto,Uno,,,1500\nCarla,Dos,,,1400\nDino,Tres,dino@x.cl,,\n';
+    const file = new File([csv], 'roster.csv', { type: 'text/csv' });
+    fireEvent.change(screen.getByLabelText('Archivo CSV del roster'), { target: { files: [file] } });
+    fireEvent.change(await screen.findByLabelText('Inscribir también en'), { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Importar' }));
+    expect(await screen.findByText('Importados 2, 1 duplicado, inscritos en Copa Torre: 2')).toBeInTheDocument();
+    expect(vi.mocked(organizationsApi.importRoster).mock.calls[0][0]).toHaveLength(3);
+    expect(tournamentsApi.registerAll).toHaveBeenCalledWith(7, [101, 102]);
+  });
+
+  it('Club: invitación con enlace y QR para que el jugador reclame su perfil', async () => {
+    const { container } = renderPage(<Club />, '/club');
+    fireEvent.click(await screen.findByRole('button', { name: 'Invitar a Pedro Rojas a reclamar su perfil' }));
+    expect(await screen.findByLabelText('Enlace de invitación de Pedro Rojas')).toHaveValue('http://localhost/app/reclamar/tokPedro');
+    expect(await screen.findByRole('img', { name: 'QR de invitación de Pedro Rojas' })).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Reclamar: el jugador ve de qué perfil se trata y lo une a su cuenta', async () => {
+    const { container } = renderPage(<Routes><Route path="/app/reclamar/:token" element={<ClaimInvite />} /></Routes>, '/app/reclamar/tokPedro');
+    expect(await screen.findByRole('heading', { name: '¿Eres Pedro R.?' })).toBeInTheDocument();
+    expect(screen.getByText(/Club Torre te cargó en su roster/)).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí, soy yo: unirlo a mi cuenta' }));
+    expect(await screen.findByText(/el perfil quedó unido a tu cuenta/)).toBeInTheDocument();
+    expect(claimApi.claim).toHaveBeenCalledWith('tokPedro');
   });
 });

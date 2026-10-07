@@ -75,6 +75,13 @@ export interface RosterCreateRequest {
   clubId?: number; tags?: string[];
 }
 
+/** Carga masiva del roster: qué pasó con cada fila (1 = primera fila de datos). */
+export interface ImportRow { row: number; outcome: 'CREATED' | 'DUPLICATE' | 'ERROR'; playerId: number | null; error: string | null; message: string | null }
+export interface ImportReport { created: number; duplicates: number; errors: number; rows: ImportRow[] }
+/** Invitación para que el jugador real reclame su perfil del roster (enlace /app/reclamar/{token}). */
+export interface InviteView { playerId: number; token: string; expiresAt: string }
+export interface ClaimPreview { firstName: string; lastName: string; organizationName: string | null }
+
 export interface Friend {
   playerId: number; firstName: string; lastName: string; clubName: string | null;
   eloNational: number | null; platform: PlatformRatings; since: string;

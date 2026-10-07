@@ -17,6 +17,7 @@ import { OrganizerTournament, OrganizerTournaments } from './pages/OrganizerTour
 import { OrganizerRoom, OrganizerRooms } from './pages/OrganizerRooms';
 import { RoomPage, Rooms } from './pages/Rooms';
 import { OpenChallengePage } from './pages/OpenChallengePage';
+import { ClaimInvite } from './pages/ClaimInvite';
 import { OrganizerCheckin } from './pages/OrganizerCheckin';
 import { OrganizerCredentials } from './pages/OrganizerCredentials';
 
@@ -37,6 +38,7 @@ export const App = () => (
       <Route path="partidas" element={<Games />} />
       <Route path="partidas/:id" element={<GamePage />} />
       <Route path="desafio/:token" element={<OpenChallengePage />} />
+      <Route path="reclamar/:token" element={<ClaimInvite />} />
       <Route path="torneos" element={<Tournaments />} />
       <Route path="torneos/:id" element={<TournamentPage />} />
       <Route path="salas" element={<Rooms />} />

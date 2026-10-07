@@ -7,6 +7,9 @@ import cl.chessquery.users.organization.OrganizationDtos.Response;
 import cl.chessquery.users.organization.OrganizationDtos.UpsertRequest;
 import cl.chessquery.users.player.PlayerDtos.Profile;
 import cl.chessquery.users.roster.RosterDtos.CreateRequest;
+import cl.chessquery.users.roster.RosterDtos.ImportReport;
+import cl.chessquery.users.roster.RosterDtos.ImportRequest;
+import cl.chessquery.users.roster.RosterDtos.InviteView;
 import cl.chessquery.users.roster.RosterDtos.TagsRequest;
 import cl.chessquery.users.roster.RosterService;
 import jakarta.validation.Valid;
@@ -55,6 +58,18 @@ public class OrganizationController {
     @ResponseStatus(HttpStatus.CREATED)
     public Profile addToRoster(@CurrentUser UserPrincipal user, @Valid @RequestBody CreateRequest req) {
         return roster.add(requireOrganizer(user), req);
+    }
+
+    /** Carga masiva: informe por fila (creado, duplicado o error), sin cortar en la primera. */
+    @PostMapping("/me/roster/import")
+    public ImportReport importRoster(@CurrentUser UserPrincipal user, @Valid @RequestBody ImportRequest req) {
+        return roster.importAll(requireOrganizer(user), req.rows());
+    }
+
+    /** Invitación (enlace o QR) para que el jugador real reclame su perfil del roster. */
+    @PostMapping("/me/roster/{playerId}/invite")
+    public InviteView invite(@CurrentUser UserPrincipal user, @PathVariable Long playerId) {
+        return roster.invite(requireOrganizer(user), playerId);
     }
 
     @PatchMapping("/me/roster/{playerId}/tags")

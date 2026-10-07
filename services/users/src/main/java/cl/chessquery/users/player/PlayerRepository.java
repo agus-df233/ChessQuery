@@ -18,6 +18,8 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     Optional<Player> findByEmail(String email);
     Optional<Player> findByRut(String rut);
     Optional<Player> findByRutHash(String rutHash);
+
+    Optional<Player> findByClaimToken(String claimToken);
     List<Player> findByRutIsNotNullAndRutHashIsNull();
     Optional<Player> findByFideId(String fideId);
     Optional<Player> findByFederationId(String federationId);

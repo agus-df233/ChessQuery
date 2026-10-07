@@ -11,11 +11,21 @@ import cl.chessquery.users.player.PlayerDtos.Profile;
 import cl.chessquery.users.player.PlayerRepository;
 import cl.chessquery.users.privacy.IdentifierHasher;
 import cl.chessquery.users.roster.RosterDtos.CreateRequest;
+import cl.chessquery.users.roster.RosterDtos.ImportReport;
+import cl.chessquery.users.roster.RosterDtos.ImportRow;
+import cl.chessquery.users.roster.RosterDtos.InviteView;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +45,11 @@ public class RosterService {
     private final OrganizationService organizations;
     private final EventPublisher events;
     private final IdentifierHasher hasher;
+    private final Validator validator;
+    private final Clock clock;
+
+    static final Duration INVITE_TTL = Duration.ofDays(30);
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Transactional
     public Profile add(Long organizerId, CreateRequest req) {
@@ -81,6 +96,62 @@ public class RosterService {
         if (rutHash != null && players.findByRutHash(rutHash).isPresent()) {
             throw ApiException.conflict("RUT_TAKEN", "Ya existe un jugador con ese RUT");
         }
+    }
+
+    /**
+     * Carga masiva: cada fila se crea por separado y el informe dice qué pasó con cada una (creada, duplicada por
+     * email o RUT, o con error), sin cortar en la primera. El límite del plan se aplica fila a fila.
+     */
+    @Transactional
+    public ImportReport importAll(Long organizerId, List<CreateRequest> rows) {
+        List<ImportRow> report = new ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) report.add(importRow(organizerId, i + 1, rows.get(i)));
+        return new ImportReport(count(report, "CREATED"), count(report, "DUPLICATE"), count(report, "ERROR"), report);
+    }
+
+    private ImportRow importRow(Long organizerId, int row, CreateRequest req) {
+        var violations = validator.validate(req);
+        if (!violations.isEmpty()) {
+            var v = violations.iterator().next();
+            return new ImportRow(row, "ERROR", null, "INVALID_ROW", v.getPropertyPath() + ": " + v.getMessage());
+        }
+        try {
+            return new ImportRow(row, "CREATED", add(organizerId, req).id(), null, null);
+        } catch (ApiException e) {
+            boolean duplicate = "EMAIL_TAKEN".equals(e.getError()) || "RUT_TAKEN".equals(e.getError());
+            return new ImportRow(row, duplicate ? "DUPLICATE" : "ERROR", null, e.getError(), e.getMessage());
+        }
+    }
+
+    private static int count(List<ImportRow> rows, String outcome) {
+        return (int) rows.stream().filter(r -> r.outcome().equals(outcome)).count();
+    }
+
+    /**
+     * Invitación para que el jugador real reclame este perfil del roster: un token aleatorio (128 bits) que vence a
+     * los {@link #INVITE_TTL}. Pedirla de nuevo antes de que venza devuelve la misma.
+     */
+    @Transactional
+    public InviteView invite(Long organizerId, Long playerId) {
+        Player p = requireOwned(organizerId, playerId);
+        if (p.hasAccount()) throw ApiException.conflict("ALREADY_CLAIMED", "Ese jugador ya tiene cuenta");
+        Instant now = clock.instant();
+        if (p.getClaimToken() == null || expired(p, now)) {
+            p.setClaimToken(newToken());
+            p.setClaimTokenCreatedAt(now);
+            players.save(p);
+        }
+        return new InviteView(p.getId(), p.getClaimToken(), p.getClaimTokenCreatedAt().plus(INVITE_TTL));
+    }
+
+    static boolean expired(Player p, Instant now) {
+        return p.getClaimTokenCreatedAt() == null || !now.isBefore(p.getClaimTokenCreatedAt().plus(INVITE_TTL));
+    }
+
+    private static String newToken() {
+        byte[] bytes = new byte[16];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     @Transactional(readOnly = true)

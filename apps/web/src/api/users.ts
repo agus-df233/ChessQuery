@@ -1,7 +1,8 @@
 import { http } from './client';
 import type {
-  ClaimRequest, Club, Country, Friend, FriendRequest, FriendshipStatus, Me, Organization, OrganizationRequest, Profile,
-  PublicProfile, RankedType, RankingEntry, RatingPoint, RatingType, RosterCreateRequest, SearchResult, UpdateProfileRequest,
+  ClaimPreview, ClaimRequest, Club, Country, Friend, FriendRequest, FriendshipStatus, ImportReport, InviteView, Me,
+  Organization, OrganizationRequest, Profile, PublicProfile, RankedType, RankingEntry, RatingPoint, RatingType,
+  RosterCreateRequest, SearchResult, UpdateProfileRequest,
 } from './types';
 
 /** Funciones de acceso a la API de users, una por endpoint. Sin lógica: solo tipos y rutas. */
@@ -42,7 +43,18 @@ export const organizationsApi = {
   updateTags: (playerId: number, tags: string[]) =>
     http.patch<Profile>(`/api/organizations/me/roster/${playerId}/tags`, { tags }).then((r) => r.data),
   deactivate: (playerId: number) => http.delete<void>(`/api/organizations/me/roster/${playerId}`).then(() => undefined),
+  importRoster: (rows: RosterCreateRequest[]) =>
+    http.post<ImportReport>('/api/organizations/me/roster/import', { rows }).then((r) => r.data),
+  invite: (playerId: number) => http.post<InviteView>(`/api/organizations/me/roster/${playerId}/invite`).then((r) => r.data),
 };
+
+/** Reclamar el perfil que el club cargó en su roster, con la invitación (enlace o QR). */
+export const claimApi = {
+  preview: (token: string) => http.get<ClaimPreview>(`/api/users/claim-invite/${token}`).then((r) => r.data),
+  claim: (token: string) => http.post<Profile>('/api/users/me/claim-invite', { token }).then((r) => r.data),
+};
+
+export const claimUrl = (token: string) => `${window.location.origin}/app/reclamar/${token}`;
 
 export const friendsApi = {
   list: () => http.get<Friend[]>('/api/friends').then((r) => r.data),

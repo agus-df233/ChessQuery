@@ -139,6 +139,13 @@ public class Player {
     @Column(name = "created_by_organizer_id")
     private Long createdByOrganizerId;
 
+    /** Invitación para que el jugador real reclame este perfil del roster (ver RosterClaimService). */
+    @Column(name = "claim_token", length = 32)
+    private String claimToken;
+
+    @Column(name = "claim_token_created_at")
+    private Instant claimTokenCreatedAt;
+
     /** Baja lógica del roster (nunca se borra: puede tener historial de torneos). */
     @Column(nullable = false)
     @Builder.Default
