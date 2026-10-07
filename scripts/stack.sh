@@ -15,7 +15,8 @@ export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
 stop_stack() {
   echo "== Apagando el stack local"
-  for pid in "${PIDS[@]}"; do pkill -P "$pid" 2>/dev/null || true; kill "$pid" 2>/dev/null || true; done
+  # ${PIDS[@]+...}: si falló antes de arrancar algo, PIDS está vacío (con set -u no debe cortar el apagado)
+  for pid in ${PIDS[@]+"${PIDS[@]}"}; do pkill -P "$pid" 2>/dev/null || true; kill "$pid" 2>/dev/null || true; done
   docker compose -f "$ROOT/infra/docker-compose.yml" stop >/dev/null
 }
 
@@ -32,7 +33,8 @@ start_stack() {
   docker compose -f "$ROOT/infra/docker-compose.yml" up -d --wait >/dev/null
 
   echo "== Servicios Java (logs en .logs/)"
-  mvn -B -ntp -q -f "$ROOT/pom.xml" -DskipTests install
+  # Sin pruebas ni chequeo de cobertura: eso lo exige `make test`; acá solo se arma lo que se va a levantar
+  mvn -B -ntp -q -f "$ROOT/pom.xml" -DskipTests -Djacoco.skip=true install
   for svc in users tournament game; do
     (cd "$ROOT/services/$svc" && exec mvn -B -ntp -q spring-boot:run) > "$LOGS/$svc.log" 2>&1 &
     PIDS+=($!)

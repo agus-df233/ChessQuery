@@ -40,6 +40,7 @@ public class IdentityService implements PlayerIdentityResolver {
     private final OrganizationRepository organizations;
     private final EventPublisher events;
     private final TrustedEmailIssuers trustedIssuers;
+    private final PlayerProvisioner provisioner;
 
     @Override
     @Transactional
@@ -77,7 +78,7 @@ public class IdentityService implements PlayerIdentityResolver {
                 .displayName(str(claims.get("name")))
                 .build();
         try {
-            Player saved = players.saveAndFlush(fresh);
+            Player saved = provisioner.insert(fresh);
             events.publish(UsersEvents.PLAYER_PROVISIONED, payload(saved));
             log.info("Jugador {} provisionado para sujeto {}", saved.getId(), subject);
             return saved;
