@@ -1,5 +1,6 @@
 import { WebStorageStateStore } from 'oidc-client-ts';
 import type { AuthProviderProps } from 'react-oidc-context';
+import { safeReturnPath } from './returnTo';
 
 /**
  * Configuración OIDC de la SPA contra Entra External ID (Google entra federado por el
@@ -16,7 +17,10 @@ export const oidcConfig: AuthProviderProps = {
   automaticSilentRenew: true,
   // sessionStorage: la sesión no sobrevive al cierre de la pestaña ni se comparte entre pestañas.
   userStore: new WebStorageStateStore({ store: window.sessionStorage }),
-  onSigninCallback: () => {
-    window.history.replaceState({}, document.title, window.location.pathname);
+  // Al volver del login: a la página que se pidió (p. ej. el QR de una sala) o, si no hay, se limpia la URL de /app
+  onSigninCallback: (user) => {
+    const target = safeReturnPath(user?.state);
+    if (target && target !== window.location.pathname) window.location.replace(target);
+    else window.history.replaceState({}, document.title, window.location.pathname);
   },
 };

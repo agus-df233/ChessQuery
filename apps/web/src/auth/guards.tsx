@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { tokenStore } from './tokenStore';
+import { currentPath } from './returnTo';
 import { useMe } from '../api/hooks';
 
 /** Sincroniza el token de la sesión OIDC con el cliente HTTP. Va una vez, en la raíz. */
@@ -17,7 +18,7 @@ export const RequireAuth = ({ children }: { children: ReactNode }) => {
   const auth = useAuth();
   useEffect(() => {
     if (!auth.isLoading && !auth.isAuthenticated && !auth.activeNavigator) {
-      void auth.signinRedirect({ state: window.location.pathname });
+      void auth.signinRedirect({ state: currentPath() }); // al volver del login, de vuelta a esta página
     }
   }, [auth]);
 

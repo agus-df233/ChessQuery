@@ -28,6 +28,22 @@ export async function login(browser: Browser, who: Persona): Promise<Page> {
   return page;
 }
 
+/**
+ * Abre una página de la app sin sesión (p. ej. el enlace de un QR): la app manda al login y, al volver, debe dejar al
+ * jugador en esa misma página, con su query.
+ */
+export async function loginAt(browser: Browser, who: Persona, path: string): Promise<Page> {
+  const page = await (await browser.newContext()).newPage();
+  await page.goto(path);
+  await page.locator('input[name="username"]').fill(who.sub);
+  await page.locator('textarea[name="claims"]').fill(JSON.stringify({
+    email: who.email, email_verified: true, given_name: who.firstName, family_name: who.lastName,
+  }));
+  await page.locator('form').first().evaluate((f: HTMLFormElement) => f.submit());
+  await expect(page).toHaveURL(new RegExp(`${path.replace(/[?]/g, '\\?')}$`));
+  return page;
+}
+
 /** axe con WCAG 2 A/AA sobre la página actual. */
 export async function expectAccessible(page: Page) {
   // Con una transición en curso (fade-in de la vista) axe mediría colores intermedios que el usuario no ve

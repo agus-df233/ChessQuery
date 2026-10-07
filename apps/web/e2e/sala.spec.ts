@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { RUN, captureBoth, expectAccessible, login, persona } from './support/helpers';
+import { RUN, captureBoth, expectAccessible, login, loginAt, persona } from './support/helpers';
 
 /**
  * La clase en el colegio: el profesor abre una sala de 2 tableros con cupo 5 → entran 5 alumnos con el código (uno
@@ -35,11 +35,14 @@ test('sala de juego: clase con tableros asignados, espectador y cuadrícula en v
   await captureBoth(p, 'sala-organizador');
   await expectAccessible(p);
 
-  // Entran los 5 alumnos con el enlace del QR (el código viene en la URL)
+  // Entran los 5 alumnos con el enlace del QR (el código viene en la URL). El último lo abre sin sesión: tras el
+  // login debe volver al enlace, con el código
   const pages: Page[] = [];
-  for (const alumno of alumnos) {
-    const a = await login(browser, alumno);
-    await a.goto(`/app/salas?codigo=${code.toLowerCase()}`);
+  for (const [i, alumno] of alumnos.entries()) {
+    const enlace = `/app/salas?codigo=${code.toLowerCase()}`;
+    const a = i === alumnos.length - 1 ? await loginAt(browser, alumno, enlace) : await login(browser, alumno);
+    if (i < alumnos.length - 1) await a.goto(enlace);
+    await expect(a.getByLabel('Código de la sala')).toHaveValue(code.toLowerCase());
     await a.getByRole('button', { name: 'Entrar' }).click();
     await expect(a.getByText('Estás mirando como espectador. El organizador te asignará un tablero.')).toBeVisible();
     pages.push(a);
