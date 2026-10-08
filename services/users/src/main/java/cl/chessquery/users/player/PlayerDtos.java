@@ -59,7 +59,7 @@ public final class PlayerDtos {
             Ratings ratings, String currentTitle, String ageCategory,
             String enrichmentSource, Instant enrichedAt,
             boolean provisional, Long createdByOrganizerId, boolean active, List<String> tags,
-            Instant createdAt, Instant updatedAt) {
+            Instant createdAt, Instant updatedAt, String preferredCategory, Instant welcomedAt) {
 
         public static Profile of(Player p, String title) {
             return new Profile(p.getId(), p.getFirstName(), p.getLastName(), p.getDisplayName(), p.getEmail(),
@@ -69,7 +69,7 @@ public final class PlayerDtos {
                     Ratings.of(p), title, AgeCategory.fromBirthYear(p.getBirthYear()).name(),
                     p.getEnrichmentSource(), p.getEnrichedAt(),
                     p.isProvisional(), p.getCreatedByOrganizerId(), p.isActive(), p.tagList(),
-                    p.getCreatedAt(), p.getUpdatedAt());
+                    p.getCreatedAt(), p.getUpdatedAt(), p.getPreferredCategory(), p.getWelcomedAt());
         }
     }
 
@@ -130,5 +130,7 @@ public final class PlayerDtos {
             Integer clubId,
             @Size(max = 100) String region,
             @Pattern(regexp = USERNAME, message = USERNAME_MSG) String lichessUsername,
-            @Pattern(regexp = USERNAME, message = USERNAME_MSG) String chesscomUsername) {}
+            @Pattern(regexp = USERNAME, message = USERNAME_MSG) String chesscomUsername,
+            @Pattern(regexp = "^(BULLET|BLITZ|RAPID|CLASSICAL)$", message = "Ritmo inválido") String preferredCategory,
+            Boolean welcomed) {}
 }

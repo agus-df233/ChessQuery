@@ -107,6 +107,22 @@ class PlayerServiceTest {
         assertThat((List<?>) payloads.getAllValues().get(1).get("accounts")).hasSize(1);
     }
 
+    /** Bienvenida: guarda el ritmo favorito y marca la fecha una sola vez (omitirla de nuevo no la cambia). */
+    @Test
+    void welcomeStoresCategoryAndMarksOnlyOnce() {
+        Player me = player(1);
+        when(players.findById(1L)).thenReturn(Optional.of(me));
+        var first = service.updateProfile(1L, req(r -> { r.category = "RAPID"; r.welcomed = true; }));
+        assertThat(first.preferredCategory()).isEqualTo("RAPID");
+        java.time.Instant at = first.welcomedAt();
+        assertThat(at).isNotNull();
+        verify(events).publish(UsersEvents.PLAYER_UPDATED, Map.of("playerId", 1L, "fields", List.of("preferredCategory", "welcomedAt")));
+
+        assertThat(service.updateProfile(1L, req(r -> r.welcomed = true)).welcomedAt()).isEqualTo(at);
+        assertThat(service.updateProfile(1L, req(r -> r.welcomed = false)).welcomedAt()).isEqualTo(at);
+        verifyNoMoreInteractions(events); // sin cambios no se publica player.updated
+    }
+
     @Test
     void summariesAndSearchGuardInputs() {
         assertThat(service.summaries(null)).isEmpty();
@@ -120,12 +136,12 @@ class PlayerServiceTest {
     }
 
     // Constructor de requests legible: solo los campos que cada test quiere tocar.
-    private static class R { String rut, displayName, gender, chesscom; Integer countryId, clubId; }
+    private static class R { String rut, displayName, gender, chesscom, category; Integer countryId, clubId; Boolean welcomed; }
 
     private static UpdateProfileRequest req(java.util.function.Consumer<R> fill) {
         R r = new R();
         fill.accept(r);
         return new UpdateProfileRequest(null, null, r.displayName, r.rut, null, r.gender, r.countryId, r.clubId,
-                null, null, r.chesscom);
+                null, null, r.chesscom, r.category, r.welcomed);
     }
 }

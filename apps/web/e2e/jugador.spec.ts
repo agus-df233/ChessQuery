@@ -21,6 +21,17 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await captureBoth(a, 'inicio-jugador');
   await expectAccessible(a);
 
+  // Bienvenida (3 pasos): ritmo favorito rápido, sin cuentas todavía, región; luego el desafío propone ese ritmo
+  const bienvenida = a.getByRole('form', { name: 'Bienvenida' });
+  await bienvenida.getByRole('radio', { name: /Rápida/ }).check();
+  await bienvenida.getByRole('button', { name: 'Siguiente' }).click();
+  await bienvenida.getByRole('button', { name: 'Siguiente' }).click();
+  await bienvenida.getByLabel('Región').selectOption('Valparaíso');
+  await bienvenida.getByRole('button', { name: 'Terminar' }).click();
+  await expect(a.getByText('¡Listo! Tu perfil quedó configurado')).toBeVisible();
+  await expectAccessible(a);
+  await a.getByRole('button', { name: 'Ir a mi inicio' }).click();
+
   // Vincular la ficha: users publica federation.lookup.requested; el ETL consulta la Federación (falsa)
   const fichaId = `7${Date.now().toString().slice(-6)}`; // los ids 7xx existen en la Federación falsa
   await a.getByLabel('Mi id federativo').fill(fichaId);
@@ -59,6 +70,7 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   // Ana lo desafía con blancas desde su perfil
   await a.goto(perfilLuis);
   await a.getByRole('button', { name: 'Desafiar' }).click();
+  await expect(a.getByLabel('Ritmo')).toHaveValue('3'); // Rápida 10+0: el ritmo favorito de la bienvenida
   await a.getByLabel('Juego con').selectOption('WHITE');
   await a.getByRole('button', { name: 'Enviar desafío' }).click();
   await expect(a.getByText('Esperando que tu rival acepte…')).toBeVisible();

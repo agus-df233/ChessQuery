@@ -21,6 +21,7 @@ const fx = vi.hoisted(() => {
       lichessBlitz: 1600, lichessRapid: null, lichessClassical: null, chesscomBullet: null, chesscomBlitz: null, chesscomRapid: null, chesscomDaily: null },
     currentTitle: null, ageCategory: 'ADULTO', enrichmentSource: null, enrichedAt: null,
     provisional: false, createdByOrganizerId: null, active: true, tags: [], createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+    preferredCategory: null, welcomedAt: '2026-01-01T00:00:00Z',
   };
   const me: Me = { profile, organizationId: 3, organizer: true, roles: [] };
   const org: Organization = { id: 3, name: 'Club Torre', city: 'Santiago', description: null, logoUrl: null, plan: 'FREE', rosterCount: 1, maxRosterPlayers: 50, maxActiveTournaments: 3 };

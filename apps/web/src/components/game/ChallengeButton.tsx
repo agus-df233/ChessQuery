@@ -5,7 +5,8 @@ import { Button } from '@chessquery/ui-lib';
 import { gamesApi } from '../../api/games';
 import type { ColorChoice } from '../../api/gameTypes';
 import { StatusMessage } from '../StatusMessage';
-import { CATEGORY_LABEL, LIMITS, PRESETS, categoryOf, timeControlLabel } from '../../lib/timeControl';
+import { useMe } from '../../api/hooks';
+import { CATEGORY_LABEL, LIMITS, PRESETS, categoryOf, presetFor, timeControlLabel } from '../../lib/timeControl';
 
 const CUSTOM = -1;
 
@@ -17,6 +18,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
  */
 export const ChallengeButton = ({ opponentId, opponentName }: { opponentId: number; opponentName: string }) => {
   const navigate = useNavigate();
+  const me = useMe();
   const [open, setOpen] = useState(false);
   const [preset, setPreset] = useState(1); // 3+2
   const [custom, setCustom] = useState({ minutes: 10, increment: 5 });
@@ -26,7 +28,9 @@ export const ChallengeButton = ({ opponentId, opponentName }: { opponentId: numb
     mutationFn: () => gamesApi.challenge({ opponentId, minutes, incrementSeconds: increment, color, rated: true }),
     onSuccess: (g) => navigate(`/app/partidas/${g.id}`),
   });
-  if (!open) return <Button size="sm" onClick={() => setOpen(true)}>Desafiar</Button>;
+  // Al abrir se propone el ritmo favorito que el jugador eligió en la bienvenida
+  const start = () => { setPreset(presetFor(me.data?.profile.preferredCategory)); setOpen(true); };
+  if (!open) return <Button size="sm" onClick={start}>Desafiar</Button>;
   return (
     <div className="cq-actions" role="group" aria-label={`Desafiar a ${opponentName}`}>
       <label>Ritmo

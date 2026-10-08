@@ -161,6 +161,17 @@ class UsersIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"lichessUsername\":\"PEDRITO\"}"))
            .andExpect(status().isConflict()).andExpect(jsonPath("$.error").value("LICHESS_USERNAME_TAKEN"));
 
+        // Bienvenida: un jugador recién llegado aún no la vio; el ritmo se valida y la marca queda al terminar
+        mvc.perform(as(get("/api/users/me"), "sub-ana", "ana@x.cl"))
+           .andExpect(jsonPath("$.profile.welcomedAt").doesNotExist());
+        mvc.perform(as(put("/api/users/me/profile"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"preferredCategory\":\"LENTO\"}"))
+           .andExpect(status().isBadRequest());
+        mvc.perform(as(put("/api/users/me/profile"), "sub-ana", "ana@x.cl")
+                .contentType(MediaType.APPLICATION_JSON).content("{\"preferredCategory\":\"BLITZ\",\"welcomed\":true}"))
+           .andExpect(status().isOk()).andExpect(jsonPath("$.preferredCategory").value("BLITZ"))
+           .andExpect(jsonPath("$.welcomedAt").exists());
+
         // Búsqueda difusa (pg_trgm) tolera un error de tipeo
         // Pedro tiene 11 años y no hay consentimiento parental: para terceros, apellido abreviado
         mvc.perform(as(get("/api/users/search").param("q", "pedro rojas"), "sub-ana", "ana@x.cl"))

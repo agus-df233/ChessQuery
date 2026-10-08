@@ -10,6 +10,7 @@ import { RatingsGrid } from '../components/RatingsGrid';
 import { RatingChart } from '../components/RatingChart';
 import { StatusMessage } from '../components/StatusMessage';
 import { ClaimSuggestions, FederationCard } from '../components/FederationCard';
+import { WelcomeWizard } from '../components/welcome/WelcomeWizard';
 
 const REFRESH_AFTER_SYNC_MS = [4000, 12000];
 
@@ -76,6 +77,12 @@ const ProgressCard = () => {
   );
 };
 
+/** El asistente se muestra a quien aún no vio la bienvenida y queda visible hasta que lo cierre (siguientes pasos). */
+const WelcomeSlot = ({ profile }: { profile: Profile }) => {
+  const [show, setShow] = useState(profile.welcomedAt == null);
+  return show ? <WelcomeWizard onClose={() => setShow(false)} /> : null;
+};
+
 /** Inicio del jugador: quién soy, mis ratings, mi progreso y las cuentas externas vinculadas. */
 export const Dashboard = () => {
   const me = useMe();
@@ -85,6 +92,7 @@ export const Dashboard = () => {
   return (
     <div className="cq-page">
       <h1>Hola, {p.displayName ?? p.firstName}</h1>
+      <WelcomeSlot profile={p} />
       <ClaimSuggestions />
       <div className="cq-grid">
         <MyCard profile={p} organizer={me.data.organizer} />

@@ -28,3 +28,9 @@ export const PRESETS: [number, number][] = [[1, 0], [3, 2], [5, 0], [10, 0], [10
 
 /** Límites que acepta la API de partidas (ChallengeRequest). */
 export const LIMITS = { minMinutes: 1, maxMinutes: 180, maxIncrement: 180 };
+
+/** Preset que se propone al desafiar: el primero del ritmo favorito del jugador, o 3+2 si no eligió ninguno. */
+export const presetFor = (category?: TimeControlCategory | null): number => {
+  const idx = category ? PRESETS.findIndex(([m, i]) => categoryOf(m, i) === category) : -1;
+  return idx >= 0 ? idx : 1;
+};

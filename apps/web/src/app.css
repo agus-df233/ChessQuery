@@ -16,6 +16,12 @@
 }
 .cq-form input:focus-visible, .cq-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cq-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* Pasos del asistente de bienvenida: el grupo ocupa todo el ancho y las opciones de radio van en una línea */
+.cq-fieldset { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.cq-fieldset legend { font-weight: 600; color: var(--text); margin-bottom: 4px; padding: 0; }
+.cq-form label.cq-radio { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 0.95rem; }
+.cq-form .cq-radio input { min-height: 0; padding: 0; width: 18px; height: 18px; accent-color: var(--accent); }
+.cq-form > .cq-actions { grid-column: 1 / -1; }
 .cq-status { color: var(--text-dim); margin: 0; }
 .cq-ok { color: var(--accent); margin: 0; }
 .cq-ratings { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }

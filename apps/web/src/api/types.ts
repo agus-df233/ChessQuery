@@ -1,4 +1,5 @@
 /** Contratos del servicio users (espejo de los records Java). JSON en camelCase. */
+import type { TimeControlCategory } from '../lib/timeControl';
 
 export interface Ratings {
   national: number | null; fideStandard: number | null; fideRapid: number | null; fideBlitz: number | null;
@@ -23,6 +24,8 @@ export interface Profile {
   enrichmentSource: string | null; enrichedAt: string | null;
   provisional: boolean; createdByOrganizerId: number | null; active: boolean; tags: string[];
   createdAt: string; updatedAt: string;
+  /** Ritmo favorito elegido en la bienvenida; welcomedAt null = todavía no vio el asistente. */
+  preferredCategory: TimeControlCategory | null; welcomedAt: string | null;
 }
 
 /** Lo que cualquier jugador ve de otro: sin RUT, email, fecha de nacimiento ni género. */
@@ -62,6 +65,7 @@ export type RatingType =
 export interface UpdateProfileRequest {
   firstName?: string; lastName?: string; displayName?: string; rut?: string; birthDate?: string; gender?: string;
   countryId?: number; clubId?: number; region?: string; lichessUsername?: string; chesscomUsername?: string;
+  preferredCategory?: TimeControlCategory; welcomed?: boolean;
 }
 
 export interface Organization {

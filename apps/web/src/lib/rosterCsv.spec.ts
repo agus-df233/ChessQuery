@@ -6,7 +6,7 @@ const existing = (over: Partial<Profile>): Profile => ({
   id: 1, firstName: 'Ana', lastName: 'Soto', displayName: null, email: null, rut: null, birthDate: null, gender: null,
   region: null, country: null, club: null, fideId: null, federationId: null, lichessUsername: null, chesscomUsername: null,
   ratings: {} as Profile['ratings'], currentTitle: null, ageCategory: 'ADULTO', enrichmentSource: null, enrichedAt: null,
-  provisional: true, createdByOrganizerId: 1, active: true, tags: [], createdAt: '', updatedAt: '', ...over,
+  provisional: true, createdByOrganizerId: 1, active: true, tags: [], createdAt: '', updatedAt: '', preferredCategory: null, welcomedAt: null, ...over,
 });
 
 describe('parseRosterCsv', () => {

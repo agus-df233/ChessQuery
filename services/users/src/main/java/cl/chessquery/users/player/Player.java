@@ -99,6 +99,14 @@ public class Player {
     @Column(name = "chesscom_username", length = 100)
     private String chesscomUsername;
 
+    /** Ritmo favorito que eligió en la bienvenida (BULLET, BLITZ, RAPID, CLASSICAL): el desafío lo propone por defecto. */
+    @Column(name = "preferred_category", length = 16)
+    private String preferredCategory;
+
+    /** Cuándo terminó u omitió el asistente de bienvenida; null = todavía no lo vio. */
+    @Column(name = "welcomed_at")
+    private Instant welcomedAt;
+
     // ── Snapshots de rating por modalidad ────────────────────────────────────
     @Column(name = "elo_national")          private Integer eloNational;
     @Column(name = "elo_fide_standard")     private Integer eloFideStandard;

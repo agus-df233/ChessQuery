@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -88,6 +89,7 @@ public class PlayerService {
         applyPersonalData(p, req, changed);
         applyCatalog(p, req, changed);
         applyLinkedAccounts(p, req, changed);
+        applyWelcome(p, req, changed);
         if (!changed.isEmpty()) {
             players.save(p);
             events.publish(UsersEvents.PLAYER_UPDATED, Map.of("playerId", id, "fields", changed));
@@ -140,6 +142,15 @@ public class PlayerService {
                     "CHESSCOM_USERNAME_TAKEN", "Ese usuario de Chess.com ya está vinculado a otro jugador");
             p.setChesscomUsername(u);
             changed.add("chesscomUsername");
+        }
+    }
+
+    /** Bienvenida: ritmo favorito y marca de que ya la vio (terminada u omitida); repetirla no cambia la fecha. */
+    private void applyWelcome(Player p, UpdateProfileRequest req, List<String> changed) {
+        apply(changed, "preferredCategory", req.preferredCategory(), p::setPreferredCategory);
+        if (Boolean.TRUE.equals(req.welcomed()) && p.getWelcomedAt() == null) {
+            p.setWelcomedAt(Instant.now());
+            changed.add("welcomedAt");
         }
     }
 
