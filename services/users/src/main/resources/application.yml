@@ -46,8 +46,8 @@ chessquery:
     internal-token: ${INTERNAL_TOKEN:dev-internal-token}
     roles-claim: roles
   external-ratings:
-    lichess-base-url: ${LICHESS_API_BASE:https://lichess.org}
-    chesscom-base-url: ${CHESSCOM_API_BASE:https://api.chess.com}
+    # Pedido diario de ratings de Lichess/Chess.com al ETL (los trae la Lambda external-ratings)
+    cron: ${EXTERNAL_RATINGS_CRON:0 30 5 * * *}
 
 server:
   port: ${PORT:8081}

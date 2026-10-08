@@ -11,6 +11,8 @@ import { RatingChart } from '../components/RatingChart';
 import { StatusMessage } from '../components/StatusMessage';
 import { ClaimSuggestions, FederationCard } from '../components/FederationCard';
 
+const REFRESH_AFTER_SYNC_MS = [4000, 12000];
+
 const CHART_OPTIONS = RATING_GROUPS.flatMap((g) => g.items.map((i) => ({ type: i.type, label: `${g.source} · ${i.label}` })));
 
 const MyCard = ({ profile: p, organizer }: { profile: Profile; organizer: boolean }) => (
@@ -28,9 +30,14 @@ const MyCard = ({ profile: p, organizer }: { profile: Profile; organizer: boolea
 /** Cuentas de Lichess/Chess.com vinculadas y el botón para traer sus ratings actuales. */
 const ExternalAccountsCard = ({ profile: p }: { profile: Profile }) => {
   const qc = useQueryClient();
+  // Los ratings los trae el ETL (Lambda) y llegan en segundos: se vuelve a consultar el perfil un par de veces
   const sync = useMutation({
     mutationFn: usersApi.syncExternalRatings,
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['me'] }); void qc.invalidateQueries({ queryKey: ['my-history'] }); },
+    onSuccess: () => {
+      for (const ms of REFRESH_AFTER_SYNC_MS) {
+        setTimeout(() => { void qc.invalidateQueries({ queryKey: ['me'] }); void qc.invalidateQueries({ queryKey: ['my-history'] }); }, ms);
+      }
+    },
   });
   if (!p.lichessUsername && !p.chesscomUsername) {
     return (
@@ -44,7 +51,7 @@ const ExternalAccountsCard = ({ profile: p }: { profile: Profile }) => {
       <p className="cq-muted">Lichess: {p.lichessUsername ?? '—'} · Chess.com: {p.chesscomUsername ?? '—'}</p>
       <div className="cq-actions">
         <Button size="sm" onClick={() => sync.mutate()} loading={sync.isPending}>Actualizar ratings</Button>
-        <StatusMessage error={sync.error} success={sync.isSuccess ? 'Ratings actualizados' : null} />
+        <StatusMessage error={sync.error} success={sync.isSuccess ? 'Pedido enviado: tus ratings se actualizan en unos segundos' : null} />
       </div>
     </Card>
   );

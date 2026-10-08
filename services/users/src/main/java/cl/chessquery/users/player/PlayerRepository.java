@@ -1,6 +1,7 @@
 package cl.chessquery.users.player;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +21,10 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     Optional<Player> findByRutHash(String rutHash);
 
     Optional<Player> findByClaimToken(String claimToken);
+
+    /** Jugadores activos con cuenta de Lichess o Chess.com vinculada (para pedir sus ratings una vez al día). */
+    @Query("select p from Player p where p.active = true and (p.lichessUsername is not null or p.chesscomUsername is not null) order by p.id")
+    Slice<Player> findWithLinkedAccounts(Pageable pageable);
     List<Player> findByRutIsNotNullAndRutHashIsNull();
     Optional<Player> findByFideId(String fideId);
     Optional<Player> findByFederationId(String federationId);

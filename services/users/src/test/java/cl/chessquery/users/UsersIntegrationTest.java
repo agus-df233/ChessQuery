@@ -36,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -271,9 +272,11 @@ class UsersIntegrationTest {
         mvc.perform(get("/api/public/ranking").param("type", "PLATFORM_BLITZ")).andExpect(jsonPath("$.length()").value(0));
         mvc.perform(as(get("/api/users/me/rating-history").param("type", "PLATFORM_CLASSICAL"), "sub-pedro", "pedro@x.cl"))
            .andExpect(jsonPath("$[0].source").value("TOURNAMENT"));
-        // Sync externo con APIs inalcanzables: no rompe, devuelve el perfil
+        // Sincronizar pide los ratings al ETL (Lambda external-ratings) y devuelve el perfil tal como está
         mvc.perform(as(post("/api/users/me/external-ratings/sync"), "sub-pedro", "pedro@x.cl"))
            .andExpect(status().isOk()).andExpect(jsonPath("$.lichessUsername").value("pedrito"));
+        verify(events, atLeastOnce()).publish(eq(UsersEvents.EXTERNAL_RATINGS_SYNC_REQUESTED),
+                eq(Map.of("accounts", List.of(Map.of("lichessUsername", "pedrito")))));
     }
 
     @Test @Order(7)

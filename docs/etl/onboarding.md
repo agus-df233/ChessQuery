@@ -5,7 +5,7 @@ recorrido de un dato de punta a punta. Términos en `docs/etl/glosario.md`.
 
 ## 1. Qué hace el ETL (en una frase)
 
-Trae ratings y torneos de **fuentes externas** (FIDE y la Federación Chilena de Ajedrez), los **valida y
+Trae ratings y torneos de **fuentes externas** (FIDE, la Federación Chilena de Ajedrez, Lichess y Chess.com), los **valida y
 minimiza**, los guarda en **S3** y avisa por **SNS** para que el servicio `users` (y más adelante `tournament`)
 los aplique. El ETL **nunca escribe en la base de datos**: publica eventos.
 
@@ -37,6 +37,7 @@ Para ver el efecto en la base: `make users` en otra terminal y luego `http://loc
 | `etl/chessquery_etl/fide.py` | Parser de la lista oficial de FIDE (columnas desde el encabezado) |
 | `etl/chessquery_etl/handler.py` | Lambda y CLI de FIDE; adaptadores `S3Storage` y `SnsBus` |
 | `etl/chessquery_etl/federation/` | Ingesta de la Federación (ver `docs/etl/federacion.md`) |
+| `etl/chessquery_etl/external/` | Ratings públicos de Lichess (en bloque) y Chess.com (de a uno) de las cuentas vinculadas |
 | `etl/tests/` | Tests con datos **sintéticos**; `federation_fakes.py` tiene los dobles de prueba |
 | `docs/events.md` | **Contrato** de los eventos que publicamos (`rating.updated`, `federation.tournament.published`) |
 
@@ -68,6 +69,7 @@ definida en el módulo Terraform `infra/terraform/modules/etl-jobs`:
 | `fide-import` | día 2 de cada mes (regla de EventBridge) | lista FIDE (CHI) → `rating.updated` |
 | `federation-tournaments` | todos los días | torneos de la Federación → `federation.tournament.published` |
 | `federation-lookup` | cuando SNS le entrega `federation.lookup.requested` (sin cola) | ficha de un jugador que la vinculó → `rating.updated` |
+| `external-ratings` | cuando SNS le entrega `external.ratings.sync.requested` (al vincular, al sincronizar y una vez al día) | ratings de Lichess y Chess.com → `rating.updated` (`LICHESS` / `CHESSCOM`) |
 
 El código se empaqueta tal cual desde `etl/chessquery_etl` (solo usa `boto3`, que ya viene en el runtime de Lambda).
 El pepper para el hash del RUT se lee de SSM (`PRIVACY_PEPPER_PARAM`), nunca de una variable en texto plano. Se usan

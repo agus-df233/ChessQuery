@@ -7,6 +7,7 @@
     "tournament-players": ["player.merged"]
   },
   "lambdas": {
-    "federation-lookup": ["federation.lookup.requested"]
+    "federation-lookup": ["federation.lookup.requested"],
+    "external-ratings": ["external.ratings.sync.requested"]
   }
 }

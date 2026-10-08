@@ -2,7 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 import { RUN, captureBoth, expectAccessible, login, persona, reloadUntil } from './support/helpers';
 
 /**
- * Recorrido del jugador: login → editar perfil → vincular ficha federativa (el ETL la trae) → buscar a otro jugador
+ * Recorrido del jugador: login → vincular ficha federativa (el ETL la trae) → editar perfil y vincular Lichess y
+ * Chess.com (la Lambda external-ratings trae sus ratings) → buscar a otro jugador
  * → solicitud de amistad y aceptación → desafiarlo → el rival acepta → partida en vivo hasta el mate (mate del
  * pastor) → ambos ven el resultado y el rating de plataforma actualizado en su inicio.
  */
@@ -27,11 +28,18 @@ test('jugador: ficha federativa, desafío, partida en vivo y rating actualizado'
   await expect(a.getByText(`Ficha federativa ${fichaId}`)).toBeVisible();
   await reloadUntil(a, 'ELO nacional 1720');
 
-  // Datos del perfil
+  // Datos del perfil y cuentas de Lichess y Chess.com: al vincularlas, users pide sus ratings al ETL (plataformas falsas)
   await a.goto('/app/perfil');
   await a.getByLabel('Región').fill('Valparaíso');
+  await a.getByLabel('Usuario de Lichess').fill(`e2e_ana_${RUN}`);
+  await a.getByLabel('Usuario de Chess.com').fill(`e2e-ana-${RUN}`);
   await a.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(a.getByText('Perfil guardado')).toBeVisible();
+  await a.goto('/app');
+  // Cada plataforma llega en su propio rating.updated (Chess.com va después, de a una cuenta): se espera a ambos
+  await reloadUntil(a, '1888'); // Lichess relámpago
+  await reloadUntil(a, '1666'); // Chess.com rápidas
+  await expect(a.getByRole('region', { name: 'Ratings Chess.com' }).getByText('1666')).toBeVisible();
 
   const l = await login(browser, luis);
 

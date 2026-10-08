@@ -3,6 +3,7 @@
 #   - fide-import            mensual (día 2): lista FIDE (CHI) → rating.updated
 #   - federation-tournaments diaria: torneos de la Federación → federation.tournament.published
 #   - federation-lookup      por evento (SNS directo, sin cola): ficha de un jugador que la vinculó → rating.updated
+#   - external-ratings       por evento (SNS directo): ratings públicos de Lichess y Chess.com → rating.updated
 # Los horarios usan reglas de EventBridge (no Scheduler): no necesitan un rol propio, que el Learner Lab no deja crear.
 # Las Lambdas que reaccionan a eventos se suscriben al tópico chess-events con filtro por eventType (sección
 # "lambdas" de infra/events/topology.json). Si una invocación falla, Lambda la reintenta 2 veces y la alarma avisa.
@@ -116,6 +117,12 @@ locals {
       memory  = 256
       # La descarga masiva de jugadores queda apagada hasta que exista un convenio con la Federación
       env = { FEDERATION_BULK_PLAYERS_ENABLED = "false" }
+    }
+    external-ratings = {
+      handler = "chessquery_etl.external.handler.lambda_handler"
+      timeout = 300 # Chess.com va de a una cuenta con ritmo máximo: 100 cuentas ≈ 1 min
+      memory  = 256
+      env     = {}
     }
   }
   schedules = {

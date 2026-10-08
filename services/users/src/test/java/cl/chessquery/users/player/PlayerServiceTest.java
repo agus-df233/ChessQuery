@@ -4,10 +4,9 @@ import cl.chessquery.common.api.ApiException;
 import cl.chessquery.common.events.EventPublisher;
 import cl.chessquery.users.catalog.ClubRepository;
 import cl.chessquery.users.catalog.CountryRepository;
+import cl.chessquery.users.events.UsersEvents;
 import cl.chessquery.users.player.PlayerDtos.UpdateProfileRequest;
-import cl.chessquery.users.rating.ExternalRatingsClient;
-import cl.chessquery.users.rating.RatingService;
-import cl.chessquery.users.rating.RatingType;
+import cl.chessquery.users.rating.ExternalRatingsRequests;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -27,10 +26,9 @@ class PlayerServiceTest {
     private final PlayerTitleRepository titles = mock(PlayerTitleRepository.class);
     private final ClubRepository clubs = mock(ClubRepository.class);
     private final CountryRepository countries = mock(CountryRepository.class);
-    private final RatingService ratings = mock(RatingService.class);
-    private final ExternalRatingsClient external = mock(ExternalRatingsClient.class);
     private final EventPublisher events = mock(EventPublisher.class);
-    private final PlayerService service = new PlayerService(players, titles, clubs, countries, ratings, external, events,
+    private final ExternalRatingsRequests externalRatings = new ExternalRatingsRequests(players, events);
+    private final PlayerService service = new PlayerService(players, titles, clubs, countries, externalRatings, events,
             new cl.chessquery.users.privacy.IdentifierHasher("test-pepper-0123456789"));
 
     private static Player player(long id) {
@@ -73,19 +71,40 @@ class PlayerServiceTest {
         verify(events).publish(eq("player.updated"), any());
     }
 
+    /** Sincronizar no llama a Lichess ni a Chess.com: pide al ETL los ratings de las cuentas vinculadas (solo usernames). */
     @Test
-    void syncExternalRatingsAppliesEachSourceAndMarksEnrichment() {
+    void syncExternalRatingsAsksTheEtlForTheLinkedAccounts() {
         Player me = player(1);
         me.setLichessUsername("li");
         me.setChesscomUsername("cc");
         when(players.findById(1L)).thenReturn(Optional.of(me));
-        when(external.lichess("li")).thenReturn(Optional.of(Map.of(RatingType.LICHESS_BLITZ, 1500)));
-        when(external.chesscom("cc")).thenReturn(Optional.empty());
-
         service.syncExternalRatings(1L);
-        verify(ratings).apply(eq(me), eq(RatingType.LICHESS_BLITZ), eq(1500), any(), eq("LICHESS"));
-        verify(ratings).markEnriched(me, "LICHESS");
-        verify(ratings, never()).markEnriched(me, "CHESSCOM"); // Chess.com no respondió: no se marca
+        verify(events).publish(UsersEvents.EXTERNAL_RATINGS_SYNC_REQUESTED,
+                Map.of("accounts", List.of(Map.of("lichessUsername", "li", "chesscomUsername", "cc"))));
+
+        Player none = player(2);
+        when(players.findById(2L)).thenReturn(Optional.of(none));
+        service.syncExternalRatings(2L);
+        verifyNoMoreInteractions(events); // sin cuentas vinculadas no se pide nada
+    }
+
+    /** El pedido diario recorre todas las cuentas vinculadas y las manda en eventos de a 100. */
+    @Test
+    void dailyRequestGoesInBatchesOfOneHundred() {
+        List<Player> linked = new java.util.ArrayList<>();
+        for (int i = 0; i < 101; i++) {
+            Player p = player(100 + i);
+            p.setLichessUsername("u" + i);
+            linked.add(p);
+        }
+        when(players.findWithLinkedAccounts(any())).thenReturn(
+                new org.springframework.data.domain.SliceImpl<>(linked, org.springframework.data.domain.PageRequest.of(0, 500), false));
+        assertThat(externalRatings.requestAll()).isEqualTo(101);
+        @SuppressWarnings("unchecked")
+        org.mockito.ArgumentCaptor<Map<String, Object>> payloads = org.mockito.ArgumentCaptor.forClass(Map.class);
+        verify(events, org.mockito.Mockito.times(2)).publish(eq(UsersEvents.EXTERNAL_RATINGS_SYNC_REQUESTED), payloads.capture());
+        assertThat((List<?>) payloads.getAllValues().get(0).get("accounts")).hasSize(100);
+        assertThat((List<?>) payloads.getAllValues().get(1).get("accounts")).hasSize(1);
     }
 
     @Test

@@ -11,14 +11,12 @@ import cl.chessquery.users.player.PlayerDtos.SearchResult;
 import cl.chessquery.users.player.PlayerDtos.Summary;
 import cl.chessquery.users.player.PlayerDtos.UpdateProfileRequest;
 import cl.chessquery.users.privacy.IdentifierHasher;
-import cl.chessquery.users.rating.ExternalRatingsClient;
-import cl.chessquery.users.rating.RatingService;
+import cl.chessquery.users.rating.ExternalRatingsRequests;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -38,8 +36,7 @@ public class PlayerService {
     private final PlayerTitleRepository titles;
     private final ClubRepository clubs;
     private final CountryRepository countries;
-    private final RatingService ratings;
-    private final ExternalRatingsClient external;
+    private final ExternalRatingsRequests externalRatings;
     private final EventPublisher events;
     private final IdentifierHasher hasher;
 
@@ -95,6 +92,8 @@ public class PlayerService {
             players.save(p);
             events.publish(UsersEvents.PLAYER_UPDATED, Map.of("playerId", id, "fields", changed));
         }
+        // Vinculó (o cambió) una cuenta de Lichess o Chess.com: se piden sus ratings de inmediato
+        if (changed.contains("lichessUsername") || changed.contains("chesscomUsername")) externalRatings.requestFor(p);
         return Profile.of(p, titles.currentTitleOf(id));
     }
 
@@ -152,25 +151,13 @@ public class PlayerService {
     }
 
     /**
-     * Lee los ratings actuales de Lichess y Chess.com (si el jugador vinculó esas cuentas) y
-     * los aplica como snapshot + historial. Best-effort: si una API falla, el resto sigue.
+     * Pide al ETL los ratings actuales de Lichess y Chess.com de las cuentas vinculadas. Asíncrono: los ratings llegan
+     * en segundos como {@code rating.updated}; la respuesta es el perfil tal como está.
      */
-    @Transactional
+    @Transactional(readOnly = true)
     public Profile syncExternalRatings(Long id) {
         Player p = require(id);
-        Instant now = Instant.now();
-        if (p.getLichessUsername() != null) {
-            external.lichess(p.getLichessUsername()).ifPresent(map -> {
-                map.forEach((type, value) -> ratings.apply(p, type, value, now, "LICHESS"));
-                ratings.markEnriched(p, "LICHESS");
-            });
-        }
-        if (p.getChesscomUsername() != null) {
-            external.chesscom(p.getChesscomUsername()).ifPresent(map -> {
-                map.forEach((type, value) -> ratings.apply(p, type, value, now, "CHESSCOM"));
-                ratings.markEnriched(p, "CHESSCOM");
-            });
-        }
+        externalRatings.requestFor(p);
         return Profile.of(p, titles.currentTitleOf(id));
     }
 

@@ -26,6 +26,7 @@ log = logging.getLogger(__name__)
 # Lambda (nombre en topology.json) → handler. Debe coincidir con modules/etl-jobs de Terraform.
 HANDLERS = {
     "federation-lookup": "chessquery_etl.federation.cli:lambda_handler",
+    "external-ratings": "chessquery_etl.external.handler:lambda_handler",
 }
 
 DEFAULT_TOPIC = "arn:aws:sns:us-east-1:000000000000:chess-events"

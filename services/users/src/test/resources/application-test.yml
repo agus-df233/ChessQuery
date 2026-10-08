@@ -20,6 +20,5 @@ chessquery:
     pepper: test-pepper-0123456789
   auth:
     internal-token: test-token
-  external-ratings:
-    lichess-base-url: http://127.0.0.1:1
-    chesscom-base-url: http://127.0.0.1:1
+  scheduling:
+    enabled: false
