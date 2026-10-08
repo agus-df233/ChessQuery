@@ -44,4 +44,24 @@ class TrfExporterTest {
         assertThat(TrfExporter.code(Result.BLACK_WINS, false)).isEqualTo("1");
         assertThat(TrfExporter.roundBlock(1, null)).isBlank();
     }
+
+    /** Seguridad: un nombre no puede volverse fórmula en una planilla ni inyectar líneas en el archivo. */
+    @Test
+    void textoNeutralizadoContraFormulasYLineasInyectadas() {
+        assertThat(TrfExporter.cell("=HYPERLINK(\"http://x\")")).isEqualTo("'=HYPERLINK(\"http://x\")");
+        assertThat(TrfExporter.cell("+56 9")).startsWith("'+");
+        assertThat(TrfExporter.cell("-1")).startsWith("'-");
+        assertThat(TrfExporter.cell("@SUM(A1)")).startsWith("'@");
+        assertThat(TrfExporter.cell("Soto, Ana")).isEqualTo("Soto, Ana");
+        assertThat(TrfExporter.cell("O'Higgins")).isEqualTo("O'Higgins");
+        assertThat(TrfExporter.cell("")).isEmpty();
+        assertThat(TrfExporter.cell("\t=1")).isEqualTo(" =1"); // el tab pasa a espacio: ya no empieza con «=»
+
+        String trf = TrfExporter.export(new TrfExporter.Header("Abierto\n001    1 m    Falso, Jugador", "Santiago", "CHI",
+                null, null, "Suizo", "60+30", 1), List.of(new TrfExporter.Entry(1, "Ana", "=cmd|' /C calc'!A0", "F",
+                null, 0, null, null, 0, 1)), Map.of());
+        assertThat(trf.lines().filter(l -> l.startsWith("001"))).hasSize(1);
+        assertThat(trf).contains("012 Abierto 001    1 m    Falso, Jugador");
+        assertThat(trf.lines().filter(l -> l.startsWith("001")).findFirst().orElseThrow().substring(14, 16)).isEqualTo("'=");
+    }
 }

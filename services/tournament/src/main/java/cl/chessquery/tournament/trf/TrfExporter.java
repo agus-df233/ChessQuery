@@ -48,12 +48,26 @@ public final class TrfExporter {
     }
 
     private static void line(StringBuilder out, String code, String value) {
-        if (value != null && !value.isBlank()) out.append(code).append(' ').append(value).append('\n');
+        if (value != null && !value.isBlank()) out.append(code).append(' ').append(cell(value)).append('\n');
+    }
+
+    /**
+     * Texto escrito por personas (nombres del torneo, la ciudad o los jugadores) neutralizado para el archivo:
+     * <ul>
+     *   <li>los saltos de línea y tabulaciones pasan a espacio: un nombre no puede inyectar líneas (p. ej. un
+     *       jugador "001" falso);</li>
+     *   <li>si empieza con {@code = + - @} se antepone {@code '}: el TRF se abre a menudo en una planilla y ese
+     *       comienzo se ejecutaría como fórmula (recomendación de OWASP para «CSV injection»).</li>
+     * </ul>
+     */
+    static String cell(String value) {
+        String flat = value.replaceAll("[\\r\\n\\t]", " ");
+        return !flat.isEmpty() && "=+-@".indexOf(flat.charAt(0)) >= 0 ? "'" + flat : flat;
     }
 
     static String playerLine(Entry e, List<Board> boards, int rounds) {
         StringBuilder s = new StringBuilder(String.format(Locale.ROOT, "001 %4d %1s%3s %-33.33s %4s %3s %11s %10s %4.1f %4d ",
-                e.startRank(), sex(e.gender()), e.title() == null ? "" : e.title(), e.lastName() + ", " + e.firstName(),
+                e.startRank(), sex(e.gender()), e.title() == null ? "" : e.title(), cell(e.lastName() + ", " + e.firstName()),
                 e.rating() > 0 ? String.valueOf(e.rating()) : "", "CHI", e.fideId() == null ? "" : e.fideId(),
                 e.birthYear() == null ? "" : e.birthYear() + "/00/00", e.points(), e.place()));
         for (int r = 1; r <= rounds; r++) {

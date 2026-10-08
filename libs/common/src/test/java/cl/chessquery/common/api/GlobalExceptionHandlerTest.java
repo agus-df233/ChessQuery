@@ -71,4 +71,19 @@ class GlobalExceptionHandlerTest {
         assertThat(handler.handleConcurrentChange(new org.springframework.dao.DataIntegrityViolationException("dup"))
                 .getStatusCode().value()).isEqualTo(409);
     }
+
+    /** Un cliente que usa mal la API recibe un 4xx con el formato común, no un 500. */
+    @Test
+    void erroresDeProtocoloSon4xx() {
+        ResponseEntity<ErrorResponse> method = handler.handleMethodNotAllowed(
+                new org.springframework.web.HttpRequestMethodNotSupportedException("GET"));
+        assertThat(method.getStatusCode().value()).isEqualTo(405);
+        assertThat(method.getBody().message()).contains("GET");
+        assertThat(handler.handleUnsupportedMediaType(new org.springframework.web.HttpMediaTypeNotSupportedException("xml"))
+                .getStatusCode().value()).isEqualTo(415);
+        ResponseEntity<ErrorResponse> missing = handler.handleMissingParameter(
+                new org.springframework.web.bind.MissingServletRequestParameterException("q", "String"));
+        assertThat(missing.getStatusCode().value()).isEqualTo(400);
+        assertThat(missing.getBody().error()).isEqualTo("MISSING_PARAMETER");
+    }
 }
