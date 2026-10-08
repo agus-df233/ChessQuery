@@ -43,7 +43,7 @@ def render() -> str:
     body = markdown.markdown(SOURCE.read_text(encoding="utf-8"), extensions=["tables", "fenced_code"])
     cover = f"""<section class="cover"><p style="color:#2e7d32;font-weight:700">♔ ChessQuery</p>
 <h1>Arquitectura v3</h1>
-<p>Vista general, partida 1 vs 1, flujo del organizador, eventos, Terraform y el ETL con AWS Lambda paso a paso.</p>
+<p>Para las partes interesadas (problema, propuesta de valor y guion de la demo), arquitectura desplegada en AWS, jugar y organizar, eventos, Terraform y despliegue, y el ETL con AWS Lambda.</p>
 <p class="src">Generado el {dt.date.today():%d-%m-%Y} desde <code>docs/arquitectura/arquitectura-v3.md</code> y
 <code>diagramas.py</code> (fuente única). Si algo cambia, edita esos archivos y corre <code>make arquitectura-docs</code>.</p>
 </section>"""

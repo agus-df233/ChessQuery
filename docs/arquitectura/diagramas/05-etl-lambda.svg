@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 470" width="1150" height="470"><rect width="100%" height="100%" fill="white"/><defs><marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/></marker></defs>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1150 470" width="1150" height="470"><rect width="100%" height="100%" fill="white"/><defs><marker id="flecha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#455a64"/></marker></defs>
 <rect x="20" y="20" width="250" height="430" rx="10" fill="none" stroke="#00695c" stroke-width="1.2" stroke-dasharray="4 3"/>
 <text x="30" y="36" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#00695c" text-anchor="start">Disparadores</text>
 <rect x="35" y="55" width="220" height="70" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
@@ -7,18 +7,19 @@
 <rect x="35" y="145" width="220" height="70" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
 <text x="145.0" y="165" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#00695c" text-anchor="middle">EventBridge · diario, 10:00 UTC</text>
 <text x="145.0" y="182" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">→ federation-tournaments</text>
-<rect x="35" y="235" width="220" height="85" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
-<text x="145.0" y="255" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">SQS etl-federation-lookup</text>
-<text x="145.0" y="272" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">lotes de 5 · reintenta solo</text>
-<text x="145.0" y="287" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">los que fallan · DLQ tras 5</text>
-<rect x="35" y="340" width="220" height="95" rx="8" fill="#fffde7" stroke="#9e9d24" stroke-width="1.6"/>
-<text x="145.0" y="360" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#9e9d24" text-anchor="middle">Manual (prueba)</text>
-<text x="145.0" y="377" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">aws lambda invoke</text>
-<text x="145.0" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">--invocation-type Event</text>
+<rect x="35" y="235" width="220" height="95" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.6"/>
+<text x="145.0" y="255" font-family="Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#e65100" text-anchor="middle">SNS chess-events (directo)</text>
+<text x="145.0" y="272" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">federation.lookup.requested</text>
+<text x="145.0" y="287" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">external.ratings.sync.requested</text>
+<text x="145.0" y="302" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">2 reintentos · alarma de errores</text>
+<rect x="35" y="345" width="220" height="90" rx="8" fill="#fffde7" stroke="#9e9d24" stroke-width="1.6"/>
+<text x="145.0" y="365" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#9e9d24" text-anchor="middle">Manual (prueba)</text>
+<text x="145.0" y="382" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">aws lambda invoke</text>
+<text x="145.0" y="397" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">--invocation-type Event</text>
 <rect x="310" y="40" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
 <text x="445.0" y="60" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">1 · Obtener</text>
-<text x="445.0" y="77" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">descarga FIDE o consulta la Federación</text>
-<text x="445.0" y="92" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">(ritmo máx. 5/s, reintentos, corte)</text>
+<text x="445.0" y="77" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">FIDE, Federación, Lichess o Chess.com</text>
+<text x="445.0" y="92" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">(ritmo máximo, reintentos, corte)</text>
 <line x1="445" y1="120" x2="445" y2="145" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
 <rect x="310" y="145" width="270" height="80" rx="8" fill="#e0f2f1" stroke="#00695c" stroke-width="1.6"/>
 <text x="445.0" y="165" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#00695c" text-anchor="middle">2 · Contrato</text>
@@ -51,8 +52,8 @@
 <line x1="580" y1="395" x2="610" y2="80" stroke="#90a4ae" stroke-width="1.5" marker-end="url(#flecha)"/>
 <line x1="255" y1="90" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
 <line x1="255" y1="180" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
-<line x1="255" y1="278" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
-<line x1="255" y1="387" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="283" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
+<line x1="255" y1="390" x2="310" y2="80" stroke="#455a64" stroke-width="1.5" marker-end="url(#flecha)"/>
 <rect x="610" y="355" width="270" height="80" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.6"/>
 <text x="745.0" y="375" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" fill="#2e7d32" text-anchor="middle">SNS chess-events → SQS</text>
 <text x="745.0" y="392" font-family="Helvetica, Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">users: ratings y fichas de jugadores</text>
