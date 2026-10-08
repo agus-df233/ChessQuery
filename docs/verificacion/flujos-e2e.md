@@ -1,27 +1,53 @@
 # Verificación de punta a punta — jugador, organizador y sala de juego
 
 Recorridos reales en el navegador (Chromium, Playwright) contra el stack local completo. No se usa ningún servicio
-externo real: el IdP simulado hace de Entra External ID y una Federación falsa responde con el mismo contrato
-GraphQL y datos ficticios.
+externo real:
+
+- el IdP simulado hace de Entra External ID;
+- una Federación falsa responde con el mismo contrato GraphQL y datos ficticios;
+- Lichess y Chess.com falsos (`e2e/support/platforms_stub.py`, puerto 8097) responden a los usernames que empiezan
+  con `e2e`.
 
 ```bash
-make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + Federación falsa + web, prueba y apaga
+make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + fuentes falsas + web, prueba y apaga
+bash scripts/e2e.sh e2e/seguridad.spec.ts   # un solo archivo (los argumentos pasan a Playwright)
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala-apoderado.spec.ts`, `roster-invitacion.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `seguridad.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala-apoderado.spec.ts`, `roster-invitacion.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
 
 ### Jugador (`jugador.spec.ts`)
 1. Login desde la portada ("Entrar con mi correo") con los claims que entrega Entra (email, nombre, apellido).
-2. **Vincular mi ficha federativa** → `users` publica `federation.lookup.requested` → el ETL (la Lambda; en local, su receptor SNS) consulta la
+2. **Asistente de bienvenida** (3 pasos, axe en el resultado): ritmo favorito **rápido**, cuentas (se dejan vacías)
+   y región. Termina con los siguientes pasos y no vuelve a aparecer.
+3. **Vincular mi ficha federativa** → `users` publica `federation.lookup.requested` → el ETL (la Lambda; en local, su receptor SNS) consulta la
    Federación (falsa) → `rating.updated` → la tarjeta muestra el **ELO nacional** traído de la ficha.
-3. Buscar a otro jugador por nombre, **Desafiar** (relámpago 3+2, con blancas; el ritmo define qué ELO ChessQuery se juega).
-4. El rival ve el desafío en **Mis partidas** y lo acepta; quien desafió se entera solo (long polling).
-5. **Partida en vivo** entre dos navegadores, jugada a jugada, hasta el mate (1.e4 e5 2.Ac4 Cc6 3.Dh5 Cf6 4.Dxf7#).
-6. Ambos ven el resultado ("Ganaste/Perdiste · jaque mate"), el cambio de rating y el PGN descargable.
-7. El **ELO ChessQuery relámpago** del inicio se actualiza (`elo.updated` con `PLATFORM_BLITZ` → cola → `users`).
+4. En **Mi perfil** vincula Lichess y Chess.com → `users` publica `external.ratings.sync.requested` → la Lambda
+   `external-ratings` (en local, el receptor SNS) consulta las plataformas (falsas) → dos `rating.updated` → el inicio
+   muestra los ratings de **Lichess** y de **Chess.com**.
+5. Buscar a otro jugador por nombre y **Desafiar**: el ritmo propuesto es el favorito (rápida 10+0), con blancas.
+6. El rival ve el desafío en **Mis partidas** y lo acepta; quien desafió se entera solo.
+7. **Partida en vivo** entre dos navegadores, jugada a jugada, hasta el mate (1.e4 e5 2.Ac4 Cc6 3.Dh5 Cf6 4.Dxf7#).
+8. Ambos ven el resultado ("Ganaste/Perdiste · jaque mate"), el cambio de rating y el PGN descargable.
+9. El **ELO ChessQuery** del ritmo se actualiza en el inicio (`elo.updated` con el ritmo → cola → `users`).
+
+### Seguridad: pruebas de abuso (`seguridad.spec.ts`)
+Caja negra, **solo contra el stack local**. Cada intento debe fallar de forma segura:
+1. **JWT:** sin token, `alg:none`, sujeto cambiado con la firma vieja, firma alterada, audiencia ajena y emisor ajeno → 401.
+2. **IDOR y escalamiento:** un jugador no edita, genera rondas, cierra ni lee inscritos o el TRF de un torneo ajeno; no
+   asigna tableros en una sala ajena ni invita a un jugador de otro roster; nadie juega una partida que no es suya → 403/404.
+3. **Tokens:** la invitación tiene 22 caracteres base64url (128 bits); tokens adivinados de invitación, desafío abierto y
+   acreditación dan el mismo 404, sin enumeración.
+4. **Ley 21.719:** la vista pública del torneo, la sala en vivo y el ranking no traen `rut`, `rutHash`, `email`,
+   `birthDate` ni `gender`; un menor sale con el apellido abreviado en su perfil público.
+5. **XSS almacenado:** un torneo llamado `<img src=x onerror=…>` se ve como texto y no ejecuta nada.
+6. **Fórmulas en el TRF:** un jugador llamado `=HYPERLINK(…)` sale con `'` delante; un salto de línea en el nombre del
+   torneo no inyecta líneas.
+7. **WebSocket:** sin token se cierra (1008); con token, un extraño no se suscribe a una sala ajena (`NOT_IN_ROOM`).
+8. **Cabeceras y errores:** `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`; un recurso inexistente da 404 y un
+   método no soportado 405, ambos con `{status, error, message, timestamp}`.
 
 ### Desafío abierto: integrarse jugando (`desafio-abierto.spec.ts`)
 1. Ana publica un **desafío abierto** (relámpago 3+2, con blancas): obtiene un enlace con token aleatorio y su **QR**.
@@ -73,7 +99,34 @@ Inicio, Mi perfil, Jugadores, Ranking, Mis partidas, Amigos, Torneos, Crear mi c
 cargan sin errores de JavaScript, **sin violaciones de axe (WCAG 2 A/AA)** y **sin scroll horizontal en 375 px**.
 Las vistas de partida, club, torneo (organizador y público) se revisan igual dentro de los recorridos.
 
-## Resultados (29-09-2026)
+## Semilla para la demo (`make demo-seed`)
+
+Con `make dev` corriendo, `make demo-seed` (`scripts/demo_seed.py`) deja listo:
+
+- el club «Club Demo Andino» con 16 jugadores ficticios;
+- la *Liga Demo* en curso, con 2 rondas jugadas, para la pantalla del monitor;
+- el *Abierto Demo* con inscritos y acreditación por QR;
+- la sala «Clase 4°B» con 4 tableros;
+- tres cuentas: la organizadora, Valentina (ve la bienvenida) y Tomás (con Lichess y Chess.com vinculados, amigo de
+  Valentina).
+
+Imprime cómo entrar (sujeto y claims para el IdP simulado) y las URL de cada historia. Se puede repetir: busca lo
+que ya existe antes de crearlo (verificado con dos corridas seguidas).
+
+## Resultados (08-10-2026)
+
+Con la máquina descargada:
+
+| Prueba | Resultado |
+|---|---|
+| Java: libs y servicios users, tournament y game (unitarias + integración con Testcontainers y LocalStack) | ✅ 147, cobertura ≥ 90 % por módulo |
+| ETL (pytest) | ✅ 60, cobertura 99 % |
+| Web (vitest + axe) | ✅ 71 en 15 archivos |
+| Suite E2E completa: 9 recorridos + 8 pruebas de seguridad | ✅ 17 de 17, dos corridas seguidas (1,7 y 1,9 min) |
+| `make complexity` · `make tf-check` · `tsc --noEmit` | ✅ |
+| `make demo-seed` dos veces seguidas | ✅ la segunda no duplica nada |
+
+## Resultados anteriores (29-09-2026)
 
 | Prueba | Resultado |
 |---|---|
