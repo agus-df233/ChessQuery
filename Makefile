@@ -1,5 +1,6 @@
 # Atajos del día a día. Todo corre en local; nada de esto toca una cuenta cloud.
 #   make dev              LA APP COMPLETA en http://localhost:5173 (infra + servicios + ETL + web); Ctrl+C apaga todo
+#   make demo-seed        con make dev corriendo: club, torneos, sala y cuentas para presentar (se puede repetir)
 #   make local-up         infra local (Postgres, LocalStack SNS/SQS/S3, Mailpit)
 #   make users            servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
 #   make tournament       servicio tournament (8082); necesita users corriendo
@@ -23,7 +24,7 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: dev local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-bus-local etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
+.PHONY: dev demo-seed local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-bus-local etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
 
 # Stack completo con IdP simulado y Federación falsa (no necesita tenant de Entra). Ver scripts/dev.sh.
 dev:
@@ -92,6 +93,9 @@ test-web:
 # Levanta todo lo necesario (infra, servicios, receptor SNS del ETL, Federación falsa, web), corre Playwright y apaga.
 e2e:
 	bash scripts/e2e.sh
+
+demo-seed:
+	python3 scripts/demo_seed.py
 
 image:
 	mvn -B -ntp -q -pl services/users -am -DskipTests package jib:dockerBuild -Djib.from.platforms=linux/arm64
