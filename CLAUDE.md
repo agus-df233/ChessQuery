@@ -9,6 +9,7 @@ instrucciones y los ADR mandan sobre cualquier regla genérica de más abajo.
 
 ```bash
 make dev               # app completa en :5173 con IdP simulado y Federación falsa; Ctrl+C apaga todo
+make dev-idp           # lo mismo con el login real con Google (Cognito del lab, tras make academy-auth)
 make local-up          # Postgres 16 · LocalStack 4.14 (SNS/SQS/S3) · Mailpit
 make users             # servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
 make tournament        # servicio tournament en :8082 (necesita users)
@@ -24,8 +25,8 @@ make tf-check          # terraform fmt + validate de todos los entornos
 
 ## Reglas del proyecto
 
-- **Identidad:** siempre de `@CurrentUser UserPrincipal` (token de Entra External ID), nunca del body ni de la
-  URL. No existen contraseñas en la app: login/registro/recuperación son del IdP.
+- **Identidad:** siempre de `@CurrentUser UserPrincipal` (token del IdP: Cognito con Google en el lab, Entra External ID
+  en la cuenta propia; ADR-0002), nunca del body ni de la URL. No existen contraseñas en la app: login/registro/recuperación son del IdP.
 - **Datos personales (Ley 21.719):** a terceros nunca RUT, email, fecha de nacimiento ni género; menores
   abreviados vía `PublicNames`; de terceros solo `birth_year` y `rut_hash` (`IdentifierHasher`). Match con
   fuentes externas solo por identificadores, nunca por nombre. Respetar `data_suppression`.

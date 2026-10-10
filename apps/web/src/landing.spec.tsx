@@ -29,6 +29,15 @@ describe('Portada', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('con Cognito va directo a Google y no ofrece el correo (el login es solo con Google)', () => {
+    vi.stubEnv('VITE_OIDC_PROVIDER', 'cognito');
+    renderLanding();
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar con Google' }));
+    expect(auth.signinRedirect).toHaveBeenCalledWith({ extraQueryParams: { identity_provider: 'Google' } });
+    expect(screen.queryByRole('button', { name: 'Entrar con mi correo' })).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
   it('explica cuando el usuario cancela en Google', () => {
     auth.error = new Error('access_denied: the user canceled');
     renderLanding();

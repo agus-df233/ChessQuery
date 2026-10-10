@@ -8,8 +8,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOGS="$ROOT/.logs"
 PIDS=()
 
-export OIDC_ISSUER_URI=http://localhost:8090/chessquery
-export OIDC_AUDIENCE=default   # audiencia que emite el IdP simulado en el flujo del navegador
+# Por defecto, el IdP simulado. Con IDP=1 (make dev-idp) se usa el login real (Cognito con Google, o Entra): el
+# issuer, la audiencia y los VITE_OIDC_* de la web llegan desde afuera (salidas de Terraform o apps/web/.env).
+if [ "${IDP:-0}" = 1 ]; then
+  : "${OIDC_ISSUER_URI:?falta OIDC_ISSUER_URI: ¿se creó el login con make academy-auth?}"
+  : "${OIDC_AUDIENCE:?falta OIDC_AUDIENCE: ¿se creó el login con make academy-auth?}"
+  [ -n "${VITE_OIDC_AUTHORITY:-}" ] || [ -f "$ROOT/apps/web/.env" ] || { echo "Falta la configuración OIDC de la web"; exit 1; }
+else
+  OIDC_ISSUER_URI=http://localhost:8090/chessquery
+  OIDC_AUDIENCE=default   # audiencia que emite el IdP simulado en el flujo del navegador
+fi
+export OIDC_ISSUER_URI OIDC_AUDIENCE
 export AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
@@ -52,9 +61,13 @@ start_stack() {
   PIDS+=($!)
 
   echo "== Web"
-  (cd "$ROOT/apps/web" && VITE_OIDC_AUTHORITY="$OIDC_ISSUER_URI" VITE_OIDC_CLIENT_ID=chessquery-web \
-    VITE_OIDC_SCOPE="openid profile email" VITE_WS_URL=ws://localhost:5173/ws \
-    exec npx vite --port 5173 --strictPort) > "$LOGS/web.log" 2>&1 &
+  if [ "${IDP:-0}" = 1 ]; then  # VITE_OIDC_* ya vienen en el entorno (o en apps/web/.env)
+    (cd "$ROOT/apps/web" && VITE_WS_URL=ws://localhost:5173/ws exec npx vite --port 5173 --strictPort) > "$LOGS/web.log" 2>&1 &
+  else
+    (cd "$ROOT/apps/web" && VITE_OIDC_AUTHORITY="$OIDC_ISSUER_URI" VITE_OIDC_CLIENT_ID=chessquery-web \
+      VITE_OIDC_SCOPE="openid profile email" VITE_WS_URL=ws://localhost:5173/ws \
+      exec npx vite --port 5173 --strictPort) > "$LOGS/web.log" 2>&1 &
+  fi
   PIDS+=($!)
 
   wait_http http://localhost:8081/actuator/health users

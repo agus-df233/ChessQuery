@@ -6,6 +6,7 @@
 #     llaman a users por el ALB (/internal/*), con X-Internal-Token y la cabecera de origen.
 #   - Fargate en x86 (ARM64 no verificado en el lab).
 #   - Credenciales que rotan cada ~4 h → todo se recrea con `terraform apply`.
+#   - Sin tenant de Entra: el login con Google pasa por un user pool de Cognito (módulo auth-cognito).
 #
 # Uso:
 #   terraform init -backend-config="bucket=chessquery-tfstate-<account_id>"
@@ -62,8 +63,8 @@ locals {
   service_env = {
     DB_URL                                    = "jdbc:postgresql://${module.data.db_endpoint}:5432/${module.data.db_name}"
     DB_USER                                   = module.data.db_username
-    OIDC_ISSUER_URI                           = var.oidc_issuer_uri
-    OIDC_AUDIENCE                             = var.oidc_audience
+    OIDC_ISSUER_URI                           = local.oidc_issuer
+    OIDC_AUDIENCE                             = local.oidc_audience
     JAVA_TOOL_OPTIONS                         = "-XX:MaxRAMPercentage=75"
     MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED = "true" # health checks del ALB en /actuator/health/liveness
     CHESS_EVENTS_TOPIC_ARN                    = module.messaging.topic_arn
@@ -74,7 +75,14 @@ locals {
     INTERNAL_TOKEN = module.data.internal_token_param_arn
   }
   queues = module.messaging.queue_names
+
+  # IdP: Cognito (ID token, aud = client id de la web) o Entra (access token, aud = client id de la API)
+  cognito       = var.auth_provider == "cognito"
+  oidc_issuer   = local.cognito ? module.auth[0].issuer : var.oidc_issuer_uri
+  oidc_audience = local.cognito ? module.auth[0].client_id : var.oidc_audience
 }
+
+data "aws_caller_identity" "current" {}
 
 data "aws_iam_role" "lab" {
   name = "LabRole"
@@ -158,6 +166,18 @@ module "edge" {
   alb_dns_name   = module.alb.dns_name
   origin_secret  = random_password.origin_secret.result
   bucket_via_cli = true
+}
+
+# ── Login con Google: user pool de Cognito (ADR-0002, enmienda 2026-10-09) ────────────────────────────────────
+module "auth" {
+  source               = "../../modules/auth-cognito"
+  count                = local.cognito ? 1 : 0
+  name                 = local.name
+  domain_prefix        = "chessquery-${data.aws_caller_identity.current.account_id}"
+  callback_urls        = ["http://localhost:5173/app", "${module.edge.app_url}/app"]
+  logout_urls          = ["http://localhost:5173", module.edge.app_url]
+  google_client_id     = var.google_client_id
+  google_client_secret = var.google_client_secret
 }
 
 # Partidas en vivo: WebSocket de API Gateway → ALB → game (/internal/ws/*)

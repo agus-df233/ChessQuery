@@ -1,5 +1,6 @@
 # Atajos del día a día. Todo corre en local; nada de esto toca una cuenta cloud.
 #   make dev              LA APP COMPLETA en http://localhost:5173 (infra + servicios + ETL + web); Ctrl+C apaga todo
+#   make dev-idp          lo mismo, pero con el login real con Google (Cognito creado con make academy-auth)
 #   make demo-seed        con make dev corriendo: club, torneos, sala y cuentas para presentar (se puede repetir)
 #   make local-up         infra local (Postgres, LocalStack SNS/SQS/S3, Mailpit)
 #   make users            servicio users contra la infra local (requiere OIDC_ISSUER_URI/OIDC_AUDIENCE)
@@ -24,11 +25,16 @@ COMPOSE := docker compose -f infra/docker-compose.yml
 LOCAL_AWS := AWS_ENDPOINT_URL=http://localhost:4566 AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 \
              AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 
-.PHONY: dev demo-seed local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-bus-local etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
+.PHONY: dev dev-idp demo-seed local-up local-down users tournament game web etl-setup etl-fide-local federation-contract federation-tournaments-local etl-bus-local etl-docs arquitectura-docs test test-java test-etl test-web e2e image tf-check complexity
 
 # Stack completo con IdP simulado y Federación falsa (no necesita tenant de Entra). Ver scripts/dev.sh.
 dev:
 	bash scripts/dev.sh
+
+# Misma app local con el login real con Google (Cognito del lab): prueba el login antes de desplegar.
+# Toma issuer, client id y dominio de las salidas de Terraform; http://localhost:5173/app ya es callback del cliente.
+dev-idp:
+	$(OIDC_ENV) IDP=1 OIDC_ISSUER_URI="$$VITE_OIDC_AUTHORITY" OIDC_AUDIENCE="$$VITE_OIDC_CLIENT_ID" bash scripts/dev.sh
 
 local-up:
 	$(COMPOSE) up -d --wait
@@ -120,12 +126,17 @@ tf-check:
 ACADEMY_PROFILE ?= default
 ACADEMY_DIR := infra/terraform/envs/academy
 ACADEMY_TF := AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=$(ACADEMY_DIR)
+# El secreto del cliente OAuth de Google vive solo en el llavero de macOS; llega a Terraform por TF_VAR, sin imprimirse.
+GOOGLE_KEYCHAIN := chessquery-google-oauth
+ACADEMY_TF_SECRET = TF_VAR_google_client_secret="$$(security find-generic-password -s $(GOOGLE_KEYCHAIN) -w 2>/dev/null)" $(ACADEMY_TF)
+# Configuración OIDC de la web desde las salidas de Terraform (Cognito). Con Entra se usa apps/web/.env.
+OIDC_ENV = eval "$$(cd $(ACADEMY_DIR) && AWS_PROFILE=$(ACADEMY_PROFILE) terraform output -json | python3 $(CURDIR)/scripts/oidc_env.py)";
 IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
 SERVICES := users tournament game
 # Mismo tag para los tres servicios (se construyen juntos desde el mismo commit).
 TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",game="$(IMAGE_TAG)"}'
 
-.PHONY: academy-bootstrap academy-init academy-plan academy-ecr academy-apply academy-image academy-web academy-down academy-up academy-destroy
+.PHONY: cloud-smoke google-secret-check academy-auth academy-bootstrap academy-init academy-plan academy-ecr academy-apply academy-image academy-web academy-down academy-up academy-destroy
 
 academy-bootstrap:
 	AWS_PROFILE=$(ACADEMY_PROFILE) terraform -chdir=infra/terraform/bootstrap init -input=false
@@ -135,15 +146,24 @@ academy-init:
 	$(ACADEMY_TF) init -input=false -reconfigure \
 	  -backend-config="bucket=chessquery-tfstate-$$(AWS_PROFILE=$(ACADEMY_PROFILE) aws sts get-caller-identity --query Account --output text)"
 
-academy-plan: academy-init
-	$(ACADEMY_TF) plan -var-file=academy.tfvars $(TAGS_VAR)
+google-secret-check:
+	@security find-generic-password -s $(GOOGLE_KEYCHAIN) >/dev/null 2>&1 || { \
+	  echo "Falta el secreto de Google en el llavero. Guárdalo (lo pide sin mostrarlo):"; \
+	  echo "  security add-generic-password -a chessquery -s $(GOOGLE_KEYCHAIN) -w"; exit 1; }
+
+academy-plan: academy-init google-secret-check
+	$(ACADEMY_TF_SECRET) plan -var-file=academy.tfvars $(TAGS_VAR)
+
+# Solo el login (Cognito + lo que necesita para conocer la URL de la app), para probar Google en local antes del resto
+academy-auth: academy-init google-secret-check
+	$(ACADEMY_TF_SECRET) apply -var-file=academy.tfvars $(TAGS_VAR) -target=module.auth
 
 # Solo los repositorios de imágenes (ECR), para poder subir las imágenes antes de crear los servicios.
 academy-ecr: academy-init
-	$(ACADEMY_TF) apply -var-file=academy.tfvars $(TAGS_VAR) -target=aws_ecr_repository.svc -target=aws_ecr_lifecycle_policy.svc
+	$(ACADEMY_TF_SECRET) apply -var-file=academy.tfvars $(TAGS_VAR) -target=aws_ecr_repository.svc -target=aws_ecr_lifecycle_policy.svc
 
-academy-apply: academy-init
-	$(ACADEMY_TF) apply -var-file=academy.tfvars $(TAGS_VAR)
+academy-apply: academy-init google-secret-check
+	$(ACADEMY_TF_SECRET) apply -var-file=academy.tfvars $(TAGS_VAR)
 
 academy-image:
 	repos=$$($(ACADEMY_TF) output -json ecr_repositories); \
@@ -156,9 +176,9 @@ academy-image:
 	  mvn -B -ntp -q -pl services/$$svc jib:build -Djib.from.platforms=linux/amd64 -Dimage="$$repo:$(IMAGE_TAG)" || exit 1; \
 	done
 
-# La URL del WebSocket sale de Terraform; el resto de la configuración de la web, de apps/web/.env
+# La URL del WebSocket y el login (Cognito) salen de Terraform; con Entra, el login sale de apps/web/.env
 academy-web:
-	VITE_WS_URL="$$($(ACADEMY_TF) output -raw ws_url)" npm run build -w web
+	$(OIDC_ENV) VITE_WS_URL="$$($(ACADEMY_TF) output -raw ws_url)" npm run build -w web
 	AWS_PROFILE=$(ACADEMY_PROFILE) aws s3 sync apps/web/dist "s3://$$($(ACADEMY_TF) output -raw web_bucket)" --delete
 	@echo "Web publicada en $$($(ACADEMY_TF) output -raw app_url)"
 
@@ -178,5 +198,10 @@ academy-up:
 	done
 	@echo "RDS disponible y servicios en 1. La web: $$($(ACADEMY_TF) output -raw app_url)"
 
+# Pruebas de humo sin login contra lo desplegado (solo pedidos HTTP a la app; no toca recursos de AWS)
+cloud-smoke:
+	python3 scripts/cloud_smoke.py --base "$$($(ACADEMY_TF) output -raw app_url)" \
+	  --alb "$$($(ACADEMY_TF) output -raw alb_dns_name)" --ws "$$($(ACADEMY_TF) output -raw ws_url)"
+
 academy-destroy:
-	$(ACADEMY_TF) destroy -var-file=academy.tfvars $(TAGS_VAR)
+	$(ACADEMY_TF_SECRET) destroy -var-file=academy.tfvars $(TAGS_VAR)

@@ -138,3 +138,33 @@ Se elimina la cola `etl-federation-lookup` (y su DLQ). La Lambda `federation-loo
    de EventBridge a las 23:00 de Chile, deja ECS en 0 y detiene RDS. Cuida el crédito del lab nuevo (US$50) ante un
    olvido; `make academy-up` lo vuelve a encender. Reemplaza el apagado con EventBridge Scheduler de la decisión
    original, que necesita un rol propio que el lab no deja crear.
+
+## Enmienda — 09-10-2026: login con Google por Amazon Cognito en el Learner Lab
+
+**Contexto:**
+
+- No hay tenant de Entra External ID disponible: el directorio de Duoc bloquea crear uno y la prueba gratuita de la
+  cuenta personal ya se usó.
+- El tenant que sí existe es de personal (*workforce*): con Google solo admite invitados B2B, no registro abierto.
+
+**Decisión:** el IdP del Learner Lab es un **user pool de Amazon Cognito** (plan Lite) con **Google federado**,
+creado por Terraform (módulo `auth-cognito`). Entra External ID queda como opción (`auth_provider = "entra"`) para la
+cuenta propia.
+
+1. **Login.**
+   - La web usa Authorization Code + PKCE contra el dominio de Cognito, con `identity_provider=Google`, que salta
+     directo a Google.
+   - No hay contraseñas: el cliente solo admite Google y el autorregistro con contraseña está apagado. Los usuarios
+     federados se crean en su primer ingreso.
+2. **Token hacia la API: el ID token.** En el plan Lite, el access token de Cognito lleva `client_id` y no trae
+   `aud` ni el correo; agregarlos exige un plan pagado. El ID token sí trae `aud` (client id de la web), `email`,
+   `email_verified` y el nombre.
+   - Es el mismo token que acepta el autorizador de Cognito de API Gateway.
+   - Los servicios no cambian: validan el issuer del pool y la audiencia con la misma configuración (`OIDC_ISSUER_URI`,
+     `OIDC_AUDIENCE`).
+   - El WebSocket recibe el mismo token.
+3. **Secreto de Google.** Llega a Terraform por `TF_VAR_google_client_secret`, que el Makefile toma del llavero de
+   macOS; nunca entra al repo. Queda en el estado de Terraform, que está cifrado y es privado.
+4. **Cierre de sesión.** Va al `/logout` de Cognito, con `client_id` y `logout_uri`.
+5. **Prueba local con el login real.** `make academy-auth` crea solo el login; `make dev-idp` levanta la app local
+   contra ese user pool, porque `http://localhost:5173/app` también es callback del cliente.

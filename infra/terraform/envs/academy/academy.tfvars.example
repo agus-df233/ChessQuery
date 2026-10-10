@@ -4,7 +4,15 @@ image_tags = {
   tournament = "sha-xxxxxxx"
   game       = "sha-xxxxxxx"
 }
-use_spot        = true
-oidc_issuer_uri = "https://<tenant>.ciamlogin.com/<tenant-id>/v2.0"
-oidc_audience   = "<client-id-de-la-api>"
-alert_email     = "alertas@example.com"
+use_spot    = true
+alert_email = "alertas@example.com"
+
+# Login con Google por Cognito (por defecto). El client ID de Google no es secreto; el secreto va en el llavero
+# de macOS (make google-secret-check explica cómo guardarlo) y nunca en este archivo.
+auth_provider    = "cognito"
+google_client_id = "<client-id>.apps.googleusercontent.com"
+
+# Con un tenant de Entra External ID, en cambio:
+# auth_provider   = "entra"
+# oidc_issuer_uri = "https://<tenant>.ciamlogin.com/<tenant-id>/v2.0"
+# oidc_audience   = "<client-id-de-la-api>"

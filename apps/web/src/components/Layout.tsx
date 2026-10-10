@@ -4,6 +4,7 @@ import { useAuth } from 'react-oidc-context';
 import { Shell, type ShellNavItem, type ShellUser } from '@chessquery/ui-lib';
 import type { Me } from '../api/types';
 import { useMe } from '../api/hooks';
+import { signOut } from '../auth/provider';
 
 const MENU: [id: string, label: string, href: string, icon: string][] = [
   ['inicio', 'Inicio', '/app', '♔'],
@@ -41,7 +42,7 @@ export const Layout = ({ children }: { children: ReactNode }) => {
     .map(([id, label, href, icon]) => ({ id, label, icon, href, active: isActive(pathname, href), onClick: () => navigate(href) }));
   return (
     <Shell subtitle={organizer ? 'Organizador' : 'Jugador'} items={items} user={shellUser(me.data)}
-           onLogout={() => void auth.signoutRedirect()}>
+           onLogout={() => void signOut(auth)}>
       {children}
     </Shell>
   );

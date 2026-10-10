@@ -1,6 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { tokenStore } from './tokenStore';
+import { bearerOf } from './provider';
 import { currentPath } from './returnTo';
 import { useMe } from '../api/hooks';
 
@@ -8,8 +9,8 @@ import { useMe } from '../api/hooks';
 export const TokenSync = ({ children }: { children: ReactNode }) => {
   const auth = useAuth();
   useEffect(() => {
-    tokenStore.set(auth.user?.access_token ?? null);
-  }, [auth.user?.access_token]);
+    tokenStore.set(bearerOf(auth.user));
+  }, [auth.user]);
   return <>{children}</>;
 };
 

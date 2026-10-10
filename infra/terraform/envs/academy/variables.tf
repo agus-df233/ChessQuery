@@ -9,14 +9,39 @@ variable "use_spot" {
   default     = true
 }
 
-variable "oidc_issuer_uri" {
-  description = "Issuer de Entra External ID: https://<tenant>.ciamlogin.com/<tenant-id>/v2.0"
+variable "auth_provider" {
+  description = "IdP del login: cognito (user pool con Google, por defecto en el lab) o entra (tenant de External ID)"
   type        = string
+  default     = "cognito"
+  validation {
+    condition     = contains(["cognito", "entra"], var.auth_provider)
+    error_message = "auth_provider debe ser cognito o entra."
+  }
+}
+
+variable "google_client_id" {
+  description = "Cognito: client ID del cliente OAuth de Google (no es secreto)"
+  type        = string
+  default     = ""
+}
+
+variable "google_client_secret" {
+  description = "Cognito: secreto de Google. Lo pone el Makefile desde el llavero (TF_VAR_google_client_secret)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "oidc_issuer_uri" {
+  description = "Solo con auth_provider = entra: https://<tenant>.ciamlogin.com/<tenant-id>/v2.0"
+  type        = string
+  default     = ""
 }
 
 variable "oidc_audience" {
-  description = "Client id de la app registration de la API"
+  description = "Solo con auth_provider = entra: client id de la app registration de la API"
   type        = string
+  default     = ""
 }
 
 variable "alert_email" {

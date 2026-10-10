@@ -1,7 +1,7 @@
 # Partidas en vivo por WebSocket (ADR-0002, actualización 30-09-2026): API Gateway WebSocket API, la única opción de
 # WebSocket con wss:// que funciona en el Learner Lab (CloudFront y AppSync bloqueados, el ALB sin certificado).
 #
-#   navegador ──wss://…/live?token=<access token>──► API Gateway ──HTTP──► ALB /internal/ws/{connect,message,disconnect} ──► game
+#   navegador ──wss://…/live?token=<token del jugador>──► API Gateway ──HTTP──► ALB /internal/ws/{connect,message,disconnect} ──► game
 #   game ──postToConnection (LabRole: execute-api:ManageConnections)──► API Gateway ──► navegador
 #
 # API Gateway agrega a cada llamada la cabecera de origen (el ALB la exige), el token interno (/internal lo exige),

@@ -3,9 +3,9 @@ import type { AuthProviderProps } from 'react-oidc-context';
 import { safeReturnPath } from './returnTo';
 
 /**
- * Configuración OIDC de la SPA contra Entra External ID (Google entra federado por el
- * mismo tenant, así que hay un único emisor). Authorization Code + PKCE, sin secretos en
- * el navegador. Al volver del login se limpian los parámetros de la URL.
+ * Configuración OIDC de la SPA contra el IdP (Cognito en el Learner Lab o Entra External ID; Google entra federado,
+ * así que hay un único emisor). Authorization Code + PKCE, sin secretos en el navegador. Al volver del login se
+ * limpian los parámetros de la URL. Las diferencias entre IdP están en provider.ts.
  */
 export const oidcConfig: AuthProviderProps = {
   authority: import.meta.env.VITE_OIDC_AUTHORITY ?? '',
