@@ -12,7 +12,8 @@ import sys
 
 def exports(outputs: dict) -> list[str]:
     value = {k: v.get("value", "") for k, v in outputs.items()}
-    if value.get("auth_provider") != "cognito":
+    # Tras un apply parcial (make academy-auth) puede faltar `auth_provider`: basta con que exista el cliente de Cognito
+    if value.get("auth_provider", "cognito") != "cognito" or not value.get("oidc_client_id"):
         return []
     env = {
         "VITE_OIDC_PROVIDER": "cognito",
