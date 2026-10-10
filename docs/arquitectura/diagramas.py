@@ -155,8 +155,8 @@ def _usuarios(s: Svg) -> None:
 
 
 def _identidad(s: Svg) -> None:
-    s.icon(640, 40, "azure-external-identities", "Microsoft Entra External ID", ["login con Google o código al correo",
-                                                                            "OIDC + PKCE · emite el JWT"], color=AWS["azure"])
+    s.icon(640, 40, "aws-cognito", "Amazon Cognito + Google", ["user pool del lab · login solo con Google",
+                                                                 "OIDC + PKCE · emite el ID token (JWT)"], color=AWS["seguridad"])
     s.path([(115, 150), (115, 75), (616, 75)], "1 · login", lx=330, ly=75)
     s.path([(905, 190), (905, 62), (664, 62)], "los servicios validan el JWT (JWKS)", dashed=True, lx=800, ly=62)
 

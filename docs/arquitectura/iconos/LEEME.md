@@ -9,7 +9,6 @@ MIT) y se redujeron a 96 px con `sips -Z 96`. No se usa Graphviz ni ninguna depe
 | Archivos | Qué son | Condiciones de uso |
 |---|---|---|
 | `aws-*.png` | AWS Architecture Icons (oficiales) | AWS permite usarlos para dibujar diagramas de arquitectura |
-| `azure-*.png` | Íconos oficiales de Microsoft Azure (Entra External ID) | Microsoft permite usarlos en diagramas y documentación de arquitectura |
 | `github-actions.png`, `terraform.png`, `react.png`, `spring.png`, `python.png` | Logos de herramientas | Marcas de sus dueños; solo identifican la herramienta |
 
 **Para agregar uno:** copiarlo desde `resources/` del paquete `diagrams`

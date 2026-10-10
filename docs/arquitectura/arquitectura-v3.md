@@ -57,7 +57,7 @@ sala y las cuentas, e imprime cómo entrar y qué URL abrir.
 
 | Pieza | Qué hace | Dónde vive |
 |---|---|---|
-| **Entra External ID** | Registro e inicio de sesión (Google o código al correo). La app **nunca** ve ni guarda contraseñas: recibe un token firmado (JWT) y lo valida con las llaves públicas del tenant. | Tenant externo de Microsoft |
+| **Amazon Cognito + Google** | Registro e inicio de sesión **con Google** (user pool en el plan Lite, módulo `auth-cognito`). La app **nunca** ve ni guarda contraseñas: recibe el ID token firmado y lo valida con las llaves públicas del pool. Entra External ID queda como opción para la cuenta propia (ADR-0002, enmienda 09-10). | AWS |
 | **API Gateway (HTTP API)** | Única entrada HTTPS. `/api/*` va al ALB con una cabecera secreta; todo lo demás va a la web en S3. Un solo origen, sin CORS. | AWS |
 | **API Gateway (WebSocket)** | Partidas y salas en vivo: reenvía conexiones y mensajes a game (`/internal/ws/*`), y game responde por la Management API. Si el WebSocket no conecta, la web sigue por long polling. | AWS |
 | **ALB** | Reparte cada ruta al servicio que corresponde y rechaza lo que no trae la cabecera de origen. | AWS (VPC) |
@@ -172,7 +172,7 @@ make academy-plan        # 1. simulacro: se revisa qué se crea o cambia
 make academy-ecr         # 2. solo los repositorios de imágenes
 make academy-image       # 3. Jib construye y sube users, tournament y game (x86) con el tag del commit
 make academy-apply       # 4. todo lo demás (~15 min, casi todo por RDS)
-make academy-web         # 5. build de la web (Entra y URL del WebSocket) y publicación en S3; imprime la URL
+make academy-web         # 5. build de la web (login de Cognito y URL del WebSocket) y publicación en S3; imprime la URL
                          # 6. cargar datos: invocar las Lambdas del ETL (sección 6)
 make academy-down        # 7. al terminar el día (si no, el apagado nocturno lo hace a las 23:00)
 make academy-up          #    al día siguiente: vuelve a levantar ECS y RDS
@@ -257,6 +257,6 @@ El detalle de cada tipo de prueba está en `docs/verificacion/plan-de-pruebas.md
 | Historia 4: sala de clase con tableros asignados, espectador y cuadrícula en vivo | ✅ en el navegador |
 | Pruebas de abuso (JWT, IDOR, tokens, Ley 21.719, XSS, fórmulas en el TRF, WebSocket, cabeceras) | ✅ contra el stack local (`e2e/seguridad.spec.ts`) |
 | Despliegue en el Learner Lab nuevo | ⏳ falta el `academy-bootstrap`. El plan lo revisa una persona antes del `apply` |
-| Login real con Google en la nube | ⏳ falta cargar los datos del tenant de Entra External ID |
+| Login real con Google en la nube | ⏳ Cognito listo en Terraform; falta el cliente OAuth de Google y la prueba con cuentas reales (`docs/auth/cognito-google.md`) |
 | Mutación (PIT) y OWASP ZAP en el CI | ⏳ documentados; entran con una enmienda del ADR-0002 |
 | `services/notifications` | ⏳ pendiente |
