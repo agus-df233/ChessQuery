@@ -93,7 +93,9 @@ def check_closed_doors(rep: Report, base: str) -> None:
 def check_alb(rep: Report, alb: str) -> None:
     """Quien se salta API Gateway llega al ALB sin la cabecera de origen: debe recibir 404."""
     r = fetch(f"http://{alb}/api/public/ranking?limit=1")
-    rep.check("ALB directo sin cabecera de origen → 404", r.status == 404 and not is_json_from_service(r), f"HTTP {r.status}")
+    # Responde el propio ALB (su respuesta fija), no el servicio: el pedido nunca llega a users
+    answered_by_alb = r.headers.get("server", "").startswith("awselb") or "Ruta no enrutada" in r.body
+    rep.check("ALB directo sin cabecera de origen → 404 del propio ALB", r.status == 404 and answered_by_alb, f"HTTP {r.status}")
 
 
 def check_ws(rep: Report, ws_url: str) -> None:
