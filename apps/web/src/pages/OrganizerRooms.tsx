@@ -10,6 +10,7 @@ import { EMPTY_ROOM, RoomForm } from '../components/room/RoomForm';
 import { RoomQr } from '../components/room/RoomQr';
 import { roomKey, useLiveRoom } from '../components/room/useLiveRoom';
 import { CATEGORY_LABEL } from '../lib/timeControl';
+import { useConfirm } from '../components/useConfirm';
 
 export const RoomList = ({ items, base, empty }: { items?: RoomSummary[]; base: string; empty: string }) => {
   if (!items) return <Skeleton height={80} />;
@@ -95,6 +96,11 @@ export const OrganizerRoom = () => {
     mutationFn: (fn: () => Promise<RoomView>) => fn(),
     onSuccess: (r) => { qc.setQueryData(roomKey(id), r); void qc.invalidateQueries({ queryKey: ['my-rooms'] }); setEditing(false); },
   });
+  const { ask, dialog } = useConfirm();
+  const closeRoom = async () => {
+    if (await ask({ title: '¿Cerrar la sala?', message: 'Nadie más podrá entrar ni empezar partidas. Las partidas en curso terminan normalmente.',
+      confirmLabel: 'Cerrar sala', tone: 'danger' })) act.mutate(() => roomsApi.close(id));
+  };
   useEffect(() => {
     if (!projector) return undefined;
     const exit = (e: KeyboardEvent) => { if (e.key === 'Escape') setProjector(false); };
@@ -144,7 +150,8 @@ export const OrganizerRoom = () => {
         {open && <Button onClick={() => act.mutate(() => roomsApi.startAll(id))}>Iniciar todos los tableros listos</Button>}
         <Button variant="secondary" onClick={() => setProjector(true)}>Pantalla completa (proyector)</Button>
         {open && <Button variant="secondary" onClick={() => setEditing(!editing)}>{editing ? 'Cancelar cambios' : 'Cambiar tableros o cupo'}</Button>}
-        {open && <Button variant="danger" onClick={() => { if (window.confirm('¿Cerrar la sala? Nadie más podrá entrar ni empezar partidas.')) act.mutate(() => roomsApi.close(id)); }}>Cerrar sala</Button>}
+        {open && <Button variant="danger" onClick={() => void closeRoom()}>Cerrar sala</Button>}
+        {dialog}
         <StatusMessage error={act.error} />
       </div>
       {editing && (

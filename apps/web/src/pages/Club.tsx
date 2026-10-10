@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Card, ErrorAlert, Skeleton, Table, type TableColumn } from '@chessquery/ui-lib';
+import { Badge, Button, Card, ErrorAlert, Skeleton, Table, type TableColumn, FileInput, Modal, useToast } from '@chessquery/ui-lib';
 import { useMe } from '../api/hooks';
 import { claimUrl, organizationsApi } from '../api/users';
 import { tournamentsApi } from '../api/tournaments';
@@ -9,6 +9,7 @@ import type { ImportReport, InviteView, Organization, OrganizationRequest, Profi
 import { parseRosterCsv, type RosterCsvRow } from '../lib/rosterCsv';
 import { StatusMessage } from '../components/StatusMessage';
 import { QrCode } from '../components/QrCode';
+import { useConfirm } from '../components/useConfirm';
 
 const EMPTY_CLUB: OrganizationRequest = { name: '', city: '', description: '' };
 
@@ -130,7 +131,7 @@ const CsvImportCard = ({ roster, onImported }: { roster: Profile[]; onImported: 
       <p className="cq-muted" style={{ marginTop: 0 }}>
         Desde Excel: Archivo → Guardar como → CSV. <a href={templateHref} download="plantilla-roster.csv">Descargar plantilla</a>
       </p>
-      <input type="file" accept=".csv,text/csv" aria-label="Archivo CSV del roster" onChange={(e) => void onFile(e)} />
+      <FileInput label="Archivo CSV del roster" buttonText="Elegir archivo CSV" accept=".csv,text/csv" onChange={(e) => void onFile(e)} />
       {preview && (
         <div style={{ marginTop: 12 }}>
           <p className="cq-muted">
@@ -173,16 +174,42 @@ const InviteBox = ({ invite }: { invite: InviteView & { name: string } }) => {
   );
 };
 
+/** Editar etiquetas de un jugador del roster (reemplaza el `window.prompt` del navegador). */
+const TagsDialog = ({ player, pending, onSave, onClose }: {
+  player: Profile; pending: boolean; onSave: (tags: string[]) => void; onClose: () => void;
+}) => {
+  const [value, setValue] = useState(player.tags.join(', '));
+  const save = () => onSave(value.split(',').map((t) => t.trim()).filter(Boolean));
+  return (
+    <Modal open onClose={onClose} size="sm" title={`Etiquetas de ${player.firstName} ${player.lastName}`}
+           footer={<><Button variant="ghost" onClick={onClose}>Cancelar</Button><Button onClick={save} loading={pending}>Guardar etiquetas</Button></>}>
+      <form className="cq-form" onSubmit={(e) => { e.preventDefault(); save(); }}>
+        <label>Etiquetas (separadas por coma)
+          <input autoFocus value={value} onChange={(e) => setValue(e.target.value)} placeholder="sub12, federado" />
+        </label>
+      </form>
+    </Modal>
+  );
+};
+
 /** Roster activo con etiquetas editables, invitación para reclamar el perfil y baja lógica. */
 const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () => void }) => {
-  const deactivate = useMutation({ mutationFn: organizationsApi.deactivate, onSuccess: onChanged });
+  const toast = useToast();
+  const deactivate = useMutation({ mutationFn: organizationsApi.deactivate, onSuccess: () => { onChanged(); toast.success('Jugador dado de baja del roster'); } });
   const invite = useMutation({
     mutationFn: async (p: Profile) => ({ ...(await organizationsApi.invite(p.id)), name: `${p.firstName} ${p.lastName}` }),
   });
-  const tags = useMutation({ mutationFn: (v: { id: number; tags: string[] }) => organizationsApi.updateTags(v.id, v.tags), onSuccess: onChanged });
-  const editTags = (p: Profile) => {
-    const value = window.prompt('Etiquetas separadas por coma', p.tags.join(', '));
-    if (value !== null) tags.mutate({ id: p.id, tags: value.split(',') });
+  const [editing, setEditing] = useState<Profile | null>(null);
+  const tags = useMutation({
+    mutationFn: (v: { id: number; tags: string[] }) => organizationsApi.updateTags(v.id, v.tags),
+    onSuccess: () => { setEditing(null); onChanged(); toast.success('Etiquetas guardadas'); },
+  });
+  const editTags = (p: Profile) => setEditing(p);
+  const { ask, dialog } = useConfirm();
+  const remove = async (p: Profile) => {
+    const ok = await ask({ title: `¿Dar de baja a ${p.firstName} ${p.lastName}?`, confirmLabel: 'Dar de baja', tone: 'danger',
+      message: 'Sale del roster activo; su historial de torneos se conserva.' });
+    if (ok) deactivate.mutate(p.id);
   };
   const columns: TableColumn<Profile>[] = [
     { key: 'name', header: 'Jugador', render: (p) => `${p.firstName} ${p.lastName}` },
@@ -201,7 +228,7 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
         {p.provisional && (
           <Button size="sm" onClick={() => invite.mutate(p)} aria-label={`Invitar a ${p.firstName} ${p.lastName} a reclamar su perfil`}>Invitar</Button>
         )}
-        <Button size="sm" variant="secondary" onClick={() => deactivate.mutate(p.id)} aria-label={`Dar de baja a ${p.firstName} ${p.lastName}`}>Baja</Button>
+        <Button size="sm" variant="secondary" onClick={() => void remove(p)} aria-label={`Dar de baja a ${p.firstName} ${p.lastName}`}>Baja</Button>
       </div>
     )},
   ];
@@ -210,6 +237,9 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
       <Table label="Roster del club" columns={columns} rows={active} rowKey={(p) => p.id} emptyMessage="Tu roster está vacío." />
       {invite.data && <InviteBox invite={invite.data} />}
       <StatusMessage error={deactivate.error ?? tags.error ?? invite.error} />
+      {editing && <TagsDialog player={editing} pending={tags.isPending} onClose={() => setEditing(null)}
+                              onSave={(t) => tags.mutate({ id: editing.id, tags: t })} />}
+      {dialog}
     </Card>
   );
 };
@@ -220,7 +250,8 @@ export const ClubPanel = () => {
   const org = useQuery({ queryKey: ['org'], queryFn: organizationsApi.mine });
   const roster = useQuery({ queryKey: ['roster'], queryFn: organizationsApi.roster });
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['org'] }); void qc.invalidateQueries({ queryKey: ['roster'] }); };
-  const update = useMutation({ mutationFn: organizationsApi.update, onSuccess: refresh });
+  const toast = useToast();
+  const update = useMutation({ mutationFn: organizationsApi.update, onSuccess: () => { refresh(); toast.success('Datos del club guardados'); } });
 
   if (org.isLoading || roster.isLoading) return <Skeleton height={200} />;
   if (org.error || !org.data) return <ErrorAlert message="No pudimos cargar tu club" onRetry={() => void org.refetch()} />;

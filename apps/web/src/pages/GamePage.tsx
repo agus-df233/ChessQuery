@@ -9,6 +9,7 @@ import { ChessClock } from '../components/game/ChessClock';
 import { PlayBoard } from '../components/game/PlayBoard';
 import { useLiveGame } from '../components/game/useLiveGame';
 import { ratingDelta, resultFor, timeControl } from '../components/game/labels';
+import { useConfirm } from '../components/useConfirm';
 
 /** Acción sobre la partida: la respuesta del servidor reemplaza la caché (sin esperar al long poll). */
 const useGameAction = (id: number) => {
@@ -38,6 +39,11 @@ const MoveList = ({ san }: { san: string[] }) => (
 /** Qué puede hacer el jugador según el estado: aceptar/rechazar, abandonar, tablas. */
 const GameActions = ({ g, myId }: { g: GameView; myId: number }) => {
   const action = useGameAction(g.id);
+  const { ask, dialog } = useConfirm();
+  const resign = async () => {
+    if (await ask({ title: '¿Abandonar la partida?', message: 'La partida termina y la gana tu rival; cuenta para el ELO si es por rating.',
+      confirmLabel: 'Abandonar', tone: 'danger' })) action.mutate(gamesApi.resign);
+  };
   const rivalOffered = g.drawOfferBy != null && g.drawOfferBy !== myId;
   if (g.status === 'PENDING') {
     const challenged = g.challengerId !== myId;
@@ -72,9 +78,8 @@ const GameActions = ({ g, myId }: { g: GameView; myId: number }) => {
           {g.drawOfferBy === myId ? 'Tablas ofrecidas' : 'Ofrecer tablas'}
         </Button>
       )}
-      <Button size="sm" variant="secondary" onClick={() => { if (window.confirm('¿Abandonar la partida?')) action.mutate(gamesApi.resign); }}>
-        Abandonar
-      </Button>
+      <Button size="sm" variant="secondary" onClick={() => void resign()}>Abandonar</Button>
+      {dialog}
       <StatusMessage error={action.error} />
     </div>
   );

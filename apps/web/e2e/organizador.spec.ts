@@ -24,8 +24,11 @@ test('organizador: club, roster, torneo suizo completo, TRF y vista pública', a
   await expect(page.getByText('Importados 5')).toBeVisible();
 
   // Info de jugadores del club: etiquetas editables en el roster
-  page.once('dialog', (d) => void d.accept('sub12, federado'));
   await page.getByRole('button', { name: `Editar etiquetas de Beto Roster${RUN}` }).click();
+  const etiquetas = page.getByRole('dialog', { name: `Etiquetas de Beto Roster${RUN}` });
+  await etiquetas.getByLabel('Etiquetas (separadas por coma)').fill('sub12, federado');
+  await etiquetas.getByRole('button', { name: 'Guardar etiquetas' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Etiquetas guardadas' })).toBeVisible();
   const beto = page.getByRole('row').filter({ hasText: `Beto Roster${RUN}` });
   await expect(beto.getByText('sub12')).toBeVisible();
   await expect(beto.getByText('federado')).toBeVisible();

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -177,6 +177,25 @@ describe('páginas: render y accesibilidad', () => {
     expect(await screen.findByLabelText('Enlace de invitación de Pedro Rojas')).toHaveValue('http://localhost/app/reclamar/tokPedro');
     expect(await screen.findByRole('img', { name: 'QR de invitación de Pedro Rojas' })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('Club: etiquetas en un diálogo propio y la baja pide confirmación', async () => {
+    vi.mocked(organizationsApi.updateTags).mockResolvedValue(undefined as never);
+    vi.mocked(organizationsApi.deactivate).mockResolvedValue(undefined as never);
+    const { container } = renderPage(<Club />, '/club');
+    expect(await screen.findByText('Elegir archivo CSV')).toBeInTheDocument(); // etiqueta del input, en español
+    expect(screen.getByText('Ningún archivo elegido')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar etiquetas de Pedro Rojas' }));
+    const tags = await screen.findByRole('dialog', { name: 'Etiquetas de Pedro Rojas' });
+    expect(await axe(container)).toHaveNoViolations();
+    fireEvent.change(within(tags).getByLabelText('Etiquetas (separadas por coma)'), { target: { value: ' sub12 , federado ,' } });
+    fireEvent.click(within(tags).getByRole('button', { name: 'Guardar etiquetas' }));
+    await vi.waitFor(() => expect(organizationsApi.updateTags).toHaveBeenCalledWith(9, ['sub12', 'federado']));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dar de baja a Pedro Rojas' }));
+    const confirm = await screen.findByRole('dialog', { name: '¿Dar de baja a Pedro Rojas?' });
+    fireEvent.click(within(confirm).getByRole('button', { name: 'Dar de baja' }));
+    await vi.waitFor(() => expect(vi.mocked(organizationsApi.deactivate).mock.calls[0]?.[0]).toBe(9));
   });
 
   it('Reclamar: el jugador ve de qué perfil se trata y lo une a su cuenta', async () => {

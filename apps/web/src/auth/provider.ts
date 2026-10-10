@@ -27,8 +27,12 @@ export const googleSignin = (cognito = isCognito()): { extraQueryParams: Record<
 export const cognitoLogoutUrl = (logoutUrl: string, clientId: string, returnTo: string) =>
   `${logoutUrl}?client_id=${encodeURIComponent(clientId)}&logout_uri=${encodeURIComponent(returnTo)}`;
 
+/** Marca para avisar «Cerraste sesión» al volver a la portada (sobrevive al paso por el IdP en la misma pestaña). */
+export const SIGNED_OUT_FLAG = 'cq-cerro-sesion';
+
 /** Cierra la sesión en la web y en el IdP. */
 export const signOut = async (auth: AuthContextProps) => {
+  try { sessionStorage.setItem(SIGNED_OUT_FLAG, '1'); } catch { /* sin aviso al volver */ }
   if (!isCognito()) return auth.signoutRedirect();
   await auth.removeUser();
   window.location.assign(cognitoLogoutUrl(env.VITE_OIDC_LOGOUT_URL ?? '', env.VITE_OIDC_CLIENT_ID ?? '', window.location.origin));

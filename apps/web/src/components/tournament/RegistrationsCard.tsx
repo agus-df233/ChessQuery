@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Card } from '@chessquery/ui-lib';
+import { Badge, Button, Card, useToast } from '@chessquery/ui-lib';
 import { tournamentsApi } from '../../api/tournaments';
 import type { RegistrationStatus, RegistrationView, TournamentView } from '../../api/tournamentTypes';
 import { StatusMessage } from '../StatusMessage';
 import { tournamentKeys } from './TournamentDetailView';
+import { useConfirm } from '../useConfirm';
 
 export const registrationsKey = (id: number) => ['tournament-registrations', id] as const;
 
@@ -18,13 +19,15 @@ const SECTIONS: { status: RegistrationStatus; title: string }[] = [
 const withdrawnLabel = (r: RegistrationView) =>
   (r.withdrawnFromRound === 1 ? 'no se presentó' : `retirado desde la ronda ${r.withdrawnFromRound}`);
 
-/** Mutación del organizador que refresca inscripciones, el torneo y sus listas. */
-export const useRegistrationAction = <T,>(id: number, fn: (arg: T) => Promise<unknown>) => {
+/** Mutación del organizador que refresca inscripciones, el torneo y sus listas; con `done`, avisa al terminar. */
+export const useRegistrationAction = <T,>(id: number, fn: (arg: T) => Promise<unknown>, done?: string) => {
   const qc = useQueryClient();
+  const toast = useToast();
   return useMutation({
     mutationFn: fn,
     onSuccess: () => {
       [...tournamentKeys(id), ['my-tournaments']].forEach((queryKey) => void qc.invalidateQueries({ queryKey }));
+      if (done) toast.success(done);
     },
   });
 };
@@ -42,7 +45,7 @@ const waiting = (r: RegistrationView) => r.status === 'PENDING' || r.status === 
 
 /** Antes de empezar: aprobar a quien espera aprobación o cupo. */
 const ApproveButton = ({ t, r }: RowProps) => {
-  const approve = useRegistrationAction(t.id, () => tournamentsApi.approve(t.id, r.playerId));
+  const approve = useRegistrationAction(t.id, () => tournamentsApi.approve(t.id, r.playerId), `Inscripción de ${r.name} aprobada`);
   if (t.status !== 'OPEN' || !waiting(r)) return null;
   return (
     <>
@@ -54,7 +57,7 @@ const ApproveButton = ({ t, r }: RowProps) => {
 
 /** Antes de empezar: rechazar (si espera) o quitar (si estaba confirmado); el cupo pasa a la lista de espera. */
 const RemoveButton = ({ t, r }: RowProps) => {
-  const remove = useRegistrationAction(t.id, () => tournamentsApi.unregister(t.id, r.playerId));
+  const remove = useRegistrationAction(t.id, () => tournamentsApi.unregister(t.id, r.playerId), `${r.name} ya no está inscrito`);
   if (t.status !== 'OPEN' || r.status === 'WITHDRAWN') return null;
   return (
     <>
@@ -68,15 +71,19 @@ const RemoveButton = ({ t, r }: RowProps) => {
 
 /** Durante el torneo: retirar (deja de emparejarse desde la próxima ronda; sus resultados quedan). */
 const WithdrawButton = ({ t, r }: RowProps) => {
-  const withdraw = useRegistrationAction(t.id, () => tournamentsApi.withdraw(t.id, r.playerId));
+  const withdraw = useRegistrationAction(t.id, () => tournamentsApi.withdraw(t.id, r.playerId), `${r.name} quedó retirado del torneo`);
+  const { ask, dialog } = useConfirm();
   if (t.status !== 'IN_PROGRESS' || r.status !== 'CONFIRMED') return null;
-  const confirm = () => {
-    if (window.confirm(`¿Retirar a ${r.name}? Deja de emparejarse desde la próxima ronda.`)) withdraw.mutate(undefined);
+  const confirm = async () => {
+    const ok = await ask({ title: `¿Retirar a ${r.name}?`, message: 'Deja de emparejarse desde la próxima ronda; sus resultados se mantienen.',
+      confirmLabel: 'Retirar', tone: 'danger' });
+    if (ok) withdraw.mutate(undefined);
   };
   return (
     <>
-      <Button size="sm" variant="secondary" loading={withdraw.isPending} onClick={confirm}>Retirar</Button>
+      <Button size="sm" variant="secondary" loading={withdraw.isPending} onClick={() => void confirm()}>Retirar</Button>
       <StatusMessage error={withdraw.error} />
+      {dialog}
     </>
   );
 };

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -161,10 +161,15 @@ describe('torneos: vistas', () => {
     vi.mocked(publicTournamentsApi.live).mockResolvedValue({ version: 3, detail: fx.detail, rounds: [fx.round], standings: fx.standings });
   });
 
-  it('organizador: durante el torneo retira a un jugador', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('organizador: durante el torneo retira a un jugador, previa confirmación en un diálogo accesible', async () => {
     renderAt('/club/torneos/5', '/club/torneos/:id', <OrganizerTournament />);
     fireEvent.click((await screen.findAllByRole('button', { name: 'Retirar' }))[1]);
+    const dialog = await screen.findByRole('dialog', { name: /¿Retirar a/ });
+    expect(dialog).toHaveTextContent('sus resultados se mantienen');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    expect(tournamentsApi.withdraw).not.toHaveBeenCalled();
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Retirar' }))[1]);
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Retirar' }));
     await vi.waitFor(() => expect(tournamentsApi.withdraw).toHaveBeenCalledWith(5, 12));
   });
 

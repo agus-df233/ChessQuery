@@ -23,6 +23,8 @@ export interface ShellProps {
   items: ShellNavItem[];
   user?: ShellUser;
   onLogout?: () => void;
+  /** Control para cambiar de modo (p. ej. Jugador | Organizador): va arriba del menú y en la barra móvil. */
+  switcher?: ReactNode;
   children: ReactNode;
 }
 
@@ -82,6 +84,7 @@ const NavButton = ({ item, onNavigate }: { item: ShellNavItem; onNavigate: () =>
     type="button"
     onClick={() => { item.onClick?.(); onNavigate(); }}
     className={cn('shell-nav-item', item.active && 'active')}
+    aria-current={item.active ? 'page' : undefined}
     style={{
       display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', borderRadius: 8,
       border: 'none', cursor: 'pointer', marginBottom: 2, transition: 'all 0.13s', textAlign: 'left',
@@ -116,9 +119,7 @@ const UserFooter = ({ user, onLogout }: { user: ShellUser; onLogout?: () => void
         <div style={{ fontFamily: GROTESK, fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {user.name}
         </div>
-        {user.role && (
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{user.role.toLowerCase()}</div>
-        )}
+        {user.role && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{user.role}</div>}
       </div>
     </div>
     {onLogout && (
@@ -130,26 +131,29 @@ const UserFooter = ({ user, onLogout }: { user: ShellUser; onLogout?: () => void
   </div>
 );
 
-export const Shell = ({ brand, subtitle, items, user, onLogout, children }: ShellProps) => {
+export const Shell = ({ brand, subtitle, items, user, onLogout, switcher, children }: ShellProps) => {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   useCloseOnEscape(open, close);
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#contenido">Saltar al contenido</a>
       {/* Topbar móvil con hamburguesa (oculta en desktop vía CSS) */}
       <header className="app-topbar">
         <button type="button" className="hamburger" aria-label="Abrir menú" aria-expanded={open} onClick={() => setOpen(true)}>
           ☰
         </button>
         <BrandMark brand={brand} />
+        {switcher && <div className="app-topbar-switcher">{switcher}</div>}
       </header>
 
       {open && <div className="app-overlay" onClick={close} aria-hidden="true" />}
 
       <aside className={cn('sidebar', open && 'open')}>
         <SidebarBrand brand={brand} subtitle={subtitle} />
-        <nav style={{ flex: 1, padding: '10px' }}>
+        {switcher && <div className="sidebar-switcher">{switcher}</div>}
+        <nav aria-label="Navegación principal" style={{ flex: 1, padding: '10px' }}>
           <div style={{
             fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
             color: 'var(--text-dim)', padding: '6px 8px 8px',
@@ -162,7 +166,7 @@ export const Shell = ({ brand, subtitle, items, user, onLogout, children }: Shel
         {user && <UserFooter user={user} onLogout={onLogout} />}
       </aside>
 
-      <main className="main fade-up">{children}</main>
+      <main id="contenido" tabIndex={-1} className="main fade-up">{children}</main>
     </div>
   );
 };

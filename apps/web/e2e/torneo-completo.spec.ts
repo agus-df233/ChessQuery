@@ -78,8 +78,8 @@ test('torneo completo: inscripción con reglas, acreditación, no presentados y 
   for (const board of [1, 2]) await page.getByLabel(`Resultado mesa ${board}`).selectOption('WHITE_WINS');
 
   // Elisa se retira: la ronda 2 empareja solo a los 3 que siguen (1 mesa + bye)
-  page.once('dialog', (d) => void d.accept());
   await page.getByRole('listitem').filter({ hasText: rosterName('Elisa') }).getByRole('button', { name: 'Retirar' }).click();
+  await page.getByRole('dialog', { name: /¿Retirar a Elisa/ }).getByRole('button', { name: 'Retirar' }).click();
   await expect(page.getByRole('listitem').filter({ hasText: rosterName('Elisa') })).toContainText('retirado desde la ronda 2');
   await page.getByRole('button', { name: 'Generar ronda 2' }).click();
   await expect(page.getByText('Ronda 2 · en juego')).toBeVisible();
