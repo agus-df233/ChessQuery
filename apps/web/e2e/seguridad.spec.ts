@@ -1,5 +1,6 @@
-import { expect, request as playwrightRequest, test, type APIRequestContext, type APIResponse, type Browser, type Page } from '@playwright/test';
-import { RUN, login, persona } from './support/helpers';
+import { expect, request as playwrightRequest, test, type APIResponse } from '@playwright/test';
+import { RUN } from './support/helpers';
+import { type Actor, actor, apiFor, ok, tournamentBody } from './support/api';
 
 /**
  * Pruebas de abuso (caja negra) contra el stack local, nunca contra la nube: cada intento debe fallar de forma segura.
@@ -8,29 +9,9 @@ import { RUN, login, persona } from './support/helpers';
  * El throttling y la CSP los pone API Gateway / S3 en la nube: se verifican allá (docs/verificacion/plan-de-pruebas.md).
  */
 const IDP = 'http://localhost:8090';
-const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:5173';
 const PII_KEYS = ['rut', 'rutHash', 'email', 'birthDate', 'gender'];
 const XSS_NAME = `<img src=x onerror="window.__xss=1">Torneo ${RUN}`;
 const FORMULA = '=HYPERLINK("http://malo.example","x")';
-
-interface Actor { page: Page; token: string; id: number; api: APIRequestContext }
-
-/** Access token que la SPA guardó en sessionStorage tras el login (oidc-client-ts). */
-const tokenOf = (page: Page) => page.evaluate(() => {
-  const key = Object.keys(sessionStorage).find((k) => k.startsWith('oidc.user:'));
-  return key ? (JSON.parse(sessionStorage.getItem(key) ?? '{}').access_token as string) : '';
-});
-
-const apiFor = (token?: string) =>
-  playwrightRequest.newContext({ baseURL: BASE, extraHTTPHeaders: token ? { Authorization: `Bearer ${token}` } : {} });
-
-async function actor(browser: Browser, name: string): Promise<Actor> {
-  const page = await login(browser, persona(name));
-  const token = await tokenOf(page);
-  const api = await apiFor(token);
-  const me = await (await api.get('/api/users/me')).json();
-  return { page, token, id: me.profile.id, api };
-}
 
 /** Token de máquina del IdP simulado (sub = client_id, aud = scope); con otra ruta, otro issuer. */
 async function machineToken(issuerPath: string, scope: string) {
@@ -61,13 +42,6 @@ const keysOf = (v: unknown): string[] => {
 
 /** Denegado sin filtrar nada: 403 o 404 (en el mensaje va la respuesta, para entender una falla). */
 const denied = async (res: APIResponse) => expect([403, 404], `${res.url()} → ${res.status()} ${await res.text()}`).toContain(res.status());
-
-/** La llamada de preparación salió bien (si no, el mensaje muestra la respuesta). */
-const ok = async (res: APIResponse) => expect(res.ok(), `${res.url()} → ${res.status()} ${await res.text()}`).toBeTruthy();
-
-const tournamentBody = (name: string) => ({
-  name, startDate: new Date().toISOString().slice(0, 10), format: 'SWISS', rounds: 3, baseMinutes: 10, incrementSeconds: 5,
-});
 
 test.describe.serial('seguridad: abusos contra el stack local', () => {
   let orga: Actor; let jugador: Actor; let otra: Actor;
