@@ -17,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT_HTML = ROOT / "docs/etl/.guia-equipo.html"
 OUT_PDF = ROOT / "docs/etl/ChessQuery-ETL-guia-equipo.pdf"
 SOURCES = ["docs/etl/onboarding.md", "docs/etl/federacion.md", "docs/etl/nueva-fuente.md",
-           "docs/etl/glosario.md", "etl/AGENTS.md", "etl/README.md"]
+           "docs/etl/glosario.md", "etl/CLAUDE.md", "etl/README.md"]
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 CSS = """

@@ -25,7 +25,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # Entra External ID: https://<tenant>.ciamlogin.com/<tenant-id>/v2.0
+          # Cognito: https://cognito-idp.<región>.amazonaws.com/<pool> · Entra: https://<tenant>.ciamlogin.com/<id>/v2.0
           issuer-uri: ${OIDC_ISSUER_URI}
           audiences: ${OIDC_AUDIENCE}
 

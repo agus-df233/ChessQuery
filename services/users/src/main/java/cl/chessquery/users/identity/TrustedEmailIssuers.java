@@ -9,8 +9,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Emisores de tokens cuyo claim {@code email} ya viene verificado. Entra External ID verifica el correo antes de
- * emitirlo (Google o código de un solo uso), así que por defecto se confía en el issuer configurado del tenant.
+ * Emisores de tokens cuyo claim {@code email} ya viene verificado. El IdP de ChessQuery solo admite Google (Cognito
+ * en el lab; Entra con Google o código de un solo uso en la cuenta propia), así que por defecto se confía en el issuer
+ * configurado.
  * Cualquier otro emisor necesita traer {@code email_verified=true} para que su email se use como identidad.
  */
 @Component

@@ -1,5 +1,5 @@
 output "app_url" {
-  description = "URL pública HTTPS (API Gateway). Agregar <app_url>/app como redirect URI de la SPA en Entra"
+  description = "URL pública HTTPS (API Gateway). <app_url>/app ya es callback del cliente de Cognito"
   value       = module.edge.app_url
 }
 

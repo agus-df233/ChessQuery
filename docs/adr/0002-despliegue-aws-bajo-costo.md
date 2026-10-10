@@ -105,10 +105,13 @@ Venían en el esqueleto del proyecto sin una decisión escrita; se revisan y que
    Dockerfile (las imágenes locales se fijan en `docker-compose.yml` y las de los servicios las arma Jib).
 4. El CI tiene solo permiso de lectura sobre el repositorio.
 
-**Actualización 30-09-2026:** se probó en el Learner Lab que **API Gateway WebSocket API sí funciona** (crear la API,
-conectarse por `wss://` y empujar mensajes desde el `LabRole`); evidencia en
-`docs/verificacion/2026-09-30-websocket-learner-lab.md`. El long polling sigue como mecanismo actual y como respaldo;
-el WebSocket por API Gateway queda como el camino para el tiempo real también en el lab.
+**Actualización 30-09-2026:** se probó en el Learner Lab que **API Gateway WebSocket API sí funciona**: crear la API,
+conectarse por `wss://` y empujar mensajes desde el `LabRole` (`execute-api:ManageConnections`). Lo aprendido:
+
+- sin logs de ejecución de API Gateway (piden un rol a nivel de cuenta) los errores solo dicen «Internal server error»;
+- después de cambiar rutas hay que esperar unos segundos a que se propaguen.
+
+El long polling quedó como respaldo y el WebSocket por API Gateway es el camino del tiempo real también en el lab.
 
 ## Enmienda — 07-10-2026: las Lambdas del ETL reciben los eventos directo de SNS
 

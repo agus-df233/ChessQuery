@@ -23,6 +23,7 @@ __pycache__/
 infra/terraform/**/.terraform/
 infra/terraform/**/*.tfstate*
 infra/terraform/**/*.tfvars
+infra/terraform/**/.image-tag
 !infra/terraform/**/*.tfvars.example
 
 # ide / os

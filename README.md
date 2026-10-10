@@ -3,9 +3,10 @@
 Plataforma de ajedrez competitivo para Chile: gestión digital de torneos presenciales para clubes (SaaS) y
 partidas en línea, perfil y progreso para jugadores (gratis).
 
-Tercera iteración de la arquitectura: **Java 21 / Spring Boot 3.5 (servicios) + Python (ETL) + React (web)**, identidad
-delegada a **Microsoft Entra External ID** (con Google; la app no guarda contraseñas) y despliegue en AWS con
-Terraform. Decisiones en `docs/adr/`. ¿Vas a trabajar en el repo? Lee **`CONTRIBUTING.md`**.
+Tercera iteración de la arquitectura: **Java 21 / Spring Boot 3.5 (servicios) + Python (ETL) + React (web)**, login con
+**Google** a través del IdP (Amazon Cognito en el Learner Lab; la app no guarda contraseñas) y despliegue en AWS con
+Terraform. Decisiones en `docs/adr/`; arquitectura y guion de la demo en `docs/arquitectura/`. ¿Vas a trabajar en el
+repo? Lee **`CONTRIBUTING.md`**.
 
 ## Empezar en 5 minutos
 
@@ -17,10 +18,10 @@ npm install
 make dev          # la app completa en http://localhost:5173 · Ctrl+C apaga todo
 ```
 
-`make dev` levanta Postgres, LocalStack (SNS/SQS/S3), un IdP simulado que hace de Entra, los servicios `users`,
-`tournament` y `game`, el receptor SNS del ETL, una Federación falsa con datos ficticios y la web. Para entrar: **"Entrar
-con mi correo"**, cualquier usuario y los claims que imprime la consola. No necesita tenant de Entra ni acceso a
-AWS. Los logs quedan en `.logs/`.
+`make dev` levanta Postgres, LocalStack (SNS/SQS/S3), un IdP simulado, los servicios `users`, `tournament` y `game`,
+el receptor SNS del ETL, la Federación, Lichess y Chess.com falsos (datos ficticios) y la web. Para entrar: **«Entrar
+con mi correo»**, cualquier usuario y los claims que imprime la consola. No necesita acceso a AWS. Los logs quedan en
+`.logs/`. Para presentar: `make demo-seed` deja un club, torneos, una sala y cuentas listas.
 
 ## Qué hay en cada carpeta
 
@@ -28,15 +29,15 @@ AWS. Los logs quedan en `.logs/`.
 libs/common         errores REST, sobre de eventos ChessEvent, idempotencia, cálculo ELO, lectura de payloads
 libs/auth-starter   resource server OIDC, @CurrentUser, resolución sub → playerId, cliente interno hacia users
 services/users      jugadores e identidad, catálogo, ratings e historial, ranking, club y roster, amistades, privacidad
-services/tournament torneos del club: inscripción, pareo suizo y round robin, desempates, cierre con rating, TRF
-services/game       partidas en línea: desafíos, jugadas y reloj en el servidor, PGN, rating; en vivo por long polling
-etl                 FIDE mensual y Federación (torneos, ficha pedida por el jugador) → S3 + eventos; Lambdas en la nube
-apps/web            una sola app React para jugador y organizador (+ pruebas E2E en apps/web/e2e)
+services/tournament torneos: inscripción con cupo, acreditación QR, suizo y round robin, cierre con ELO, TRF, sala en vivo
+services/game       partidas 1 vs 1 con reloj, desafío abierto, salas de clase, ELO por ritmo; en vivo por WebSocket
+etl                 FIDE, Federación, Lichess y Chess.com → S3 + eventos; Lambdas en la nube
+apps/web            una sola app React con dos modos, jugador y organizador (+ E2E y seguridad en apps/web/e2e)
 packages/ui-lib     design system (tema oscuro, contraste AA probado)
 infra/terraform     IaC: envs/academy (Learner Lab) y módulos; envs/aws (cuenta propia) pendiente
 infra/events        topología única del bus: qué cola recibe qué evento (la leen LocalStack y Terraform)
 infra/localstack    arranque de LocalStack a partir de infra/events
-scripts             make dev / make e2e (stack local) y benchmark v2 vs v3
+scripts             stack local (dev, e2e), semilla de demo, humo de la nube y benchmark v2 vs v3
 docs                ADR, catálogo de eventos, guías del ETL, verificaciones (ver docs/README.md)
 ```
 
@@ -50,9 +51,10 @@ docs                ADR, catálogo de eventos, guías del ETL, verificaciones (v
 | | `/api/organizations/**` | crear mi club (= ser organizador), datos del club, roster |
 | | `/api/friends/**`, `/api/catalog/**` | amistades; países y clubes federativos |
 | | `/api/public/**` | sin login: ranking y perfil público (menores con apellido abreviado) |
-| `tournament` :8082 | `/api/tournaments/**` | mis torneos, crear/editar, inscribir, rondas, resultados por mesa, cerrar, exportar TRF |
-| | `/api/public/tournaments/**` | sin login: listado, detalle, rondas, tabla y calendario de la Federación |
-| `game` :8083 | `/api/games/**` | mis partidas, desafiar, aceptar/rechazar, jugar, abandonar, tablas; `?afterVersion=n` espera cambios (long polling) |
+| `tournament` :8082 | `/api/tournaments/**` | mis torneos, crear/editar, inscripción (cupo, aprobación, espera), acreditación, rondas, resultados, cerrar, TRF |
+| | `/api/public/tournaments/**` | sin login: listado, detalle, sala en vivo (`/live?afterVersion=n`), tabla y calendario federado |
+| `game` :8083 | `/api/games/**` | partidas, desafíos y desafío abierto (`/open`), jugar, abandonar, tablas; `?afterVersion=n` de respaldo |
+| | `/api/rooms/**` | salas de clase: crear, entrar con código, asignar tableros, iniciar, cerrar |
 | | `/api/public/games/**` | sin login: ver una partida y descargar su PGN |
 | `users` | `/internal/**` | solo servicio→servicio con `X-Internal-Token` (nunca expuesto por API Gateway) |
 
@@ -63,8 +65,11 @@ Errores: `{ status, error, message, timestamp }`. Eventos entre servicios: `docs
 | Comando | Qué hace |
 |---|---|
 | `make dev` | app completa en local (ver arriba) |
+| `make dev-idp` | lo mismo, con el login real con Google (Cognito del lab; `docs/auth/cognito-google.md`) |
+| `make demo-seed` | con `make dev` corriendo: club, torneos, sala y cuentas para presentar |
 | `make test` | todas las pruebas: Java (`mvn clean verify`, cobertura ≥ 90 %), ETL (pytest), web (Vitest + axe) |
-| `make e2e` | recorridos del jugador y del organizador en Chromium (Playwright) contra el stack local |
+| `make e2e` | recorridos del jugador y del organizador, sesión, seguridad y galería de vistas (Playwright) |
+| `make cloud-smoke` | pruebas de humo sin login contra lo desplegado |
 | `make complexity` | complejidad ciclomática ≤ 10 por función |
 | `make tf-check` | `terraform fmt` + `validate` |
 | `make local-up` / `make users` / `make tournament` / `make game` / `make web` | piezas sueltas (ver `Makefile`) |

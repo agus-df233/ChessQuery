@@ -8,8 +8,7 @@ import software.amazon.awssdk.services.apigatewaymanagementapi.model.GoneExcepti
 
 /**
  * Canal de la nube: envía a las conexiones de la API WebSocket de API Gateway ({@code POST @connections/{id}}) con
- * las credenciales del rol de la task. Verificado en el Learner Lab el 30-09-2026
- * (docs/verificacion/2026-09-30-websocket-learner-lab.md).
+ * las credenciales del rol de la task (en el Learner Lab, el LabRole tiene execute-api:ManageConnections; ADR-0002).
  */
 @Slf4j
 public class ApiGatewayLiveChannel implements LiveChannel {

@@ -2,18 +2,13 @@ import './theme/theme.css';
 
 export * from './theme/palette';
 export * from './components/Button';
-export * from './components/Checkbox';
 export * from './components/FileInput';
-export * from './components/Select';
 export * from './components/Card';
 export * from './components/Badge';
 export * from './components/Skeleton';
 export * from './components/Modal';
 export * from './components/ConfirmDialog';
 export * from './components/Table';
-export * from './components/RatingBadge';
-export * from './components/ChessBoard';
-export * from './components/StandingsTable';
 export * from './components/EmptyState';
 export * from './components/ErrorAlert';
 export * from './components/Shell';

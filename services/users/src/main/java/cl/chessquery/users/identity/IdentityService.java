@@ -27,8 +27,8 @@ import java.util.Optional;
  * conserva su historial (ADR-0004 v2), avisando con {@code player.claimed}; (3) fila nueva.
  *
  * <p>La adopción por email solo ocurre si el email está <b>verificado</b>: el token viene de un emisor
- * confiable ({@code chessquery.identity.trusted-email-issuers}, por defecto el tenant de Entra, que verifica
- * el correo con Google o con código de un solo uso) o trae {@code email_verified=true}. Así, un proveedor que no
+ * confiable ({@code chessquery.identity.trusted-email-issuers}, por defecto el IdP configurado, cuyo único proveedor
+ * es Google, que verifica el correo) o trae {@code email_verified=true}. Así, un proveedor que no
  * verifique correos no puede usarse para quedarse con el perfil de otra persona.
  */
 @Slf4j

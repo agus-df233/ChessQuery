@@ -13,7 +13,7 @@ make e2e     # levanta infra + users/tournament/game + receptor SNS del ETL + fu
 bash scripts/e2e.sh e2e/seguridad.spec.ts   # un solo archivo (los argumentos pasan a Playwright)
 ```
 
-Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `seguridad.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala-apoderado.spec.ts`, `roster-invitacion.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
+Pruebas: `apps/web/e2e/` (`jugador.spec.ts`, `sesion.spec.ts`, `galeria.spec.ts`, `seguridad.spec.ts`, `desafio-abierto.spec.ts`, `organizador.spec.ts`, `torneo-completo.spec.ts`, `sala-apoderado.spec.ts`, `roster-invitacion.spec.ts`, `sala.spec.ts`, `respaldo.spec.ts`, `vistas.spec.ts`). Capturas en escritorio y en
 375 px en `apps/web/e2e/capturas/` (no se versionan).
 
 ## Qué se verifica
@@ -94,6 +94,19 @@ Caja negra, **solo contra el stack local**. Cada intento debe fallar de forma se
 6. El profesor **sube a 3 tableros** y le da puesto al espectador, que se entera en su antesala.
 Las partidas de sala no cuentan para el ELO (lo verifica `RoomFlowIntegrationTest`).
 
+### Inicio y cierre de sesión (`sesion.spec.ts`)
+1. La portada ofrece **entrar como jugador** o **como organizador**; cada acceso vuelve a su sección (`/app`, `/club`).
+2. Quien tiene club cambia de modo con el selector **Jugador | Organizador** y ve el menú de cada modo.
+3. Una ruta protegida sin sesión vuelve a la misma página después del login.
+4. **Sesión vencida:** si la API responde 401 y no se puede renovar, aparece «Tu sesión expiró» y, tras entrar de
+   nuevo, vuelve a la misma página.
+5. **Cerrar sesión** pide confirmación y la portada avisa «Cerraste sesión».
+
+### Galería de vistas (`galeria.spec.ts`)
+Las 31 vistas y estados (público, jugador, organizador y bienvenida) en 375, 768 y 1280 px. Por vista: captura, axe y
+mediciones (scroll horizontal, controles cortados, objetivos táctiles y títulos pegados al borde). Informe en
+`docs/verificacion/auditoria-ux.md`.
+
 ### Todas las vistas (`vistas.spec.ts`)
 Inicio, Mi perfil, Jugadores, Ranking, Mis partidas, Amigos, Torneos, Crear mi club, portada y ranking público:
 cargan sin errores de JavaScript, **sin violaciones de axe (WCAG 2 A/AA)** y **sin scroll horizontal en 375 px**.
@@ -126,19 +139,6 @@ Con la máquina descargada:
 | `make complexity` · `make tf-check` · `tsc --noEmit` | ✅ |
 | `make demo-seed` dos veces seguidas | ✅ la segunda no duplica nada |
 
-## Resultados anteriores (29-09-2026)
-
-| Prueba | Resultado |
-|---|---|
-| Unitarias e integración Java (users, tournament, game, libs) | ✅ 108, cobertura ≥ 90 % por módulo |
-| ETL (pytest) | ✅ 48, cobertura 98 % |
-| Web (vitest + axe) | ✅ 35 (tres corridas seguidas) |
-| E2E todas las vistas | ✅ |
-| E2E jugador (ficha → desafío → partida → rating) | ✅ en ~10–19 s |
-| E2E organizador (club → torneo → TRF → vista pública) | ✅ en ~9 s |
-| Suite E2E completa | ✅ en 9 de 10 corridas; 1 falla del recorrido del jugador justo después de reiniciar `users` (causa no identificada, ver límites) |
-| `make complexity` (CCN ≤ 10) · `make tf-check` | ✅ |
-
 ## Problemas que encontró la verificación (y quedaron corregidos)
 
 - **Un RUT repetido en una ficha tumbaba el lote completo de `rating.updated`** (hasta 200 jugadores de la carga
@@ -158,10 +158,7 @@ Con la máquina descargada:
 
 ## Límites conocidos
 
-- **Intermitencia pendiente:** el recorrido del jugador falló 1 vez (justo después de reiniciar `users`) y pasó en
-  las corridas siguientes. No quedó registrada la causa porque Playwright reemplaza los resultados de cada corrida;
-  si se repite, revisar `apps/web/e2e/.resultados/` (trace) antes de volver a correr.
-
-- El tenant real de Entra (Google) aún no existe: el login real se prueba con la guía local de configuración.
-- El aviso en vivo de partidas vive en memoria de cada instancia de `game` (1 réplica en el MVP); ver la enmienda
-  de ADR-0002.
+- El login real con Google (Cognito) se prueba a mano con `make dev-idp` y en la nube con
+  `docs/verificacion/nube-aceptacion.md`. Los E2E usan el IdP simulado, porque Google no permite automatizar su login.
+- El long polling de respaldo avisa desde la memoria de cada instancia de `game` (1 réplica en el lab). El WebSocket de
+  API Gateway no tiene ese límite (ADR-0002).

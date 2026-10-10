@@ -131,7 +131,10 @@ GOOGLE_KEYCHAIN := chessquery-google-oauth
 ACADEMY_TF_SECRET = TF_VAR_google_client_secret="$$(security find-generic-password -s $(GOOGLE_KEYCHAIN) -w 2>/dev/null)" $(ACADEMY_TF)
 # Configuración OIDC de la web desde las salidas de Terraform (Cognito). Con Entra se usa apps/web/.env.
 OIDC_ENV = eval "$$(cd $(ACADEMY_DIR) && AWS_PROFILE=$(ACADEMY_PROFILE) terraform output -json | python3 $(CURDIR)/scripts/oidc_env.py)";
-IMAGE_TAG ?= $(shell git rev-parse --short HEAD)
+# Tag de las imágenes: el que dejó el último `make academy-image` (así un commit hecho después no apunta a imágenes que
+# no existen en ECR); si nunca se subieron, el commit actual. Se puede forzar: make academy-apply IMAGE_TAG=<tag>.
+IMAGE_TAG_FILE := $(ACADEMY_DIR)/.image-tag
+IMAGE_TAG ?= $(shell cat $(IMAGE_TAG_FILE) 2>/dev/null || git rev-parse --short HEAD)
 SERVICES := users tournament game
 # Mismo tag para los tres servicios (se construyen juntos desde el mismo commit).
 TAGS_VAR := -var 'image_tags={users="$(IMAGE_TAG)",tournament="$(IMAGE_TAG)",game="$(IMAGE_TAG)"}'
@@ -165,6 +168,8 @@ academy-ecr: academy-init
 academy-apply: academy-init google-secret-check
 	$(ACADEMY_TF_SECRET) apply -var-file=academy.tfvars $(TAGS_VAR)
 
+# Las imágenes se construyen siempre con el commit actual, y su tag queda anotado para los apply siguientes
+academy-image: IMAGE_TAG := $(shell git rev-parse --short HEAD)
 academy-image:
 	repos=$$($(ACADEMY_TF) output -json ecr_repositories); \
 	registry=$$(echo "$$repos" | python3 -c 'import sys,json; print(json.load(sys.stdin)["users"].split("/")[0])'); \
@@ -174,7 +179,8 @@ academy-image:
 	  repo=$$(echo "$$repos" | python3 -c "import sys,json; print(json.load(sys.stdin)['$$svc'])"); \
 	  echo "== $$svc -> $$repo:$(IMAGE_TAG)"; \
 	  mvn -B -ntp -q -pl services/$$svc jib:build -Djib.from.platforms=linux/amd64 -Dimage="$$repo:$(IMAGE_TAG)" || exit 1; \
-	done
+	done; \
+	echo "$(IMAGE_TAG)" > $(IMAGE_TAG_FILE); echo "Imágenes subidas con el tag $(IMAGE_TAG) (anotado en $(IMAGE_TAG_FILE))"
 
 # La URL del WebSocket y el login (Cognito) salen de Terraform; con Entra, el login sale de apps/web/.env
 academy-web:

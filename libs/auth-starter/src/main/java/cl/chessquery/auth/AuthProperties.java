@@ -3,9 +3,9 @@ package cl.chessquery.auth;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuración de identidad. El issuer y la audiencia vienen del app registration
- * de Entra External ID (Google entra federado por ese mismo tenant, así que hay un
- * único emisor). Los servicios no conocen usuarios ni contraseñas: solo validan tokens.
+ * Configuración de identidad. El issuer y la audiencia son los del IdP: el user pool de Cognito en el Learner Lab
+ * (Google federado; audiencia = client id de la web) o un tenant de Entra External ID en la cuenta propia. Los
+ * servicios no conocen usuarios ni contraseñas: solo validan tokens (ADR-0002).
  */
 @ConfigurationProperties(prefix = "chessquery.auth")
 public record AuthProperties(
@@ -13,7 +13,7 @@ public record AuthProperties(
         String usersUrl,
         /** Secreto compartido para rutas /internal/** entre servicios (Secrets Manager en cloud). */
         String internalToken,
-        /** Claim de Entra con app roles (p. ej. ADMIN). */
+        /** Claim con los roles de la app (p. ej. ADMIN), si el IdP los emite. */
         String rolesClaim,
         /** Cabecera X-Origin-Verify para llamar a users a través del ALB (vacío en local). */
         String originSecret,

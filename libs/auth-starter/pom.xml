@@ -12,7 +12,7 @@
 
   <artifactId>chessquery-auth-starter</artifactId>
   <name>chessquery-auth-starter</name>
-  <description>Resource server OIDC (Entra External ID), @CurrentUser y resolución sub → playerId</description>
+  <description>Resource server OIDC (Cognito o Entra External ID), @CurrentUser y resolución sub → playerId</description>
 
   <dependencies>
     <dependency>

@@ -71,7 +71,7 @@ public class PrivacyService {
      * Supresión: anonimiza la fila (se conserva el id porque torneos y partidas lo referencian),
      * borra amistades, registra los identificadores en la lista de supresión para que el ETL no
      * vuelva a importarlos y avisa a los demás servicios con {@code player.deleted}. La cuenta en el
-     * IdP (Entra) se elimina aparte; si vuelve a entrar, se le provisiona un perfil nuevo y vacío.
+     * IdP (Cognito o Entra) se elimina aparte; si vuelve a entrar, se le provisiona un perfil nuevo y vacío.
      */
     @Transactional
     public void erase(Long playerId) {

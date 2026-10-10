@@ -1,23 +1,14 @@
 # Documentación de ChessQuery
 
-## Vigente (se mantiene al día)
-
 | Documento | Para qué |
 |---|---|
-| `arquitectura/arquitectura-v3.md` (+ PDF) | **Empezar acá:** diagrama completo, partida 1 vs 1, flujo del organizador, eventos, Terraform paso a paso y el ETL con Lambda (`make arquitectura-docs`) |
-| `adr/0001-arquitectura-v3.md` | Arquitectura de la v3 y por qué |
-| `adr/0002-despliegue-aws-bajo-costo.md` | Despliegue en AWS, bus SNS/SQS, Terraform; enmiendas: Learner Lab, tiempo real por long polling, CI/Trivy/Dependabot |
+| `arquitectura/arquitectura-v3.md` (+ PDF) | **Empezar acá:** para las partes interesadas (problema, valor, guion de la demo), arquitectura en AWS, jugar y organizar, eventos, Terraform y ETL (`make arquitectura-docs`) |
+| `adr/0001-arquitectura-v3.md` · `adr/0002-despliegue-aws-bajo-costo.md` | Las decisiones y su porqué, con las enmiendas del Learner Lab (entrada, tiempo real, ETL, login con Cognito) |
 | `events.md` | Catálogo de eventos entre servicios: **fuente de verdad**, se edita antes de codificar |
-| `etl/onboarding.md` | Por dónde empezar si trabajas en el ETL |
-| `etl/federacion.md` | Ingesta de la Federación: qué se trae, privacidad, parámetros, runbook |
-| `etl/nueva-fuente.md` · `etl/glosario.md` | Receta para una fuente nueva y términos |
-| `etl/ChessQuery-ETL-guia-equipo.pdf` | Los Markdown del ETL en PDF (se regenera con `make etl-docs`) |
-| `verificacion/flujos-e2e.md` | Qué está verificado de punta a punta en el navegador y qué no |
-
-## Fotos de un momento (no se actualizan)
-
-| Documento | Fecha | Nota |
-|---|---|---|
-| `ChessQuery-v3-estado-proyecto.pdf` y `estado/` | 28-09-2026 | Estado antes de construir torneos y partidas |
-| `verificacion/2026-09-28-decisiones.md` | 28-09-2026 | Verificación de las decisiones de arquitectura en esa fecha |
-| `verificacion/benchmark-v2-vs-v3.md` (+ `.json`) | 28-09-2026 | Rendimiento del servicio de jugadores v2 vs v3 |
+| `auth/cognito-google.md` | Login con Google: cliente OAuth, secreto en el llavero y prueba local con `make dev-idp` |
+| `etl/onboarding.md` · `etl/federacion.md` · `etl/nueva-fuente.md` · `etl/glosario.md` | El ETL: por dónde empezar, la Federación, cómo sumar una fuente y términos (PDF con `make etl-docs`) |
+| `verificacion/plan-de-pruebas.md` | Qué se prueba (caja blanca, caja negra, seguridad, integración, tiempos) y cómo |
+| `verificacion/flujos-e2e.md` | Los recorridos verificados en el navegador, paso a paso, y su último resultado |
+| `verificacion/auditoria-ux.md` | Auditoría de experiencia vista por vista (galería en 375, 768 y 1280 px) |
+| `verificacion/nube-aceptacion.md` | Checklist de aceptación en la nube, rol por rol |
+| `verificacion/benchmark-v2-vs-v3.md` (+ `.json`) | Rendimiento del servicio de jugadores, v2 contra v3 (28-09-2026) |
