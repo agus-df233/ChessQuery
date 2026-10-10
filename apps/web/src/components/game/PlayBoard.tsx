@@ -6,6 +6,22 @@ const NAME: Record<string, string> = { k: 'rey', q: 'dama', r: 'torre', b: 'alfi
 const FEMININE = new Set(['q', 'r']);
 
 /** Piezas por casilla ("e4" → "P") a partir del campo de posiciones del FEN. */
+const PROMOTIONS: [value: string, label: string, white: string, black: string][] = [
+  ['q', 'dama', '♕', '♛'], ['r', 'torre', '♖', '♜'], ['b', 'alfil', '♗', '♝'], ['n', 'caballo', '♘', '♞'],
+];
+
+/** A qué pieza corona un peón: cuatro botones grandes (táctiles), el elegido con aria-pressed. */
+const PromotionPicker = ({ color, value, onChange }: { color: 'WHITE' | 'BLACK'; value: string; onChange: (v: string) => void }) => (
+  <div className="cq-promotion" role="group" aria-label="Coronar a">
+    <span className="cq-muted">Coronar a</span>
+    {PROMOTIONS.map(([v, label, white, black]) => (
+      <button key={v} type="button" aria-pressed={value === v} aria-label={label} title={label} onClick={() => onChange(v)}>
+        <span aria-hidden="true">{color === 'WHITE' ? white : black}</span>
+      </button>
+    ))}
+  </div>
+);
+
 export const piecesFromFen = (fen: string): Record<string, string> => {
   const pieces: Record<string, string> = {};
   fen.split(' ')[0].split('/').forEach((row, i) => {
@@ -90,11 +106,7 @@ export const PlayBoard = ({ fen, myColor, canMove, showPromotion = false, lastMo
         ))}
       </div>
       {myColor && showPromotion && (
-        <label className="cq-muted">Coronar a{' '}
-          <select value={promotion} onChange={(e) => setPromotion(e.target.value)}>
-            <option value="q">dama</option><option value="r">torre</option><option value="b">alfil</option><option value="n">caballo</option>
-          </select>
-        </label>
+        <PromotionPicker color={myColor} value={promotion} onChange={setPromotion} />
       )}
     </div>
   );

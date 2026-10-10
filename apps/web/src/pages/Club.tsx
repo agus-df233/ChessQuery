@@ -212,10 +212,10 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
     if (ok) deactivate.mutate(p.id);
   };
   const columns: TableColumn<Profile>[] = [
-    { key: 'name', header: 'Jugador', render: (p) => `${p.firstName} ${p.lastName}` },
+    { key: 'name', header: 'Jugador', render: (p) => `${p.firstName} ${p.lastName}`, mobile: { full: true, label: '' } },
     { key: 'rut', header: 'RUT', render: (p) => p.rut ?? '—' },
     { key: 'elo', header: 'ELO', align: 'right', render: (p) => p.ratings.national ?? '—' },
-    { key: 'tags', header: 'Etiquetas', render: (p) => (
+    { key: 'tags', header: 'Etiquetas', mobile: { full: true }, render: (p) => (
       <div className="cq-tags">
         {p.tags.map((t) => <Badge key={t}>{t}</Badge>)}
         <button type="button" className="cq-input" style={{ minHeight: 28, padding: '2px 8px' }}
@@ -223,7 +223,7 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
       </div>
     )},
     { key: 'acc', header: 'Cuenta', render: (p) => p.provisional ? <Badge variant="warning">Provisorio</Badge> : <Badge variant="success">Con cuenta</Badge> },
-    { key: 'act', header: 'Acciones', render: (p) => (
+    { key: 'act', header: 'Acciones', mobile: { full: true, label: '' }, render: (p) => (
       <div className="cq-actions">
         {p.provisional && (
           <Button size="sm" onClick={() => invite.mutate(p)} aria-label={`Invitar a ${p.firstName} ${p.lastName} a reclamar su perfil`}>Invitar</Button>
@@ -234,7 +234,7 @@ const RosterTable = ({ active, onChanged }: { active: Profile[]; onChanged: () =
   ];
   return (
     <Card header={`Roster (${active.length} activos)`} padded={false}>
-      <Table label="Roster del club" columns={columns} rows={active} rowKey={(p) => p.id} emptyMessage="Tu roster está vacío." />
+      <Table label="Roster del club" stackOnMobile columns={columns} rows={active} rowKey={(p) => p.id} emptyMessage="Tu roster está vacío." />
       {invite.data && <InviteBox invite={invite.data} />}
       <StatusMessage error={deactivate.error ?? tags.error ?? invite.error} />
       {editing && <TagsDialog player={editing} pending={tags.isPending} onClose={() => setEditing(null)}

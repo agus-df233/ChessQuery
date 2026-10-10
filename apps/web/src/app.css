@@ -6,10 +6,24 @@
 .cq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .cq-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .cq-form label, .cq-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--text-dim); }
-.cq-form input, .cq-form select, .cq-form textarea, .cq-input {
+/* Controles de formulario: mismo estilo dentro y fuera de .cq-form (resultados de mesa, filtros, asignación de tableros) y
+   alto táctil de 40 px. En el celular, fuente de 16 px: con menos, iOS hace zoom al enfocar. */
+.cq-form input, .cq-form select, .cq-form textarea, .cq-input,
+.main select, .cq-public select, .cq-public input:not([type='checkbox']):not([type='radio']) {
   background: var(--bg-elevated, #1a1b18); color: var(--text); border: 1px solid var(--border);
-  border-radius: 8px; padding: 8px 10px; font: inherit; min-height: 36px;
+  border-radius: 8px; padding: 8px 10px; font: inherit; min-height: 40px;
 }
+.main select:focus-visible, .cq-public select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+@media (max-width: 640px) {
+  .cq-form input, .cq-form select, .cq-form textarea, .cq-input, .main select, .cq-public select, .cq-public input { font-size: 16px; }
+  .table-stack select { width: 100%; }
+}
+/* Coronación: cuatro piezas como botones */
+.cq-promotion { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cq-promotion button { min-width: 44px; min-height: 44px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 26px; line-height: 1; cursor: pointer; }
+.cq-promotion button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-dim); }
+.cq-promotion button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cq-form input:focus-visible, .cq-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cq-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 /* Pasos del asistente de bienvenida: el grupo ocupa todo el ancho y las opciones de radio van en una línea */
@@ -78,6 +92,11 @@
 .cq-room-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 760px) { .cq-room-grid { grid-template-columns: 1fr; } }
 .cq-room-board { border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--surface, transparent); }
+/* Puestos de un tablero: blancas y negras lado a lado, etiqueta arriba */
+.cq-seats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.cq-seats > button { grid-column: 1 / -1; justify-self: start; }
+.cq-seat { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-dim); min-width: 0; }
+.cq-seat select { width: 100%; }
 .cq-room-board-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .cq-mini-board { display: grid; grid-template-columns: repeat(8, 1fr); width: 100%; max-width: 360px; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--border-hi); border-radius: 4px; overflow: hidden; }
 .cq-mini-sq { display: flex; align-items: center; justify-content: center; font-size: clamp(14px, 3.2vw, 30px); line-height: 1; }

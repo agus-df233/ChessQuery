@@ -6,6 +6,11 @@ export interface TableColumn<T> {
   width?: number | string;
   align?: 'left' | 'center' | 'right';
   render: (row: T, index: number) => ReactNode;
+  /**
+   * Cómo se ve la celda en el celular cuando la tabla se apila (`stackOnMobile`): `full` ocupa todo el ancho de la
+   * tarjeta, `order` la reubica (p. ej. el resultado al final), `hide` la oculta y `label` reemplaza al encabezado.
+   */
+  mobile?: { full?: boolean; order?: number; hide?: boolean; label?: string };
 }
 
 export interface TableProps<T> {
@@ -20,12 +25,25 @@ export interface TableProps<T> {
    * este nombre, para poder desplazarla con el teclado (WCAG 2.1.1).
    */
   label?: string;
+  /**
+   * Bajo 600 px cada fila se vuelve una tarjeta con la etiqueta de cada dato (en vez de desplazarse en horizontal).
+   * Se conservan los roles de tabla (table/row/cell) para los lectores de pantalla.
+   */
+  stackOnMobile?: boolean;
+  /** Datos por fila de la tarjeta apilada (2 por defecto; 3 para tablas con muchos números, como la clasificación). */
+  stackColumns?: 2 | 3;
 
   // Pagination (optional, server-side)
   page?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
 }
+
+const cellClass = <T,>(c: TableColumn<T>) =>
+  [c.mobile?.full && 'cell-full', c.mobile?.hide && 'cell-hide-mobile'].filter(Boolean).join(' ') || undefined;
+
+const cellStyle = <T,>(c: TableColumn<T>) =>
+  ({ textAlign: c.align ?? 'left', ...(c.mobile?.order != null ? { ['--cell-order' as string]: c.mobile.order } : {}) });
 
 export function Table<T>({
   columns,
@@ -34,6 +52,8 @@ export function Table<T>({
   emptyMessage = 'Sin resultados',
   activeRowKey,
   label = 'Tabla',
+  stackOnMobile = false,
+  stackColumns = 2,
   page,
   totalPages,
   onPageChange,
@@ -41,17 +61,18 @@ export function Table<T>({
   return (
     <div>
       <div style={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label={label}>
-        <table>
-          <thead>
-            <tr>
+        <table className={stackOnMobile ? 'table-stack' : undefined} role={stackOnMobile ? 'table' : undefined}
+               style={stackOnMobile ? ({ ['--stack-cols' as string]: stackColumns }) : undefined}>
+          <thead role={stackOnMobile ? 'rowgroup' : undefined}>
+            <tr role={stackOnMobile ? 'row' : undefined}>
               {columns.map((c) => (
-                <th key={c.key} style={{ width: c.width, textAlign: c.align ?? 'left' }}>
+                <th key={c.key} role={stackOnMobile ? 'columnheader' : undefined} style={{ width: c.width, textAlign: c.align ?? 'left' }}>
                   {c.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody role={stackOnMobile ? 'rowgroup' : undefined}>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px 16px' }}>
@@ -65,6 +86,7 @@ export function Table<T>({
                 return (
                   <tr
                     key={key}
+                    role={stackOnMobile ? 'row' : undefined}
                     data-active={active || undefined}
                     style={active ? {
                       background: 'rgba(106,191,116,0.1)',
@@ -72,7 +94,9 @@ export function Table<T>({
                     } : undefined}
                   >
                     {columns.map((c) => (
-                      <td key={c.key} style={{ textAlign: c.align ?? 'left' }}>
+                      <td key={c.key} role={stackOnMobile ? 'cell' : undefined} style={cellStyle(c)}
+                          data-label={c.mobile?.label ?? (typeof c.header === 'string' ? c.header : '')}
+                          className={cellClass(c)}>
                         {c.render(row, i)}
                       </td>
                     ))}

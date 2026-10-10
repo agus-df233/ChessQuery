@@ -66,9 +66,10 @@ const SeatPicker = ({ room, board, onAssign }: { room: RoomView; board: RoomBoar
   const [white, setWhite] = useState<number | null>(board.white?.playerId ?? null);
   const [black, setBlack] = useState<number | null>(board.black?.playerId ?? null);
   useEffect(() => { setWhite(board.white?.playerId ?? null); setBlack(board.black?.playerId ?? null); }, [board.white, board.black]);
+  // Etiqueta visible corta («Blancas»), nombre accesible completo («Blancas tablero 1») para lectores y pruebas
   const select = (label: string, value: number | null, set: (v: number | null) => void) => (
-    <label>{label}
-      <select value={value ?? ''} onChange={(e) => set(e.target.value ? Number(e.target.value) : null)}>
+    <label className="cq-seat"><span>{label.split(' ')[0]}</span>
+      <select aria-label={label} value={value ?? ''} onChange={(e) => set(e.target.value ? Number(e.target.value) : null)}>
         <option value="">— libre —</option>
         {room.members.map((m) => (
           <option key={m.playerId} value={m.playerId}>{m.name}{m.boardNo && m.boardNo !== board.boardNo ? ` (tablero ${m.boardNo})` : ''}</option>
@@ -77,11 +78,11 @@ const SeatPicker = ({ room, board, onAssign }: { room: RoomView; board: RoomBoar
     </label>
   );
   return (
-    <>
+    <div className="cq-seats">
       {select(`Blancas tablero ${board.boardNo}`, white, setWhite)}
       {select(`Negras tablero ${board.boardNo}`, black, setBlack)}
       <Button size="sm" variant="secondary" onClick={() => onAssign(white, black)}>Guardar puestos</Button>
-    </>
+    </div>
   );
 };
 

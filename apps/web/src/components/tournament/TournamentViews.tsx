@@ -20,9 +20,9 @@ export const TournamentHeader = ({ t }: { t: TournamentView }) => (
 /** Tabla con desempates: Buchholz corte 1, Buchholz, Sonneborn-Berger y victorias. */
 export const StandingsCard = ({ rows }: { rows: StandingView[] }) => {
   const columns: TableColumn<StandingView>[] = [
-    { key: 'pos', header: '#', width: 44, render: (r) => r.position },
-    { key: 'name', header: 'Jugador', render: (r) => name(r.player) },
-    { key: 'pts', header: 'Pts', align: 'right', render: (r) => <strong>{r.points.toFixed(1)}</strong> },
+    { key: 'pos', header: '#', width: 44, render: (r) => r.position, mobile: { label: 'Puesto' } },
+    { key: 'name', header: 'Jugador', render: (r) => name(r.player), mobile: { full: true, order: -1, label: '' } },
+    { key: 'pts', header: 'Pts', align: 'right', render: (r) => <strong>{r.points.toFixed(1)}</strong>, mobile: { label: 'Puntos' } },
     { key: 'bc1', header: 'Bu-1', align: 'right', render: (r) => r.buchholzCut1.toFixed(1) },
     { key: 'bu', header: 'Bu', align: 'right', render: (r) => r.buchholz.toFixed(1) },
     { key: 'sb', header: 'SB', align: 'right', render: (r) => r.sonnebornBerger.toFixed(2) },
@@ -30,7 +30,7 @@ export const StandingsCard = ({ rows }: { rows: StandingView[] }) => {
   ];
   return (
     <Card header="Clasificación" padded={false}>
-      <Table label="Clasificación" columns={columns} rows={rows} rowKey={(r) => r.player.playerId} emptyMessage="Aún no hay resultados." />
+      <Table label="Clasificación" stackOnMobile stackColumns={3} columns={columns} rows={rows} rowKey={(r) => r.player.playerId} emptyMessage="Aún no hay resultados." />
       <p className="cq-muted" style={{ padding: '8px 16px', margin: 0 }}>
         Bu-1: Buchholz sin el peor rival · Bu: Buchholz · SB: Sonneborn-Berger · V: victorias
       </p>
@@ -40,8 +40,8 @@ export const StandingsCard = ({ rows }: { rows: StandingView[] }) => {
 
 export const PlayersCard = ({ players }: { players: EntryView[] }) => {
   const columns: TableColumn<EntryView>[] = [
-    { key: 'n', header: 'N°', width: 44, render: (e) => e.startRank },
-    { key: 'name', header: 'Jugador', render: (e) => (e.withdrawnFromRound
+    { key: 'n', header: 'N°', width: 44, render: (e) => e.startRank, mobile: { label: 'N° inicial' } },
+    { key: 'name', header: 'Jugador', mobile: { full: true, order: -1, label: '' }, render: (e) => (e.withdrawnFromRound
       ? <>{name(e.player)} <span className="cq-muted">· retirado desde la ronda {e.withdrawnFromRound}</span></>
       : name(e.player)) },
     { key: 'club', header: 'Club', render: (e) => e.clubName ?? '—' },
@@ -49,7 +49,7 @@ export const PlayersCard = ({ players }: { players: EntryView[] }) => {
   ];
   return (
     <Card header={`Inscritos (${players.length})`} padded={false}>
-      <Table label="Inscritos" columns={columns} rows={players} rowKey={(e) => e.player.playerId} emptyMessage="Todavía no hay inscritos." />
+      <Table label="Inscritos" stackOnMobile stackColumns={3} columns={columns} rows={players} rowKey={(e) => e.player.playerId} emptyMessage="Todavía no hay inscritos." />
     </Card>
   );
 };
@@ -59,14 +59,16 @@ export const RoundCard = ({ round, renderResult }: {
   round: RoundView; renderResult?: (board: RoundView['boards'][number]) => React.ReactNode;
 }) => {
   const columns: TableColumn<RoundView['boards'][number]>[] = [
-    { key: 'b', header: 'Mesa', width: 56, render: (b) => b.board },
-    { key: 'w', header: 'Blancas', render: (b) => name(b.white) },
-    { key: 'r', header: 'Resultado', align: 'center', render: (b) => (renderResult && b.black ? renderResult(b) : b.resultLabel ?? 'pendiente') },
-    { key: 'n', header: 'Negras', render: (b) => (b.black ? name(b.black) : 'descansa (bye)') },
+    // En el celular: «Mesa N» arriba, blancas y negras lado a lado y el resultado a todo el ancho al final
+    { key: 'b', header: 'Mesa', width: 56, render: (b) => b.board, mobile: { full: true, order: -1 } },
+    { key: 'w', header: 'Blancas', render: (b) => name(b.white), mobile: { order: 1 } },
+    { key: 'r', header: 'Resultado', align: 'center', mobile: { full: true, order: 3 },
+      render: (b) => (renderResult && b.black ? renderResult(b) : b.resultLabel ?? 'pendiente') },
+    { key: 'n', header: 'Negras', render: (b) => (b.black ? name(b.black) : 'descansa (bye)'), mobile: { order: 2 } },
   ];
   return (
     <Card header={`Ronda ${round.number}${round.complete ? '' : ' · en juego'}`} padded={false}>
-      <Table label={`Mesas de la ronda ${round.number}`} columns={columns} rows={round.boards} rowKey={(b) => b.board} />
+      <Table label={`Mesas de la ronda ${round.number}`} stackOnMobile columns={columns} rows={round.boards} rowKey={(b) => b.board} />
     </Card>
   );
 };

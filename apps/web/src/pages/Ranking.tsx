@@ -21,8 +21,8 @@ export const Ranking = ({ publicView = false }: { publicView?: boolean }) => {
   });
   const typeInfo = RANKED_TYPES.find((t) => t.type === type) ?? RANKED_TYPES[0];
   const columns: TableColumn<RankingEntry>[] = [
-    { key: 'pos', header: '#', width: 48, render: (r) => r.position },
-    { key: 'name', header: 'Jugador', render: (r) => publicView
+    { key: 'pos', header: '#', width: 48, render: (r) => r.position, mobile: { label: 'Puesto' } },
+    { key: 'name', header: 'Jugador', mobile: { full: true, order: -1, label: '' }, render: (r) => publicView
         ? displayName(r)
         : <Link to={`/app/jugadores/${r.playerId}`}>{displayName(r)}</Link> },
     { key: 'club', header: 'Club', render: (r) => r.clubName ?? '—' },
@@ -48,7 +48,7 @@ export const Ranking = ({ publicView = false }: { publicView?: boolean }) => {
       </div>
       {ranking.isLoading && <Skeleton height={200} />}
       {ranking.error && <ErrorAlert message="No se pudo cargar el ranking" onRetry={() => void ranking.refetch()} />}
-      {ranking.data && <Card padded={false}><Table label="Ranking" columns={columns} rows={ranking.data} rowKey={(r) => r.playerId} emptyMessage={`Nadie con rating ${typeInfo.label.toLowerCase()} en ese filtro.`} /></Card>}
+      {ranking.data && <Card padded={false}><Table label="Ranking" stackOnMobile columns={columns} rows={ranking.data} rowKey={(r) => r.playerId} emptyMessage={`Nadie con rating ${typeInfo.label.toLowerCase()} en ese filtro.`} /></Card>}
     </div>
   );
 };

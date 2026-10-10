@@ -16,7 +16,7 @@ export const PlayerSearch = () => {
   const [q, setQ] = useState('');
   const results = useQuery({ queryKey: ['search', q], queryFn: () => usersApi.search(q), enabled: q.length >= 2 });
   const columns: TableColumn<SearchResult>[] = [
-    { key: 'name', header: 'Jugador', render: (r) => <Link to={`/app/jugadores/${r.id}`}>{displayName(r)}</Link> },
+    { key: 'name', header: 'Jugador', render: (r) => <Link to={`/app/jugadores/${r.id}`}>{displayName(r)}</Link>, mobile: { full: true, label: '' } },
     { key: 'club', header: 'Club', render: (r) => r.clubName ?? '—' },
     { key: 'nat', header: 'ELO Nac.', align: 'right', render: (r) => r.eloNational ?? '—' },
     { key: 'fide', header: 'FIDE', align: 'right', render: (r) => r.eloFideStandard ?? '—' },
@@ -33,7 +33,7 @@ export const PlayerSearch = () => {
       {results.error && <ErrorAlert message="No se pudo buscar" onRetry={() => void results.refetch()} />}
       {results.data && (results.data.length === 0
         ? <EmptyState title="Sin resultados" description="Prueba con otro nombre o revisa el RUT." />
-        : <Card padded={false}><Table label="Resultados de la búsqueda" columns={columns} rows={results.data} rowKey={(r) => r.id} /></Card>)}
+        : <Card padded={false}><Table label="Resultados de la búsqueda" stackOnMobile columns={columns} rows={results.data} rowKey={(r) => r.id} /></Card>)}
     </div>
   );
 };
