@@ -22,13 +22,13 @@
     <java.version>21</java.version>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jacoco.version>0.8.13</jacoco.version>
+    <jacoco.version>0.8.15</jacoco.version>
     <jacoco.minimum>0.90</jacoco.minimum>
     <spring-cloud-aws.version>3.4.2</spring-cloud-aws.version>
     <!-- Driver JDBC por sobre el de Spring Boot 3.5.16 (42.7.11): CVE-2026-54291 (HIGH), corregido en 42.7.12.
          Quitar cuando Spring Boot traiga una versión igual o mayor (lo detectan Trivy y Dependabot). -->
     <postgresql.version>42.7.13</postgresql.version>
-    <jib.version>3.4.5</jib.version>
+    <jib.version>3.5.2</jib.version>
     <!-- Solo los servicios generan imagen; las libs (y el pom raíz) la saltan. -->
     <jib.skip>true</jib.skip>
     <!-- Imagen: se sobreescribe en CD con -Dimage=<ecr>/chessquery/<servicio>:<tag> -->
